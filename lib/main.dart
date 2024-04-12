@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
-import 'screens/teste.dart'; // Ajuste o caminho de importação conforme necessário
+import 'screens/welcome_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+// import 'screens/teste.dart';
 
-void main() {
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+  options: DefaultFirebaseOptions.currentPlatform,
+);
   runApp(const MeuApp());
 }
 
@@ -29,26 +36,25 @@ class Home extends StatelessWidget {
     //double larguraTela = MediaQuery.of(context).size.width;
     return Scaffold(
       body: SingleChildScrollView(
-        // Permite rolagem caso o conteúdo exceda a altura da tela
-        child: Column(
-          crossAxisAlignment:
-          CrossAxisAlignment.stretch, // Estica os filhos horizontalmente
-          children: <Widget>[
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
             Align(
-              alignment:
-              Alignment.topCenter, // Alinha a imagem ao topo centralizado
-              child: Image.asset(
-                'assets/images/logoInject.jpeg',
-                fit: BoxFit
-                    .fitWidth, // Mantém as proporções originais, ajustando a largura
+                alignment: Alignment.topCenter,
+                child: Container(
+                  margin: const EdgeInsets.only(top: 20),  
+                  child: Image.asset(
+                  'assets/images/logoInject.jpeg',
+                  width: 200,
+                  height: 90,
+                  fit: BoxFit.fitWidth,
+                  ),
+                ),
               ),
-            ),
             Padding(
-              padding: const EdgeInsets.only(
-                  top: 16.0), // Espaçamento entre as imagens
+              padding: const EdgeInsets.only(top: 5.0), // Espaçamento entre as imagens
               child: Image.asset(
                 'assets/images/inject.jpeg',
-                //width: larguraTela * 0.8, // 80% da largura da tela
                 fit: BoxFit.fitWidth,
               ),
             ),
@@ -73,11 +79,11 @@ class Home extends StatelessWidget {
                       onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) =>  HomePage()),
+                        MaterialPageRoute(builder: (context) =>  /*RegistrationScreen*/const WelcomePage()),
                       );
                     },
                     child: const Row(
-                      mainAxisSize: MainAxisSize.min, // Minimiza o tamanho da Row baseado nos filhos
+                      mainAxisSize: MainAxisSize.min, 
                       children: <Widget>[
                         Text('Iniciar '),
                         Icon(Icons.arrow_forward), 

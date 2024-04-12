@@ -1,84 +1,56 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:inject_go/main.dart';
 
-void main() => runApp(MyApp());
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: HomePage(),
-    );
-  }
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(MeuApp());
 }
 
-class HomePage extends StatefulWidget {
+
+class RegistrationScreen extends StatefulWidget {
   @override
-  _HomePageState createState() => _HomePageState();
+  _RegistrationScreenState createState() => _RegistrationScreenState();
 }
 
-class _HomePageState extends State<HomePage> {
-  String _choice = '';
+class _RegistrationScreenState extends State<RegistrationScreen> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
 
-  void _showDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Você mora em Fortaleza?"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              RadioListTile<String>(
-                title: const Text('Sim'),
-                value: 'sim',
-                groupValue: _choice,
-                onChanged: (value) {
-                  setState(() {
-                    _choice = value!;
-                    Navigator.pop(context); // Fecha o dialog
-                    // Aqui, você poderia navegar para outra página ou exibir mais conteúdo
-                  });
-                },
-              ),
-              RadioListTile<String>(
-                title: const Text('Não'),
-                value: 'não',
-                groupValue: _choice,
-                onChanged: (value) {
-                  setState(() {
-                    _choice = value!;
-                    Navigator.pop(context); // Fecha o dialog
-                    _showMessage();
-                  });
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _showMessage() {
-    if (_choice == 'não') {
-      final snackBar = SnackBar(
-        content: Text('Infelizmente você não está apto para nosso app ainda.\nMas não se preocupe! Nós iremos te mandar um e-mail, para quando o nosso App estiver disponível para atender sua região :)'),
-        duration: Duration(seconds: 15),
-      );
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-    }
+  Future<void> registerUser() async {
+    // Aqui você pode adicionar validação para os dados inseridos
+    FirebaseFirestore.instance.collection('users').add({
+      'name': _nameController.text,
+      'email': _emailController.text,
+      // Adicione outros campos conforme necessário
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Demonstração'),
+        title: Text('Cadastro'),
       ),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: _showDialog,
-          child: Text('Clique aqui'),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: <Widget>[
+            TextField(
+              controller: _nameController,
+              decoration: InputDecoration(labelText: 'Nome'),
+            ),
+            TextField(
+              controller: _emailController,
+              decoration: InputDecoration(labelText: 'Email'),
+            ),
+            ElevatedButton(
+              onPressed: registerUser,
+              child: Text('Registrar'),
+            ),
+          ],
         ),
       ),
     );

@@ -1,10 +1,10 @@
-// ignore_for_file: file_names, use_build_context_synchronously
+// ignore_for_file: file_names, use_build_context_synchronously, library_private_types_in_public_api
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
-import 'loginScreen.dart';
-import 'cadastroScreen.dart';
-import 'package:inject_go/home.dart';
+import 'login_screen.dart';
+import 'cadastro_screen.dart';
+import 'package:inject_go/main.dart';
 
 void main() {
   runApp(const MyApp());
@@ -34,6 +34,27 @@ class WelcomePage extends StatefulWidget {
 }
 
 class _WelcomePageState extends State<WelcomePage> {
+  final TextEditingController _emailController = TextEditingController();
+  bool _isButtonEnabled = false; 
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_validateEmail);
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  void _validateEmail() {
+    setState(() {
+      _isButtonEnabled = _emailController.text.isNotEmpty && _emailController.text.contains('@') && _emailController.text.contains('.');
+    });
+  }
+
   Future<void> _showTermsDialog(BuildContext context) async {
     String terms;
     try {
@@ -63,24 +84,37 @@ class _WelcomePageState extends State<WelcomePage> {
     );
   }
 
+void onContinuePressed() {
+  if (_isButtonEnabled) {
+    _showEligibilityDialog();
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Por favor, preencha o campo de e-mail corretamente antes de continuar."),
+        duration: Duration(seconds: 5),
+      ),
+    );
+  }
+}
+
 void _showEligibilityDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Você mora em Fortaleza?"),
+          title: const Text("Você mora em Fortaleza?"),
           actions: <Widget>[
             TextButton(
-              child: Text("Sim"),
+              child: const Text("Sim"),
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => SignUpScreen()),
+                  MaterialPageRoute(builder: (context) => const SignUpScreen()),
                 );
               },
             ),
             TextButton(
-              child: Text("Não"),
+              child: const Text("Não"),
               onPressed: () {
                 Navigator.of(context).pop();
                 // Exibe a mensagem de ineligibilidade
@@ -98,7 +132,7 @@ void _showEligibilityDialog() {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Aviso"),
+          title: const Text("Aviso"),
           content: const SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
@@ -113,7 +147,7 @@ void _showEligibilityDialog() {
           ),
           actions: <Widget>[
             TextButton(
-              child: Text('OK'),
+              child: const Text('OK'),
               onPressed: () {
                 Navigator.of(context).pop();
               },
@@ -140,7 +174,7 @@ void _showEligibilityDialog() {
         title: const Text('Seja bem vindo(a)!'), //título da pag
         centerTitle: true,
       ),
-      body: Padding(
+       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
          child: Column(
           crossAxisAlignment:
@@ -151,8 +185,9 @@ void _showEligibilityDialog() {
               Alignment.topCenter, 
               child: Image.asset(
                 'assets/images/logoInject.jpeg',  //logo da marca
-                fit: BoxFit
-                    .fitWidth, 
+                fit: BoxFit.fitWidth,
+                width: 300,
+                height: 150, 
               ),
             ),
 
@@ -164,23 +199,28 @@ void _showEligibilityDialog() {
 
             const SizedBox(height: 16.0),
             TextFormField(
+              controller: _emailController,
               decoration: 
                 const InputDecoration(
                   labelText: 'Digite seu melhor e-mail',
                   prefixIcon: Icon(Icons.mail),
+                  hintText: 'email@teste.com',
                 ),
-
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Por favor, preencha seu e-mail';
-                }
-                return null;
-              },
             ),
 
+            const SizedBox(height: 8.0),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _isButtonEnabled ? Colors.pink : Colors.grey,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: /*onContinuePressed,*/
+                (){Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SignUpScreen()),
+                );},
+
               child: const Text('Continue'),
-              onPressed: _showEligibilityDialog,
             ),
 
             const SizedBox(height: 16.0),
@@ -215,7 +255,7 @@ void _showEligibilityDialog() {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => LoginScreen()),
+                        MaterialPageRoute(builder: (context) => const LoginScreen()),
                       );
                     }
                 ),
