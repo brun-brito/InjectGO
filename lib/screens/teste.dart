@@ -1,56 +1,162 @@
-import 'package:firebase_core/firebase_core.dart';
+// import 'dart:async';
+// import 'dart:math';
+// import 'package:flutter/material.dart';
+
+// void main() {
+//   runApp(MyApp());
+// }
+
+// class MyApp extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return MaterialApp(
+//       home: RandomNumberScreen(),
+//     );
+//   }
+// }
+
+// class RandomNumberScreen extends StatefulWidget {
+//   @override
+//   _RandomNumberScreenState createState() => _RandomNumberScreenState();
+// }
+
+// class _RandomNumberScreenState extends State<RandomNumberScreen> {
+//   String _randomNumber = '';
+//   late Timer _timer;
+//   double _progress = 0;  // Progresso do indicador de carregamento
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _generateRandomNumber();
+//     _timer = Timer.periodic(Duration(seconds: 1), (Timer t) {
+//       setState(() {
+//         _progress += 1/30;  // Atualiza o progresso a cada segundo
+//         if (_progress >= 1) {
+//           _generateRandomNumber();
+//           _progress = 0;  // Reinicia o progresso após 30 segundos
+//         }
+//       });
+//     });
+//   }
+
+//   void _generateRandomNumber() {
+//     final randomNumber = Random().nextInt(900000) + 100000; // Garante um número de 6 dígitos
+//     setState(() {
+//       _randomNumber = randomNumber.toString();
+//     });
+//   }
+
+//   @override
+//   void dispose() {
+//     _timer.cancel(); // evitar vazamento de memória
+//     super.dispose();
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text('Gerador de Token Único'),
+//       ),
+//       body: Center(
+//         child: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           children: [
+//             Text(
+//               _randomNumber,
+//               style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
+//             ),
+//             SizedBox(height: 24),  // Espaçamento entre o número e o indicador
+//             CircularProgressIndicator(
+//               value: _progress,  // Vincula o valor do progresso ao indicador
+//               backgroundColor: Colors.grey[300],
+//               valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+//             ),
+//             SizedBox(height: 8),  // Espaçamento
+//             Text('Atualizando token em ${(30 - _progress * 30).round()} segundos'),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:inject_go/main.dart';
+import 'package:http/http.dart' as http;
+import 'dart:async';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(MeuApp());
+void main() {
+  runApp(MyApp());
 }
 
-
-class RegistrationScreen extends StatefulWidget {
+class MyApp extends StatelessWidget {
   @override
-  _RegistrationScreenState createState() => _RegistrationScreenState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Random Number Viewer',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: RandomNumberScreen(),
+    );
+  }
 }
 
-class _RegistrationScreenState extends State<RegistrationScreen> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
+class RandomNumberScreen extends StatefulWidget {
+  @override
+  _RandomNumberScreenState createState() => _RandomNumberScreenState();
+}
 
-  Future<void> registerUser() async {
-    // Aqui você pode adicionar validação para os dados inseridos
-    FirebaseFirestore.instance.collection('users').add({
-      'name': _nameController.text,
-      'email': _emailController.text,
-      // Adicione outros campos conforme necessário
+class _RandomNumberScreenState extends State<RandomNumberScreen> {
+  String _randomNumber = 'Loading...';
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchNumber();
+    _timer = Timer.periodic(Duration(seconds: 30), (timer) {
+      _fetchNumber();
     });
+  }
+
+  Future<void> _fetchNumber() async {
+    try {
+      final response = await http.get(Uri.parse('http://127.0.0.1:8080/random-number'));
+      if (response.statusCode == 200) {
+        setState(() {
+          _randomNumber = response.body;
+        });
+      } else {
+        setState(() {
+          _randomNumber = 'Error fetching number';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _randomNumber = 'Error: $e';
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Cadastro'),
+        title: Text('Random Number Viewer'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: <Widget>[
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(labelText: 'Nome'),
-            ),
-            TextField(
-              controller: _emailController,
-              decoration: InputDecoration(labelText: 'Email'),
-            ),
-            ElevatedButton(
-              onPressed: registerUser,
-              child: Text('Registrar'),
-            ),
-          ],
+      body: Center(
+        child: Text(
+          _randomNumber,
+          style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
         ),
       ),
     );

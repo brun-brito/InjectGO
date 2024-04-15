@@ -1,4 +1,5 @@
 // ignore_for_file: file_names, use_build_context_synchronously, library_private_types_in_public_api
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
@@ -36,127 +37,7 @@ class WelcomePage extends StatefulWidget {
 class _WelcomePageState extends State<WelcomePage> {
   final TextEditingController _emailController = TextEditingController();
   bool _isButtonEnabled = false; 
-
-  @override
-  void initState() {
-    super.initState();
-    _emailController.addListener(_validateEmail);
-  }
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    super.dispose();
-  }
-
-  void _validateEmail() {
-    setState(() {
-      _isButtonEnabled = _emailController.text.isNotEmpty && _emailController.text.contains('@') && _emailController.text.contains('.');
-    });
-  }
-
-  Future<void> _showTermsDialog(BuildContext context) async {
-    String terms;
-    try {
-      terms = await rootBundle.loadString('assets/terms/termoServico.txt');
-    } catch (e) {
-      terms = 'Não foi possível carregar os termos de serviço.';
-    }
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Termos de Serviço InjectGO'),
-          content: SingleChildScrollView(
-            child: Text(terms),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Fechar'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-void onContinuePressed() {
-  if (_isButtonEnabled) {
-    _showEligibilityDialog();
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Por favor, preencha o campo de e-mail corretamente antes de continuar."),
-        duration: Duration(seconds: 5),
-      ),
-    );
-  }
-}
-
-void _showEligibilityDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Você mora em Fortaleza?"),
-          actions: <Widget>[
-            TextButton(
-              child: const Text("Sim"),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SignUpScreen()),
-                );
-              },
-            ),
-            TextButton(
-              child: const Text("Não"),
-              onPressed: () {
-                Navigator.of(context).pop();
-                // Exibe a mensagem de ineligibilidade
-                _showIneligibilityMessage();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showIneligibilityMessage() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Aviso"),
-          content: const SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-              Text(
-                "Infelizmente o nosso app não chegou na sua região ainda 😭\nMas não se preocupe! Nós iremos te mandar um e-mail, assim que o App estiver disponível para te atender 🥳",
-                style: TextStyle(
-                  fontSize: 20, // Aumente o valor de fontSize conforme necessário
-                ),
-              ),
-            ]
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
+  String? _selectedState;
 
   @override
   Widget build(BuildContext context) {
@@ -208,20 +89,46 @@ void _showEligibilityDialog() {
                 ),
             ),
 
-            const SizedBox(height: 8.0),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _isButtonEnabled ? Colors.pink : Colors.grey,
-                foregroundColor: Colors.white,
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(
+                labelText: 'Estado de residência',
+                prefixIcon: Icon(Icons.maps_home_work_outlined),
               ),
-              onPressed: /*onContinuePressed,*/
-                (){Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SignUpScreen()),
-                );},
-
-              child: const Text('Continue'),
+              value: _selectedState,
+              items: <String>[
+                'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO',
+                'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',
+                'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+              ].map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              onChanged: (newValue) {
+                setState(() {
+                  _selectedState = newValue;
+                  _isButtonEnabled = _emailController.text.isNotEmpty &&
+                    _emailController.text.contains('@') &&
+                    _emailController.text.contains('.') &&
+                    _selectedState == 'CE';
+                });
+              },
             ),
+
+
+            const SizedBox(height: 8.0),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _isButtonEnabled ? Colors.pink : Colors.grey,
+              foregroundColor: Colors.white,
+            ),
+              onPressed:(){ 
+                onContinuePressed();
+                },
+            child: const Text('Continue'),
+          ),
+
 
             const SizedBox(height: 16.0),
             RichText(
@@ -255,7 +162,7 @@ void _showEligibilityDialog() {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const LoginScreen()),
+                        MaterialPageRoute(builder: (context) => LoginForm()),
                       );
                     }
                 ),
@@ -266,4 +173,139 @@ void _showEligibilityDialog() {
       ),
     );
   }
+
+ @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_validateEmail);
+  }
+
+  void _validateEmail() {
+    setState(() {
+      _isButtonEnabled = _emailController.text.isNotEmpty &&
+        _emailController.text.contains('@') &&
+        _emailController.text.contains('.') &&
+        _selectedState == 'CE';
+    });
+  }
+
+  Future<void> _showTermsDialog(BuildContext context) async {
+    String terms;
+    try {
+      terms = await rootBundle.loadString('assets/terms/termoServico.txt');
+    } catch (e) {
+      terms = 'Não foi possível carregar os termos de serviço.';
+    }
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Termos de Serviço InjectGO'),
+          content: SingleChildScrollView(
+            child: Text(terms),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Fechar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+void onContinuePressed() {
+ if (_isButtonEnabled) {
+    addEmail(_emailController.text,{}); //add no banco e leva pro cadastro
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) =>  const SignUpScreen()),
+    );
+  }
+  else if (_emailController.text.isNotEmpty && _selectedState == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Por favor, selecione uma UF."),
+        duration: Duration(seconds: 5),
+      ),
+    );
+  }
+  else if (_emailController.text.isNotEmpty && _selectedState != 'CE') {
+      addEmailIndisponivel(_emailController.text,{}); // add no banco
+      _showIneligibilityMessage();  // mostra a mensagem que nao esta disponível
+  }
+  else{
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Por favor, preencha o campo de e-mail corretamente antes de continuar."),
+        duration: Duration(seconds: 5),
+      ),
+    );
+  }
+}
+
+  void _showIneligibilityMessage() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Aviso"),
+          content: const SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+              Text(
+                "Infelizmente o nosso app não chegou na sua região ainda 😭\nMas não se preocupe! Nós iremos te mandar um e-mail, assim que o App estiver disponível para te atender 🥳",
+                style: TextStyle(
+                  fontSize: 20, // Aumente o valor de fontSize conforme necessário
+                ),
+              ),
+            ]
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+Future<void> addEmail(String email, Map<String, dynamic> userData) async {  
+  FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+  Map<String, dynamic> fullUserData = {
+    'email': email,  
+    'UF': _selectedState
+  };
+  // Insere os dados no Firestore
+  await firestore
+    .collection('email')
+    .doc()
+    .set(fullUserData, SetOptions(merge: false));
+}
+
+
+Future<void> addEmailIndisponivel(String email, Map<String, dynamic> userData) async {  
+  FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+  Map<String, dynamic> fullUserData = {
+    'email': email,  
+    'UF': _selectedState
+  };
+  // Insere os dados no Firestore
+  await firestore
+    .collection('email-uf-indisponivel')
+    .doc()
+    .set(fullUserData, SetOptions(merge: false));
+}
+
 }

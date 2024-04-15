@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'screens/welcome_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-// import 'screens/teste.dart';
+import 'screens/teste.dart';
+import 'server/activate_server.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
@@ -79,7 +80,7 @@ class Home extends StatelessWidget {
                       onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) =>  /*RegistrationScreen*/const WelcomePage()),
+                        MaterialPageRoute(builder: (context) =>  const WelcomePage() /*TokenPage()*/),
                       );
                     },
                     child: const Row(

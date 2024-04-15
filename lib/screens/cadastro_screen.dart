@@ -1,5 +1,6 @@
 // ignore_for_file: library_private_types_in_public_api
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:inject_go/screens/welcome_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -36,6 +37,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _birthDateController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   String? _senha;
@@ -262,6 +264,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
 
             TextFormField(
+              controller: _emailController,
+              decoration: const InputDecoration(labelText: 'E-mail (pode ser o mesmo da última tela)*'),
+              inputFormatters: [
+                FilteringTextInputFormatter.singleLineFormatter,
+              ],
+              validator: (value) {
+                if (value == null || value.isEmpty || !value.contains('@') || !value.contains('.')) {
+                  return 'Por favor, preencha seu e-mail corretamente';
+                }
+
+                return null;
+              },
+            ),
+
+            TextFormField(
               controller: _usernameController,
               decoration: const InputDecoration(labelText: 'Crie um usuário*'),
               inputFormatters: [
@@ -269,12 +286,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 LengthLimitingTextInputFormatter(15),
               ],
               validator: (value) {
-                if (value == null || value.isEmpty) 
+                if (value == null || value.isEmpty) {
                   return 'Por favor, preencha seu usuário';
+                }
 
-                // else if(usuarioExiste)
-                //   return 'Nome de usuário já existente, por favor, escolha um novo';
-                
                 return null;
               },
             ),
@@ -316,9 +331,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 if (_formKey.currentState!.validate()) {
                   try {
                     await addUserWithName(_nameController.text,
-                     _lastNameController.text, _cpfController.text, _usernameController.text,{});
-                     
-                    // mensagemSucesso();
+                     _lastNameController.text, _cpfController.text, _emailController.text, _usernameController.text,{});
+                    await cadastrarAuth();
+                    mensagemSucesso();
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text("Falha ao registrar: ${e.toString()}"))
@@ -339,13 +354,14 @@ Future<void> addUserWithName(
   String nome,
   String sobrenome,
   String cpf,
+  String email,
   String usuario,
   Map<String, dynamic> userData
 ) async {
   FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   // Primeiro, verifica se já existe algum usuário com o mesmo CPF ou nome de usuário.
-  var userQuery = await firestore
+  var cpfQuery = await firestore
     .collection('users')
     .where('cpf', isEqualTo: cpf)
     .limit(1)
@@ -355,13 +371,21 @@ Future<void> addUserWithName(
     .where('usuario', isEqualTo: usuario)
     .limit(1)
     .get();
+  var emailQuery = await firestore
+    .collection('users')
+    .where('email', isEqualTo: email)
+    .limit(1)
+    .get();
 
   // Verifica se os documentos retornaram algum resultado
-  if (userQuery.docs.isNotEmpty) {
+  if (cpfQuery.docs.isNotEmpty) {
     throw Exception("Cliente com este CPF já cadastrado.");
   }
   if (usernameQuery.docs.isNotEmpty) {
     throw Exception("Cliente com este usuário já existe.");
+  }
+  if (emailQuery.docs.isNotEmpty) {
+    throw Exception("Cliente com este e-mail já existe.");
   }
 
   // Nome completo + cpf
@@ -380,6 +404,7 @@ Future<void> addUserWithName(
     'endereco': _addressController.text,
     'dataNasc': _birthDateController.text,
     'telefone': _phoneController.text,
+    'email': _emailController.text,
     'usuario': _usernameController.text,
     'senha': _passwordController.text,
     'caminhoFoto': _image?.path  
@@ -390,6 +415,11 @@ Future<void> addUserWithName(
     .collection('users')
     .doc(cliente)
     .set(fullUserData, SetOptions(merge: false));
+}
+
+cadastrarAuth() async{
+  final _firebaseAuth = FirebaseAuth.instance;
+  _firebaseAuth.createUserWithEmailAndPassword(email: _emailController.text, password: _passwordController.text);
 }
 
 void mensagemSucesso() {
@@ -404,7 +434,7 @@ void mensagemSucesso() {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  MaterialPageRoute(builder: (context) => LoginForm()),
                 );
               },
             ),
