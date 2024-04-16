@@ -1,58 +1,83 @@
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+// import 'dart:async';
+// import 'dart:math';
+// import 'package:flutter/material.dart';
 
-class TokenScreen extends StatefulWidget {
-  @override
-  _TokenScreenState createState() => _TokenScreenState();
-}
+// void main() {
+//   runApp(MyApp());
+// }
 
-class _TokenScreenState extends State<TokenScreen> {
-  final TextEditingController _userIdController = TextEditingController();
-  String _token = '';
+// class MyApp extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return MaterialApp(
+//       home: RandomNumberScreen(),
+//     );
+//   }
+// }
 
-  Future<void> generateToken() async {
-    var response = await http.post(
-      Uri.parse('http://your-server-ip:3000/generate-token'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, String>{
-        'userId': _userIdController.text,
-      }),
-    );
+// class RandomNumberScreen extends StatefulWidget {
+//   @override
+//   _RandomNumberScreenState createState() => _RandomNumberScreenState();
+// }
 
-    if (response.statusCode == 200) {
-      setState(() {
-        _token = jsonDecode(response.body)['token'];
-      });
-    } else {
-      print('Failed to generate token');
-    }
-  }
+// class _RandomNumberScreenState extends State<RandomNumberScreen> {
+//   String _randomNumber = '';
+//   late Timer _timer;
+//   double _progress = 0;  // Progresso do indicador de carregamento
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Token Generator'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            TextField(
-              controller: _userIdController,
-              decoration: InputDecoration(hintText: 'Enter your User ID'),
-            ),
-            ElevatedButton(
-              onPressed: generateToken,
-              child: Text('Generate Token'),
-            ),
-            Text('Your token: $_token'),
-          ],
-        ),
-      ),
-    );
-  }
-}
+//   @override
+//   void initState() {
+//     super.initState();
+//     _generateRandomNumber();
+//     _timer = Timer.periodic(Duration(seconds: 1), (Timer t) {
+//       setState(() {
+//         _progress += 1/30;  // Atualiza o progresso a cada segundo
+//         if (_progress >= 1) {
+//           _generateRandomNumber();
+//           _progress = 0;  // Reinicia o progresso após 30 segundos
+//         }
+//       });
+//     });
+//   }
+
+//   void _generateRandomNumber() {
+//     final randomNumber = Random().nextInt(900000) + 100000; // Garante um número de 6 dígitos
+//     setState(() {
+//       _randomNumber = randomNumber.toString();
+//     });
+//   }
+
+//   @override
+//   void dispose() {
+//     _timer.cancel(); // evitar vazamento de memória
+//     super.dispose();
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text('Gerador de Token Único'),
+//       ),
+//       body: Center(
+//         child: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           children: [
+//             Text(
+//               _randomNumber,
+//               style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
+//             ),
+//             SizedBox(height: 24),  // Espaçamento entre o número e o indicador
+//             CircularProgressIndicator(
+//               value: _progress,  // Vincula o valor do progresso ao indicador
+//               backgroundColor: Colors.grey[300],
+//               valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+//             ),
+//             SizedBox(height: 8),  // Espaçamento
+//             Text('Atualizando token em ${(30 - _progress * 30).round()} segundos'),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }

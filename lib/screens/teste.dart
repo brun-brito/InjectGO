@@ -1,93 +1,13 @@
-// import 'dart:async';
-// import 'dart:math';
-// import 'package:flutter/material.dart';
-
-// void main() {
-//   runApp(MyApp());
-// }
-
-// class MyApp extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       home: RandomNumberScreen(),
-//     );
-//   }
-// }
-
-// class RandomNumberScreen extends StatefulWidget {
-//   @override
-//   _RandomNumberScreenState createState() => _RandomNumberScreenState();
-// }
-
-// class _RandomNumberScreenState extends State<RandomNumberScreen> {
-//   String _randomNumber = '';
-//   late Timer _timer;
-//   double _progress = 0;  // Progresso do indicador de carregamento
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     _generateRandomNumber();
-//     _timer = Timer.periodic(Duration(seconds: 1), (Timer t) {
-//       setState(() {
-//         _progress += 1/30;  // Atualiza o progresso a cada segundo
-//         if (_progress >= 1) {
-//           _generateRandomNumber();
-//           _progress = 0;  // Reinicia o progresso após 30 segundos
-//         }
-//       });
-//     });
-//   }
-
-//   void _generateRandomNumber() {
-//     final randomNumber = Random().nextInt(900000) + 100000; // Garante um número de 6 dígitos
-//     setState(() {
-//       _randomNumber = randomNumber.toString();
-//     });
-//   }
-
-//   @override
-//   void dispose() {
-//     _timer.cancel(); // evitar vazamento de memória
-//     super.dispose();
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text('Gerador de Token Único'),
-//       ),
-//       body: Center(
-//         child: Column(
-//           mainAxisAlignment: MainAxisAlignment.center,
-//           children: [
-//             Text(
-//               _randomNumber,
-//               style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
-//             ),
-//             SizedBox(height: 24),  // Espaçamento entre o número e o indicador
-//             CircularProgressIndicator(
-//               value: _progress,  // Vincula o valor do progresso ao indicador
-//               backgroundColor: Colors.grey[300],
-//               valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-//             ),
-//             SizedBox(height: 8),  // Espaçamento
-//             Text('Atualizando token em ${(30 - _progress * 30).round()} segundos'),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:async';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart'; // Importação adicional para formatar a data
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(MyApp());
 }
 
@@ -95,68 +15,68 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Random Number Viewer',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: RandomNumberScreen(),
+      home: ImageUploadScreen(),
     );
   }
 }
 
-class RandomNumberScreen extends StatefulWidget {
+class ImageUploadScreen extends StatefulWidget {
   @override
-  _RandomNumberScreenState createState() => _RandomNumberScreenState();
+  _ImageUploadScreenState createState() => _ImageUploadScreenState();
 }
 
-class _RandomNumberScreenState extends State<RandomNumberScreen> {
-  String _randomNumber = 'Loading...';
-  Timer? _timer;
+class _ImageUploadScreenState extends State<ImageUploadScreen> {
+  final ImagePicker _picker = ImagePicker();
+  XFile? _image;
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchNumber();
-    _timer = Timer.periodic(Duration(seconds: 30), (timer) {
-      _fetchNumber();
+  Future pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    setState(() {
+      _image = pickedFile;
     });
   }
 
-  Future<void> _fetchNumber() async {
-    try {
-      final response = await http.get(Uri.parse('http://127.0.0.1:8080/random-number'));
-      if (response.statusCode == 200) {
-        setState(() {
-          _randomNumber = response.body;
-        });
-      } else {
-        setState(() {
-          _randomNumber = 'Error fetching number';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _randomNumber = 'Error: $e';
-      });
-    }
-  }
+  Future uploadImage() async {
+    if (_image == null) return;
+    final file = File(_image!.path);
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+    String dateFormatted = DateFormat('dd-MM-yyyy').format(DateTime.now());
+    String fileName = 'image_$dateFormatted.jpg'; 
+
+    try {
+      await FirebaseStorage.instance
+        .ref('uploads/$fileName') // Caminho no storage com o nome do arquivo formatado
+        .putFile(file);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload successful!'))
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to upload image: $e'))
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Random Number Viewer'),
+        title: Text('Upload Image to Firebase'),
       ),
       body: Center(
-        child: Text(
-          _randomNumber,
-          style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            _image != null ? Image.file(File(_image!.path)) : Text('No image selected.'),
+            ElevatedButton(
+              onPressed: pickImage,
+              child: Text('Pick Image'),
+            ),
+            ElevatedButton(
+              onPressed: uploadImage,
+              child: Text('Upload Image'),
+            ),
+          ],
         ),
       ),
     );

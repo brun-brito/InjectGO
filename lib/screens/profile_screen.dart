@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
 class UserProfileScreen extends StatelessWidget {
   final String username;
 
-  UserProfileScreen({required this.username});
+  UserProfileScreen({required this.username});  // herda o email digitado na tela de login pra poder puxar do banco
 
   @override
   Widget build(BuildContext context) {
@@ -46,32 +46,30 @@ class UserProfileScreen extends StatelessWidget {
           var userData = snapshot.data!;
           String fullName = "${userData['nome']} ${userData['sobrenome']}";
           return ListView(
-            padding: EdgeInsets.all(16),
-            children: <Widget>[
-              Text("Nome: $fullName", style: TextStyle(fontSize: 20)),
-              const SizedBox(height: 8),
-              Text("E-mail: ${userData['email'] ?? '-Não informado-'}", style: TextStyle(fontSize: 20)),
-              const SizedBox(height: 8),
-              Text("Telefone: ${userData['telefone'] ?? '-Não informado-'}", style: TextStyle(fontSize: 20)),
-              const SizedBox(height: 8),
-              Text("CPF: ${userData['cpf'] ?? '-Não informado-'}", style: TextStyle(fontSize: 20)),
-              const SizedBox(height: 8),
-              Text("Número conselho: ${userData['conselho'] ?? '-Não informado-'}", style: TextStyle(fontSize: 20)),
-              const SizedBox(height: 8),
-              Text("UF Conselho: ${userData['estadoConselho'] ?? '-Não informado-'}", style: TextStyle(fontSize: 20)),
-              const SizedBox(height: 8),
-              Text("Profissão: ${userData['profissao'] ?? '-Não informado-'}", style: TextStyle(fontSize: 20)),
-              const SizedBox(height: 8),
-              Text("Nome de usuário: ${userData['usuario'] ?? '-Não informado-'}", style: TextStyle(fontSize: 20)),
-              const SizedBox(height: 8),
-              Text("Foto: ${userData['caminhoFoto'] ?? '-Não informado-'}", style: TextStyle(fontSize: 20)),
-              const SizedBox(height: 8),
-              Text("Data de nascimento: ${userData['dataNasc'] ?? '-Não informado-'}", style: TextStyle(fontSize: 20)),
-              const SizedBox(height: 8),
-            ],
+              padding: const EdgeInsets.all(16),
+              children: <Widget>[
+                buildUserInfo("Nome Completo", fullName),
+                buildUserInfo("E-mail", userData['email']),
+                buildUserInfo("Telefone", userData['telefone']),
+                buildUserInfo("CPF", userData['cpf']),
+                buildUserInfo("Número conselho", userData['conselho']),
+                buildUserInfo("UF Conselho", userData['estadoConselho']),
+                buildUserInfo("Profissão", userData['profissao']),
+                buildUserInfo("Nome de usuário", userData['usuario']),
+              ],
           );
         },
       ),
+    );
+  }
+  
+   Widget buildUserInfo(String label, String? value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("$label: ${value ?? '-Não informado-'}", style: const TextStyle(fontSize: 20)),
+        const SizedBox(height: 8),
+      ],
     );
   }
 

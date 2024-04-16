@@ -35,6 +35,7 @@ class WelcomePage extends StatefulWidget {
 }
 
 class _WelcomePageState extends State<WelcomePage> {
+  FirebaseFirestore firestore = FirebaseFirestore.instance;
   final TextEditingController _emailController = TextEditingController();
   bool _isButtonEnabled = false; 
   String? _selectedState;
@@ -218,13 +219,23 @@ class _WelcomePageState extends State<WelcomePage> {
     );
   }
 
-void onContinuePressed() {
+Future<void> onContinuePressed() async {
  if (_isButtonEnabled) {
-    addEmail(_emailController.text,{}); //add no banco e leva pro cadastro
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) =>  const SignUpScreen()),
-    );
+    if(await verificaEmail(_emailController.text)){
+      addEmail(_emailController.text,_selectedState!,{}); //add no banco e leva pro cadastro
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) =>  const SignUpScreen()),
+      );
+    }
+    else{
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Seu e-mail já foi cadastrado, por favor, faça o login."),
+          duration: Duration(seconds: 5),
+        ),
+      );
+    }
   }
   else if (_emailController.text.isNotEmpty && _selectedState == null) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -235,8 +246,11 @@ void onContinuePressed() {
     );
   }
   else if (_emailController.text.isNotEmpty && _selectedState != 'CE') {
-      addEmailIndisponivel(_emailController.text,{}); // add no banco
+    if(await verificaEmail2(_emailController.text)){
+      addEmailIndisponivel(_emailController.text,_selectedState!,{});
+    }else{
       _showIneligibilityMessage();  // mostra a mensagem que nao esta disponível
+    }  
   }
   else{
     ScaffoldMessenger.of(context).showSnackBar(
@@ -279,33 +293,55 @@ void onContinuePressed() {
     );
   }
 
-Future<void> addEmail(String email, Map<String, dynamic> userData) async {  
-  FirebaseFirestore firestore = FirebaseFirestore.instance;
-
-  Map<String, dynamic> fullUserData = {
-    'email': email,  
-    'UF': _selectedState
-  };
-  // Insere os dados no Firestore
-  await firestore
+Future<bool> verificaEmail(String email) async{
+  var emailQuery = await firestore
     .collection('email')
-    .doc()
-    .set(fullUserData, SetOptions(merge: false));
+    .where('email', isEqualTo: email)
+    .limit(1)
+    .get();
+
+  if (emailQuery.docs.isNotEmpty) {
+    return false;
+  }
+  return true;
 }
 
+Future<void> addEmail(String email, String uf, Map<String, dynamic> userData) async {  
+    // Cria um mapa com os dados do usuário
+    Map<String, dynamic> fullUserData = {
+      'email': email,  
+      'UF': uf,
+    };
+    // Insere os dados no Firestore
+    await firestore
+      .collection('email')
+      .doc()
+      .set(fullUserData, SetOptions(merge: false));
+}
 
-Future<void> addEmailIndisponivel(String email, Map<String, dynamic> userData) async {  
-  FirebaseFirestore firestore = FirebaseFirestore.instance;
+Future<bool> verificaEmail2(String email) async{
+  var emailQuery = await firestore
+    .collection('email-uf-indisponivel')
+    .where('email', isEqualTo: email)
+    .limit(1)
+    .get();
 
+  if (emailQuery.docs.isNotEmpty) {
+    return false;
+  }
+  return true;
+}
+
+Future<void> addEmailIndisponivel(String email, String uf, Map<String, dynamic> userData) async {  
   Map<String, dynamic> fullUserData = {
     'email': email,  
-    'UF': _selectedState
+    'UF': uf,
   };
-  // Insere os dados no Firestore
   await firestore
     .collection('email-uf-indisponivel')
     .doc()
     .set(fullUserData, SetOptions(merge: false));
 }
+
 
 }

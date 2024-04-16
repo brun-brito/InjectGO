@@ -1,4 +1,5 @@
 // ignore_for_file: library_private_types_in_public_api
+import 'package:firebase_core/firebase_core.dart';
 import 'package:inject_go/screens/welcome_screen.dart';
 import 'package:inject_go/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +32,7 @@ class _LoginFormState extends State<LoginForm> {
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isButtonEnabled = false; 
+  FirebaseFirestore firestore = FirebaseFirestore.instance;
 
     @override
   void initState() {
@@ -71,7 +73,6 @@ class _LoginFormState extends State<LoginForm> {
           padding: const EdgeInsets.all(16),
           children: <Widget>[
 
-
             TextFormField(
               controller: _emailController,
               decoration: const InputDecoration(labelText: 'Digite seu e-mail:'),
@@ -107,16 +108,24 @@ class _LoginFormState extends State<LoginForm> {
                 foregroundColor: Colors.white,
               ),
               onPressed: () async {
-                  try {
-                    confirmaLogin();  
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Falha ao logar: ${e.toString()}"))
-                    );
-                  }
-                
+                try {
+                  confirmaLogin();  
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Falha ao logar: ${e.toString()}"))
+                  );
+                }
               },
-              child: const Text('Entrar'),
+              child: Text('Entrar'),
+            ),
+            TextButton(
+              onPressed: _showForgotPasswordDialog,
+              child: const Text(
+                "Esqueci a senha",
+                style: TextStyle(
+                  decoration: TextDecoration.underline,  // Adiciona sublinhado ao texto
+                ),
+              ),
             ),
           ],
         ),
@@ -142,7 +151,7 @@ class _LoginFormState extends State<LoginForm> {
   void confirmaLogin() async {
     if (await validateUser(_emailController.text, _passwordController.text)) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Sucesso!"))
+          const SnackBar(content: Text("Sucesso!"))
         );
         
         // Navega para a tela de perfil passando o usuário como argumento
@@ -154,9 +163,98 @@ class _LoginFormState extends State<LoginForm> {
         );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Usuário ou senha incorreta"))
+        const SnackBar(content: Text("Usuário ou senha incorreta"))
       );
     }
   }
+
+  void _showForgotPasswordDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        final _newPasswordController = TextEditingController();
+        final _confirmPasswordController = TextEditingController();
+        return AlertDialog(
+          title: const Text("Redefinir Senha"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _emailController,
+                decoration: const InputDecoration(
+                  labelText: 'E-mail Cadastrado:',
+                ),
+              ),
+              TextField(
+                controller: _newPasswordController,
+                decoration: const InputDecoration(
+                  labelText: 'Nova Senha:',
+                ),
+                obscureText: true,
+              ),
+              TextField(
+                controller: _confirmPasswordController,
+                decoration: const InputDecoration(
+                  labelText: 'Confirmar Nova Senha:',
+                ),
+                obscureText: true,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Salvar'),
+              onPressed: () {
+                if(_newPasswordController!.text.length < 6){
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("A senha deve ter no mínimo 6 caracteres")),
+                  );}
+                else if (_newPasswordController.text == _confirmPasswordController.text) {
+                  alterarSenha(_emailController.text, _newPasswordController.text);
+                  Future.delayed(Duration(seconds: 1), () {
+                    Navigator.of(context).pop(); // Fechar o diálogo após a atualização
+                  });
+                } else {
+                  // Mostrar um erro se as senhas não coincidirem
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("As senhas não coincidem!")),
+                  );
+                }
+              },
+            ),
+            TextButton(
+              child: Text('Cancelar'),
+              onPressed: () {Navigator.of(context).pop();} 
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> alterarSenha(String email, String newPassword) async {
+    var querySnapshot = await firestore
+      .collection('users')
+      .where('email', isEqualTo: email)
+      .get();
+
+    if (querySnapshot.docs.isNotEmpty) {
+      // Se o documento existe, atualiza a senha
+      String docId = querySnapshot.docs.first.id;
+      await firestore
+        .collection('users')
+        .doc(docId)
+        .update({'senha': newPassword});        
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Senha atualizada com sucesso!")),
+      );
+    } 
+    else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erro ao atualizar senha")),
+      );
+    }
+  }
+
 }
 

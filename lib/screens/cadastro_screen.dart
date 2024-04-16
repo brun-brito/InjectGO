@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'login_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:intl/intl.dart'; 
 
 
 void main() => runApp(const MyApp());
@@ -34,43 +36,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _councilNumberController = TextEditingController();
   final TextEditingController _cpfController = TextEditingController();
-  final TextEditingController _addressController = TextEditingController();
-  final TextEditingController _birthDateController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  String? _senha;
   final _formKey = GlobalKey<FormState>();
-  XFile? _image;
   final picker = ImagePicker();
+  final ImagePicker _picker = ImagePicker(); 
+  String dateFormatted = DateFormat('dd-MM-yyyy').format(DateTime.now());
   String? _selectedProfession;
   String? _selectedState;
-
-  Future getImage() async {
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-
-    setState(() {
-      if (pickedFile != null) {
-        _image = pickedFile;
-      } else {
-          const Text('No image selected.');
-        }
-    });
-  }
-
+  String? _senha;
+  XFile? _selfie;
+  XFile? _image;
+  bool _isLoading = false;
+  FirebaseFirestore firestore = FirebaseFirestore.instance;
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back), //seta pra voltar
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const WelcomePage()),
-                );
-              },
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text('Tela de Cadastro'),
       ),
@@ -79,11 +67,95 @@ class _SignUpScreenState extends State<SignUpScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: <Widget>[
+
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: 'Anexe uma foto da sua carteirinha*',
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.file_upload),
+                  onPressed: () async {
+                    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                    setState(() {
+                      _image = pickedFile;
+                    });
+                  },
+                ),
+              ),
+              readOnly: true,
+              validator: (value) {
+                if (_image == null) {
+                  return 'Por favor, anexe uma foto de sua carteirinha';
+                }
+                return null;
+              },
+            ),
+            if (_image != null)
+              Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  Container(
+                    height: 200,
+                    child: Image.file(File(_image!.path)),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.cancel),
+                    color: Colors.red,
+                    onPressed: () {
+                      setState(() {
+                        _image = null;
+                      });
+                    },
+                  ),
+                ],
+              ),
+
+            // Para selfie segurando a carteirinha
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: 'Selfie segurando a carteirinha*',
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.camera_alt),
+                  onPressed: () {
+                    _takeSelfie();
+                  },
+                ),
+              ),
+              readOnly: true,
+              validator: (value) {
+                if (_selfie == null) {
+                  return 'Por favor, anexe uma foto sua, segurando a carteirinha';
+                }
+                return null;
+              },
+            ),
+            if (_selfie != null)
+              Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  Container(
+                    height: 200,
+                    child: Image.file(File(_selfie!.path)),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.cancel),
+                    color: Colors.red,
+                    onPressed: () {
+                      setState(() {
+                        _selfie = null;
+                      });
+                    },
+                  ),
+                ],
+              ),
+
             TextFormField(
               controller: _nameController,
               decoration: const InputDecoration(labelText: 'Nome*'),
+              inputFormatters: [
+                FilteringTextInputFormatter.singleLineFormatter, 
+              ],
               validator: (value) {
-                if (value == null || value.isEmpty) {
+                if (value == null || value.trim().isEmpty) { // Garante que espaços em branco não sejam considerados como nome válido
                   return 'Por favor, preencha seu nome';
                 }
                 return null;
@@ -92,7 +164,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
             TextFormField(
               controller: _lastNameController,
-              decoration: const InputDecoration(labelText: 'Sobrenome'),
+              decoration: const InputDecoration(labelText: 'Sobrenome*'),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) { // Garante que espaços em branco não sejam considerados como nome válido
+                  return 'Por favor, preencha seu sobrenome';
+                }
+                return null;
+              },
             ),
             
             DropdownButtonFormField<String>(
@@ -153,7 +231,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ],
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Por favor, preencha seu nome';
+                  return 'Por favor, preencha seu número de conselho';
                 }
                 return null;
               },
@@ -162,84 +240,49 @@ class _SignUpScreenState extends State<SignUpScreen> {
             TextFormField(
               controller: _cpfController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'CPF*'),
+              decoration: const InputDecoration(labelText: 'CPF (apenas números)*'),
               inputFormatters: [
                 FilteringTextInputFormatter.digitsOnly, 
                 LengthLimitingTextInputFormatter(11), 
               ],
               validator: (value) {
-                if (value == null || value.isEmpty /*|| !isValidCPF(value)*/) {
+                if (value == null || value.isEmpty || !isValidCPF(value)) {
                   return 'Por favor, preencha um CPF válido';
                 }
                 return null;
               },
             ),
-            
-            TextFormField(
-              // controller: ,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.camera_enhance),
-                labelText: 'Foto'
-              ),
-              readOnly: true,
-              onTap: () async {
-                final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-                setState(() {
-                  _image = pickedFile;
-                });
-              },
-            ),
-              if (_image != null)
-                Stack(
-                  alignment: Alignment.topRight,
-                  children: [
-                    Container(
-                      height: 200,
-                      alignment: Alignment.center, // Define um tamanho para a prévia
-                      child: Image.file(File(_image!.path)),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.cancel),
-                      color: Colors.red,
-                      onPressed: () {
-                        setState(() {
-                          _image = null;
-                        });
-                      },
-                    ),
-                  ],
-                ),
 
 
-            TextFormField(
-              controller: _addressController,
-              decoration: const InputDecoration(labelText: 'Endereço*'),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Por favor, preencha seu Endereço';
-                }
-                return null;
-              },
-            ),
+            // TextFormField(
+            //   controller: _addressController,
+            //   decoration: const InputDecoration(labelText: 'Endereço*'),
+            //   validator: (value) {
+            //     if (value == null || value.isEmpty) {
+            //       return 'Por favor, preencha seu Endereço';
+            //     }
+            //     return null;
+            //   },
+            // ),
 
-            TextFormField(
-              controller: _birthDateController,
-              keyboardType: TextInputType.datetime,
-              decoration: const InputDecoration(
-                            labelText: 'Data de Nascimento*',
-                            hintText: 'DD/MM/AAAA'
-                          )
-              ,              
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(10), 
-              ],
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Por favor, preencha sua Data de Nascimento';
-                }
-                return null;
-              },
-            ),
+            // TextFormField(
+            //   controller: _birthDateController,
+            //   keyboardType: TextInputType.datetime,
+            //   decoration: const InputDecoration(
+            //                 labelText: 'Data de Nascimento*',
+            //                 hintText: 'DD/MM/AAAA'
+            //               )
+            //   ,              
+            //   inputFormatters: [
+            //     LengthLimitingTextInputFormatter(10), 
+            //   ],
+            //   validator: (value) {
+            //     if (value == null || value.isEmpty || value.length < 10) {
+            //       return 'Por favor, preencha sua Data de Nascimento corretamente';
+            //     }
+            //     return null;
+            //   },
+            // ),
 
             TextFormField(
               controller: _phoneController,
@@ -265,7 +308,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
             TextFormField(
               controller: _emailController,
-              decoration: const InputDecoration(labelText: 'E-mail (pode ser o mesmo da última tela)*'),
+              decoration: const InputDecoration(
+                labelText: 'E-mail*',
+                prefixIcon: Tooltip(
+                  message: 'Pode ser o mesmo da última tela',
+                  child: Icon(Icons.info_outline),
+                ),
+              ),
               inputFormatters: [
                 FilteringTextInputFormatter.singleLineFormatter,
               ],
@@ -301,6 +350,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Por favor, preencha sua senha';
+                }                
+                else if (value.length < 6 ) {
+                  return 'A senha deve ter ao menos 6 caracteres';
                 }
                 _senha = value; // Armazena a senha para comparar depois
                 return null;
@@ -329,20 +381,30 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               onPressed: () async {
                 if (_formKey.currentState!.validate()) {
+                  setState(() {
+                    _isLoading = true; // Inicia o carregamento
+                  });
                   try {
-                    await addUserWithName(_nameController.text,
-                     _lastNameController.text, _cpfController.text, _emailController.text, _usernameController.text,{});
-                    await cadastrarAuth();
+                    await addUserWithFirebase(_nameController.text, _lastNameController.text, _cpfController.text, _emailController.text, _usernameController.text, {});
+                    await uploadCarteira();
+                    await uploadSelfie();
                     mensagemSucesso();
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text("Falha ao registrar: ${e.toString()}"))
                     );
+                  } finally {
+                    setState(() {
+                      _isLoading = false; // Termina o carregamento
+                    });
                   }
                 }
               },
-              child: const Text('Cadastrar'),
+              child: _isLoading
+                  ? CircularProgressIndicator(color: Colors.white) // Indicador de carregamento
+                  : const Text('Cadastrar'),
             ),
+
           ],
         ),
       ),
@@ -350,7 +412,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
 
-Future<void> addUserWithName(
+Future<void> addUserWithFirebase(
   String nome,
   String sobrenome,
   String cpf,
@@ -358,8 +420,6 @@ Future<void> addUserWithName(
   String usuario,
   Map<String, dynamic> userData
 ) async {
-  FirebaseFirestore firestore = FirebaseFirestore.instance;
-
   // Primeiro, verifica se já existe algum usuário com o mesmo CPF ou nome de usuário.
   var cpfQuery = await firestore
     .collection('users')
@@ -401,13 +461,13 @@ Future<void> addUserWithName(
     'conselho': _councilNumberController.text,
     'estadoConselho': _selectedState,
     'cpf': _cpfController.text,
-    'endereco': _addressController.text,
-    'dataNasc': _birthDateController.text,
+    // 'endereco': _addressController.text,
+    // 'dataNasc': _birthDateController.text,
     'telefone': _phoneController.text,
     'email': _emailController.text,
     'usuario': _usernameController.text,
     'senha': _passwordController.text,
-    'caminhoFoto': _image?.path  
+    // 'caminhoFoto': _image?.path  
   };
 
   // Insere os dados no Firestore
@@ -417,10 +477,24 @@ Future<void> addUserWithName(
     .set(fullUserData, SetOptions(merge: false));
 }
 
-cadastrarAuth() async{
-  final _firebaseAuth = FirebaseAuth.instance;
-  _firebaseAuth.createUserWithEmailAndPassword(email: _emailController.text, password: _passwordController.text);
-}
+  // Future<void> cadastrarAuth(String email, String password) async {
+  //   try {
+  //     await _firebaseAuth.createUserWithEmailAndPassword(email: email, password: password);
+  //     } on FirebaseAuthException catch (e) {
+  //     if (e.code == 'weak-password') {
+  //       print('A senha deve ter ao menos 6 caracteres');
+  //     } else if (e.code == 'email-already-in-use') {
+  //       print('An account already exists for that email.');
+  //     } else {
+  //       print(e.message); 
+  //     }
+  //     throw e;
+  //   } catch (e) {
+  //     print('An error occurred: $e');
+  //     throw e;
+  //   }
+  // }
+
 
 void mensagemSucesso() {
     showDialog(
@@ -432,9 +506,10 @@ void mensagemSucesso() {
             TextButton(
               child: const Text("Ok"),
               onPressed: () {
-                Navigator.push(
+                Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (context) => LoginForm()),
+                  (Route<dynamic> route) => false,
                 );
               },
             ),
@@ -467,4 +542,55 @@ bool isValidCPF(String cpf) {
 
   return cpf.substring(9) == firstDigit.toString() + secondDigit.toString();
 }
+
+Future<void> _takeSelfie() async {
+  final XFile? photo = await _picker.pickImage(
+    source: ImageSource.camera,
+    preferredCameraDevice: CameraDevice.front
+  );
+  setState(() => _selfie = photo);
+}
+
+Future<void> _uploadCard() async {
+  final XFile? photo = await _picker.pickImage(source: ImageSource.gallery);
+  setState(() => _image = photo);
+}
+
+Future uploadSelfie() async {
+  if (_selfie == null) return;
+  final file = File(_selfie!.path);
+  String nome = _nameController.text;
+  List<String> sobrenome = _lastNameController.text.split(' ');
+  String primSobrenome = sobrenome[0];
+
+  String fileName = '$nome-$primSobrenome-$dateFormatted.jpg'; 
+
+  try {
+    await FirebaseStorage.instance
+      .ref('selfies/$fileName') 
+      .putFile(file);
+  } catch (e) {
+      throw('Erro ao salvar selfie: $e');
+  }
+}
+
+Future uploadCarteira() async {
+  if (_image == null) return;
+  final file = File(_image!.path);
+  String nome = _nameController.text;
+  List<String> sobrenome = _lastNameController.text.split(' ');
+  String primSobrenome = sobrenome[0];
+
+  String fileName = '$nome-$primSobrenome-$dateFormatted.jpg'; 
+
+  try {
+    await FirebaseStorage.instance
+      .ref('fotos-carteirinhas/$fileName') 
+      .putFile(file);
+  } catch (e) {
+      throw('Erro ao salvar carteirinha: $e');
+  }
+}
+
+
 }
