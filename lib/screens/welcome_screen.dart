@@ -127,7 +127,7 @@ class _WelcomePageState extends State<WelcomePage> {
               onPressed:(){ 
                 onContinuePressed();
                 },
-            child: const Text('Continue'),
+            child: const Text('Avançar'),
           ),
 
 

@@ -1,7 +1,6 @@
-// ignore_for_file: library_private_types_in_public_api
+// ignore_for_file: library_private_types_in_public_api, curly_braces_in_flow_control_structures
 import 'dart:io';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:inject_go/screens/welcome_screen.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,6 +8,8 @@ import 'login_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:intl/intl.dart'; 
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 
 void main() => runApp(const MyApp());
@@ -40,16 +41,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _municipioController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final picker = ImagePicker();
   final ImagePicker _picker = ImagePicker(); 
   String dateFormatted = DateFormat('dd-MM-yyyy').format(DateTime.now());
+  String token = 'pxXxdW4xqw12EMWEEtMMNq8V8_0EJ3E46mD_TT78';
   String? _selectedProfession;
   String? _selectedState;
+  String? _selectedCategory;
   String? _senha;
   XFile? _selfie;
   XFile? _image;
   bool _isLoading = false;
+  bool _isLoadingLupa = false;
+  bool _mostrarCamposFarmaceutico = false;
+  Color _statusColor =Colors.black;
   FirebaseFirestore firestore = FirebaseFirestore.instance;
   
   @override
@@ -186,6 +193,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               onChanged: (String? newValue) {
                 setState(() {
                   _selectedProfession = newValue;
+                  _mostrarCamposFarmaceutico = newValue == 'Farmacêutico';  // muda pra true se for farmaceutico
                 });
               },
               validator: (value) {
@@ -195,6 +203,43 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 return null;
               },
             ),
+            if (_mostrarCamposFarmaceutico) ...[
+              TextFormField(
+                controller: _municipioController,
+                decoration: const InputDecoration(
+                  labelText: 'Município*',
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) { 
+                    return 'Por favor, preencha seu município';
+                  }
+                  return null;
+                },
+              ),
+
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(labelText: 'Categoria*'),
+                value: _selectedCategory,
+                items: <String>['farmaceutico', 'tecnico']
+                    .map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedCategory = newValue;
+                  });
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor, selecione sua categoria';
+                  }
+                  return null;
+                },
+              ),
+            ],
 
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'Estado do Conselho*'),
@@ -222,21 +267,66 @@ class _SignUpScreenState extends State<SignUpScreen> {
               },
             ),
 
-            TextFormField(
-              controller: _councilNumberController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Número de conselho*'),
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly, 
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _councilNumberController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Número de conselho*',
+                    ),
+                    style: TextStyle(
+                      color: _statusColor,  // Cor do texto baseado no estado
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Por favor, preencha seu número de conselho';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+                IconButton(
+                  icon: _isLoadingLupa 
+                    ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.blue)) 
+                    : const Icon(Icons.search),
+                  onPressed: _isLoadingLupa ? null : () async {
+                    var funcao;
+                    if (_selectedProfession == 'Dentista')
+                      funcao = existeCRO();
+                    if (_selectedProfession == 'Biomédico') 
+                      funcao = existeCFBM();                    
+                    if (_selectedProfession == 'Farmacêutico') 
+                      funcao = existeCFF();                    
+                    setState(() => _isLoadingLupa = true);
+                    try {
+                      if(await funcao){
+                        setState(() => _statusColor = Colors.green);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Número de conselho validado!")));
+                      }
+                      else{
+                        setState(() => _statusColor = Colors.red);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Dados não correspondem ao número de conselho.")));
+                      }
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                         SnackBar(content: Text("Erro inesperado.: ${e.toString()}"))
+                  );
+                    } finally {
+                      setState(() => _isLoadingLupa = false);
+                    }
+                  },
+                ),
               ],
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Por favor, preencha seu número de conselho';
-                }
-                return null;
-              },
             ),
-            
+
+
             TextFormField(
               controller: _cpfController,
               keyboardType: TextInputType.number,
@@ -253,37 +343,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
               },
             ),
 
-
-            // TextFormField(
-            //   controller: _addressController,
-            //   decoration: const InputDecoration(labelText: 'Endereço*'),
-            //   validator: (value) {
-            //     if (value == null || value.isEmpty) {
-            //       return 'Por favor, preencha seu Endereço';
-            //     }
-            //     return null;
-            //   },
-            // ),
-
-            // TextFormField(
-            //   controller: _birthDateController,
-            //   keyboardType: TextInputType.datetime,
-            //   decoration: const InputDecoration(
-            //                 labelText: 'Data de Nascimento*',
-            //                 hintText: 'DD/MM/AAAA'
-            //               )
-            //   ,              
-            //   inputFormatters: [
-            //     LengthLimitingTextInputFormatter(10), 
-            //   ],
-            //   validator: (value) {
-            //     if (value == null || value.isEmpty || value.length < 10) {
-            //       return 'Por favor, preencha sua Data de Nascimento corretamente';
-            //     }
-            //     return null;
-            //   },
-            // ),
-
             TextFormField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
@@ -292,8 +351,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 hintText: '85999999999'
               ),
               inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly, // Opcional, se você deseja permitir apenas dígitos
-                LengthLimitingTextInputFormatter(11), // Limita a entrada a 11 caracteres
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(11),
               ],
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -346,7 +405,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             TextFormField(
               controller: _passwordController,
               decoration: const InputDecoration(labelText: 'Senha*'),
-              obscureText: true, // Esconde a senha
+              obscureText: true, 
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Por favor, preencha sua senha';
@@ -354,14 +413,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 else if (value.length < 6 ) {
                   return 'A senha deve ter ao menos 6 caracteres';
                 }
-                _senha = value; // Armazena a senha para comparar depois
+                _senha = value; 
                 return null;
               },
             ),
 
             TextFormField(
               decoration: const InputDecoration(labelText: 'Repetir senha*'),
-              obscureText: true, // Esconde a senha
+              obscureText: true,
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Por favor, repita sua senha';
@@ -380,7 +439,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 foregroundColor: Colors.white,
               ),
               onPressed: () async {
-                if (_formKey.currentState!.validate()) {
+                if (_formKey.currentState!.validate() && _statusColor == Colors.green) {
                   setState(() {
                     _isLoading = true; // Inicia o carregamento
                   });
@@ -399,11 +458,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     });
                   }
                 }
+                else{
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Insira um número de conselho válido!"))
+                    );
+                }
               },
               child: _isLoading
-                  ? CircularProgressIndicator(color: Colors.white) // Indicador de carregamento
+                  ? CircularProgressIndicator(color: Colors.white) // Indica carregamento
                   : const Text('Cadastrar'),
             ),
+
 
           ],
         ),
@@ -448,7 +513,7 @@ Future<void> addUserWithFirebase(
     throw Exception("Cliente com este e-mail já existe.");
   }
 
-  // Nome completo + cpf
+  // Nome completo + cpf vai ser chave
   String cliente = '$nome $sobrenome - $cpf';
   String randomId = firestore.collection('users').doc().id;
 
@@ -461,13 +526,10 @@ Future<void> addUserWithFirebase(
     'conselho': _councilNumberController.text,
     'estadoConselho': _selectedState,
     'cpf': _cpfController.text,
-    // 'endereco': _addressController.text,
-    // 'dataNasc': _birthDateController.text,
     'telefone': _phoneController.text,
     'email': _emailController.text,
     'usuario': _usernameController.text,
     'senha': _passwordController.text,
-    // 'caminhoFoto': _image?.path  
   };
 
   // Insere os dados no Firestore
@@ -476,24 +538,6 @@ Future<void> addUserWithFirebase(
     .doc(cliente)
     .set(fullUserData, SetOptions(merge: false));
 }
-
-  // Future<void> cadastrarAuth(String email, String password) async {
-  //   try {
-  //     await _firebaseAuth.createUserWithEmailAndPassword(email: email, password: password);
-  //     } on FirebaseAuthException catch (e) {
-  //     if (e.code == 'weak-password') {
-  //       print('A senha deve ter ao menos 6 caracteres');
-  //     } else if (e.code == 'email-already-in-use') {
-  //       print('An account already exists for that email.');
-  //     } else {
-  //       print(e.message); 
-  //     }
-  //     throw e;
-  //   } catch (e) {
-  //     print('An error occurred: $e');
-  //     throw e;
-  //   }
-  // }
 
 
 void mensagemSucesso() {
@@ -526,7 +570,6 @@ bool isValidCPF(String cpf) {
 
   if (RegExp(r'^(\d)\1*$').hasMatch(cpf)) return false;
 
-  // Função para calcular dígito verificador
   int calculateDigit(String cpf, int length) {
     int sum = 0;
     for (int i = 0; i < length; i++) {
@@ -536,7 +579,6 @@ bool isValidCPF(String cpf) {
     return digit >= 10 ? 0 : digit;
   }
 
-  // Calcula e verifica os dígitos verificadores
   int firstDigit = calculateDigit(cpf, 9);
   int secondDigit = calculateDigit(cpf.substring(0, 9) + firstDigit.toString(), 10);
 
@@ -563,7 +605,7 @@ Future uploadSelfie() async {
   List<String> sobrenome = _lastNameController.text.split(' ');
   String primSobrenome = sobrenome[0];
 
-  String fileName = '$nome-$primSobrenome-$dateFormatted.jpg'; 
+  String fileName = 'selfie-$nome-$primSobrenome-$dateFormatted.jpg'; 
 
   try {
     await FirebaseStorage.instance
@@ -581,7 +623,7 @@ Future uploadCarteira() async {
   List<String> sobrenome = _lastNameController.text.split(' ');
   String primSobrenome = sobrenome[0];
 
-  String fileName = '$nome-$primSobrenome-$dateFormatted.jpg'; 
+  String fileName = 'carteira-$nome-$primSobrenome-$dateFormatted.jpg'; 
 
   try {
     await FirebaseStorage.instance
@@ -592,5 +634,97 @@ Future uploadCarteira() async {
   }
 }
 
+Future<bool> existeCRO() async {
+  String nroCconselho = _councilNumberController.text;
+
+  var url = Uri.parse('https://api.infosimples.com/api/v2/consultas/cro/cadastro?inscricao=$nroCconselho&token=$token&uf=$_selectedState');
+    print(url);
+  var response = await http.post(url);
+
+  if (response.statusCode == 200) {
+    var jsonResponse = json.decode(response.body);
+    List<dynamic> dataList = jsonResponse['data'];
+    return dataList.any((dataItem) {
+      var firstName = (dataItem['nome'] as String).split(' ')[0].toLowerCase();
+      var situacao = (dataItem['situacao'] as String);
+      enviaConselho();
+      return firstName == _nameController.text.toLowerCase() && situacao == 'ATIVO';
+    });
+  } else {
+    throw Exception('Erro ao verificar conselho');
+  }
+}
+
+Future<bool> existeCFBM() async {
+  String nroCconselho = _councilNumberController.text;
+
+  var url = Uri.parse('https://api.infosimples.com/api/v2/consultas/cfbm/cadastro?token=$token&registro=$nroCconselho');
+      print(url);
+  var response = await http.post(url);
+
+  if (response.statusCode == 200) {
+    var jsonResponse = json.decode(response.body);
+    List<dynamic> dataList = jsonResponse['data'][0]['lista_registros'] as List;
+    return dataList.any((dataItem) {
+      var firstName = (dataItem['nome_razao_social'] as String).split(' ')[0].toLowerCase();
+      var situacao = (dataItem['situacao'] as String);
+      enviaConselho();
+      return firstName == _nameController.text.toLowerCase() && situacao == 'ATIVO';
+    });
+  } else {
+    throw Exception('Erro ao verificar conselho');
+  }
+
+}
+
+Future<bool> existeCFF() async {
+  String nroCconselho = _councilNumberController.text;
+  String vlrMunicipio = (_municipioController.text.replaceAll(' ', '%20'));
+  String selectedState = _selectedState ?? 'CE';  
+  String selectedCategory = _selectedCategory ?? 'farmaceutico';  
+
+  var url = Uri.parse('https://api.infosimples.com/api/v2/consultas/cff/cadastro?token=$token&uf=$selectedState&municipio=$vlrMunicipio&categoria=$selectedCategory&crf=$nroCconselho');
+  print(url);
+  var response = await http.post(url);
+
+  if (response.statusCode == 200) {
+    var jsonResponse = json.decode(response.body);
+    if (jsonResponse['data'] != null && jsonResponse['data'].isNotEmpty) {
+      var resultList = jsonResponse['data'][0]['resultado'] as List;
+      return resultList.any((dataItem) {
+        String? nomeAPI = dataItem['nome'];
+        String situacao = dataItem['situacao'] ?? '';
+        List<String> nameParts = nomeAPI?.split(' ') ?? [];
+        String firstNameAPI = nameParts.isNotEmpty ? nameParts[0].toLowerCase() : '';
+        String firstNameUser = (_nameController.text.split(' ')[0]).toLowerCase();
+        enviaConselho();
+        return firstNameUser == firstNameAPI && situacao == 'Definitivo';
+        
+      });
+    }
+    return false;
+  } else {
+    throw Exception('Erro ao verificar conselho');
+  }
+}
+
+
+Future<void> enviaConselho() async{
+  String? nome = _nameController.text;
+  String? conselho = _councilNumberController.text;
+  String? profissao = _selectedProfession;
+  
+  Map<String, dynamic> conselhoUser = {
+    'conselho': conselho,
+    'cliente': nome,
+    'profissao': profissao,
+  };
+  
+  String cliente = '$nome - $conselho';
+  await firestore
+    .collection('conselhos-validos-$profissao')
+    .doc(cliente)
+    .set(conselhoUser, SetOptions(merge: false));
+}
 
 }

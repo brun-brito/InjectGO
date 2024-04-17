@@ -1,5 +1,4 @@
 // ignore_for_file: library_private_types_in_public_api
-import 'package:firebase_core/firebase_core.dart';
 import 'package:inject_go/screens/welcome_screen.dart';
 import 'package:inject_go/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +30,7 @@ class _LoginFormState extends State<LoginForm> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  // ignore: unused_field
   bool _isButtonEnabled = false; 
   FirebaseFirestore firestore = FirebaseFirestore.instance;
 
@@ -205,7 +205,11 @@ class _LoginFormState extends State<LoginForm> {
             TextButton(
               child: const Text('Salvar'),
               onPressed: () {
-                if(_newPasswordController!.text.length < 6){
+                if(_emailController.text.isEmpty){
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Preencha o seu e-mail")),
+                  );}
+                else if(_newPasswordController.text.isEmpty || _newPasswordController.text.length < 6){
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("A senha deve ter no mínimo 6 caracteres")),
                   );}
@@ -215,7 +219,6 @@ class _LoginFormState extends State<LoginForm> {
                     Navigator.of(context).pop(); // Fechar o diálogo após a atualização
                   });
                 } else {
-                  // Mostrar um erro se as senhas não coincidirem
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("As senhas não coincidem!")),
                   );
