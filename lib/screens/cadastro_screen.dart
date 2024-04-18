@@ -1,6 +1,6 @@
 // ignore_for_file: library_private_types_in_public_api, curly_braces_in_flow_control_structures
 import 'dart:io';
-// import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -42,6 +42,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _municipioController = TextEditingController();
+  final TextEditingController _imageController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final picker = ImagePicker();
   final ImagePicker _picker = ImagePicker(); 
@@ -69,12 +70,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
         title: const Text('Tela de Cadastro'),
       ),
-      body: Form(
+            body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: <Widget>[
-
             TextFormField(
               decoration: InputDecoration(
                 labelText: 'Anexe uma foto da sua carteirinha*',
@@ -85,16 +85,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     setState(() {
                       _image = pickedFile;
                     });
+                    _imageController.clear();
                   },
                 ),
               ),
               readOnly: true,
-              validator: (value) {
-                if (_image == null) {
-                  return 'Por favor, anexe uma foto de sua carteirinha';
-                }
-                return null;
-              },
+              validator: (value) => _image == null ? 'Por favor, anexe uma foto de sua carteirinha' : null,
             ),
             if (_image != null)
               Stack(
@@ -116,24 +112,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ],
               ),
 
-            // Para selfie segurando a carteirinha
             TextFormField(
+              controller: _imageController,
               decoration: InputDecoration(
                 labelText: 'Selfie segurando a carteirinha*',
                 suffixIcon: IconButton(
                   icon: Icon(Icons.camera_alt),
-                  onPressed: () {
-                    _takeSelfie();
-                  },
+                  onPressed: _takeSelfie,
                 ),
               ),
               readOnly: true,
-              validator: (value) {
-                if (_selfie == null) {
-                  return 'Por favor, anexe uma foto sua, segurando a carteirinha';
-                }
-                return null;
-              },
+              validator: (value) => _selfie == null ? 'Por favor, anexe uma selfie segurando a carteirinha' : null,
             ),
             if (_selfie != null)
               Stack(
@@ -157,8 +146,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Nome*'),
+              decoration: const InputDecoration(labelText: 'Primeiro nome*'),
               inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')),
                 FilteringTextInputFormatter.singleLineFormatter, 
               ],
               validator: (value) {
@@ -172,6 +162,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
             TextFormField(
               controller: _lastNameController,
               decoration: const InputDecoration(labelText: 'Sobrenome*'),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z-\s]')),
+              ],
               validator: (value) {
                 if (value == null || value.trim().isEmpty) { // Garante que espaços em branco não sejam considerados como nome válido
                   return 'Por favor, preencha seu sobrenome';
@@ -375,6 +368,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
               ),
               inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9-.-@]')),
                 FilteringTextInputFormatter.singleLineFormatter,
               ],
               validator: (value) {
@@ -391,6 +385,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               decoration: const InputDecoration(labelText: 'Crie um usuário*'),
               inputFormatters: [
                 FilteringTextInputFormatter.singleLineFormatter, 
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\;\:\",<>\.\/\?\|\\_`~]')),
                 LengthLimitingTextInputFormatter(15),
               ],
               validator: (value) {
@@ -444,7 +439,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     _isLoading = true; // Inicia o carregamento
                   });
                   try {
-                    await addUserWithFirebase(_nameController.text, _lastNameController.text, _cpfController.text, _emailController.text, _usernameController.text, {});
+                    await addUserWithFirebase({});
+                    await cadastrarAuth(_emailController.text, _passwordController.text);
                     await uploadCarteira();
                     await uploadSelfie();
                     mensagemSucesso();
@@ -458,10 +454,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     });
                   }
                 }
+                else if (!_formKey.currentState!.validate() && (_statusColor == Colors.red || _statusColor == Colors.black)){
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Insira um número de conselho válido e clique na lupa para verificar!"))
+                    );
+                }
+                else if (!_formKey.currentState!.validate() && (_selfie == null || _image == null)){
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Carregue as fotos antes de concluir o cadastro."))
+                    );
+                }
                 else{
                   ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Insira um número de conselho válido!"))
-                    );
+                    SnackBar(content: Text("Campos obrigatórios não foram preenchidos!"))
+                  );  
                 }
               },
               child: _isLoading
@@ -477,15 +483,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
 
-Future<void> addUserWithFirebase(
-  String nome,
-  String sobrenome,
-  String cpf,
-  String email,
-  String usuario,
-  Map<String, dynamic> userData
-) async {
-  // Primeiro, verifica se já existe algum usuário com o mesmo CPF ou nome de usuário.
+Future<void> addUserWithFirebase(Map<String, dynamic> userData) async {
+  String nome = _nameController.text;
+  String sobrenome = _lastNameController.text;
+  String cpf = _cpfController.text;
+  String telefone = _phoneController.text;
+  String email = _emailController.text;
+  String usuario = _usernameController.text;
+  String conselho = _councilNumberController.text;
+
+  // Primeiro, verifica se já existe algum usuário com os mesmos dados.
   var cpfQuery = await firestore
     .collection('users')
     .where('cpf', isEqualTo: cpf)
@@ -496,9 +503,19 @@ Future<void> addUserWithFirebase(
     .where('usuario', isEqualTo: usuario)
     .limit(1)
     .get();
+  var telQuery = await firestore
+    .collection('users')
+    .where('telefone', isEqualTo: telefone)
+    .limit(1)
+    .get();
   var emailQuery = await firestore
     .collection('users')
     .where('email', isEqualTo: email)
+    .limit(1)
+    .get();
+  var conselhoQuery = await firestore
+    .collection('users')
+    .where('conselho', isEqualTo: conselho)
     .limit(1)
     .get();
 
@@ -507,10 +524,16 @@ Future<void> addUserWithFirebase(
     throw Exception("Cliente com este CPF já cadastrado.");
   }
   if (usernameQuery.docs.isNotEmpty) {
-    throw Exception("Cliente com este usuário já existe.");
+    throw Exception("Cliente com este usuário já cadastrado.");
+  }
+  if (telQuery.docs.isNotEmpty) {
+    throw Exception("Cliente com este telefone já cadastrado.");
   }
   if (emailQuery.docs.isNotEmpty) {
-    throw Exception("Cliente com este e-mail já existe.");
+    throw Exception("Cliente com este e-mail já cadastrado.");
+  }
+  if (conselhoQuery.docs.isNotEmpty) {
+    throw Exception("Cliente com este número de conselho já cadastrado.");
   }
 
   // Nome completo + cpf vai ser chave
@@ -539,6 +562,32 @@ Future<void> addUserWithFirebase(
     .set(fullUserData, SetOptions(merge: false));
 }
 
+  Future<void> cadastrarAuth(String email, String password) async {
+    final _firebaseAuth = FirebaseAuth.instance;
+    try {
+      await _firebaseAuth.createUserWithEmailAndPassword(email: email, password: password);
+      } on FirebaseAuthException catch (e) {
+      if (e.code == 'weak-password') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Senha deve ter no mínimo 6 caracteres"))
+        );  
+      } else if (e.code == 'email-already-in-use') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Cliente com este e-mail já cadastrado."))
+        );  
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message.toString()))
+        );  
+      }
+      throw e;
+    } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Um erro ocorreu: $e'))
+        );  
+      throw e;
+    }
+  }
 
 void mensagemSucesso() {
     showDialog(
@@ -638,7 +687,7 @@ Future<bool> existeCRO() async {
   String nroCconselho = _councilNumberController.text;
 
   var url = Uri.parse('https://api.infosimples.com/api/v2/consultas/cro/cadastro?inscricao=$nroCconselho&token=$token&uf=$_selectedState');
-    print(url);
+    // print(url);
   var response = await http.post(url);
 
   if (response.statusCode == 200) {
@@ -659,7 +708,7 @@ Future<bool> existeCFBM() async {
   String nroCconselho = _councilNumberController.text;
 
   var url = Uri.parse('https://api.infosimples.com/api/v2/consultas/cfbm/cadastro?token=$token&registro=$nroCconselho');
-      print(url);
+      // print(url);
   var response = await http.post(url);
 
   if (response.statusCode == 200) {
@@ -679,12 +728,12 @@ Future<bool> existeCFBM() async {
 
 Future<bool> existeCFF() async {
   String nroCconselho = _councilNumberController.text;
-  String vlrMunicipio = (_municipioController.text.replaceAll(' ', '%20'));
+  String vlrMunicipio = (_municipioController.text.replaceAll(' ', '%20')) ?? 'todos';
   String selectedState = _selectedState ?? 'CE';  
   String selectedCategory = _selectedCategory ?? 'farmaceutico';  
 
   var url = Uri.parse('https://api.infosimples.com/api/v2/consultas/cff/cadastro?token=$token&uf=$selectedState&municipio=$vlrMunicipio&categoria=$selectedCategory&crf=$nroCconselho');
-  print(url);
+  // print(url);
   var response = await http.post(url);
 
   if (response.statusCode == 200) {

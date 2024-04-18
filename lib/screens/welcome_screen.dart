@@ -38,6 +38,7 @@ class _WelcomePageState extends State<WelcomePage> {
   FirebaseFirestore firestore = FirebaseFirestore.instance;
   final TextEditingController _emailController = TextEditingController();
   bool _isButtonEnabled = false; 
+  bool _isLoading = false;
   String? _selectedState;
 
   @override
@@ -117,17 +118,29 @@ class _WelcomePageState extends State<WelcomePage> {
               },
             ),
 
-
-            const SizedBox(height: 8.0),
+          const SizedBox(height: 8.0),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: _isButtonEnabled ? Colors.pink : Colors.grey,
               foregroundColor: Colors.white,
             ),
-              onPressed:(){ 
-                onContinuePressed();
-                },
-            child: const Text('Avançar'),
+            onPressed: _isLoading ? null : () async {
+              setState(() => _isLoading = true); 
+              try {
+                await onContinuePressed();
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Erro inesperado: ${e.toString()}"))
+                );
+              } finally {
+                setState(() => _isLoading = false);  
+              }
+            },
+            child: _isLoading 
+              ? const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white)
+                )
+              : const Text('Avançar'),
           ),
 
 

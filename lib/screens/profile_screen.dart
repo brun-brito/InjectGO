@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:inject_go/main.dart';
+import 'package:inject_go/screens/login_screen.dart';
+import 'package:inject_go/screens/token.dart';
+import 'package:inject_go/screens/editar_dados.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 
 void main() async {
   // WidgetsFlutterBinding.ensureInitialized();
@@ -55,22 +60,70 @@ class UserProfileScreen extends StatelessWidget {
                 buildUserInfo("UF Conselho", userData['estadoConselho']),
                 buildUserInfo("Profissão", userData['profissao']),
                 buildUserInfo("Nome de usuário", userData['usuario']),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () => logout(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text("Sair da Sessão"),
+                ),
+                
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: () =>  
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => RandomNumberScreen())
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text("Gerar Token"),
+                ),
               ],
-          );
-        },
+            );
+          },
+        ),
+      
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => EditUserProfileScreen(username: username)),
+        ),
+        child: Icon(Icons.edit),
+        backgroundColor: Colors.blue,
+        ),
+    );
+  }
+
+    
+Widget buildUserInfo(String label, String? value) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      RichText(
+        text: TextSpan(
+          style: const TextStyle(fontSize: 20, color: Colors.black), 
+          children: <TextSpan>[
+            TextSpan(
+              text: "$label: ", 
+              style: const TextStyle(fontWeight: FontWeight.bold), 
+            ),
+            TextSpan(
+              text: value ?? '-Não informado-', 
+              style: const TextStyle(fontWeight: FontWeight.normal), 
+            ),
+          ],
+        ),
       ),
-    );
-  }
-  
-   Widget buildUserInfo(String label, String? value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("$label: ${value ?? '-Não informado-'}", style: const TextStyle(fontSize: 20)),
-        const SizedBox(height: 8),
-      ],
-    );
-  }
+      const SizedBox(height: 8),
+    ],
+  );
+}
+
 
 Future<Map<String, dynamic>?> getUserData(String usuario) async {
   FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -89,6 +142,26 @@ Future<Map<String, dynamic>?> getUserData(String usuario) async {
   } catch (e) {
     print('Erro ao buscar dados do usuário: $e');
     return null;
+  }
+}
+
+Future<void> logout(BuildContext context) async {
+  await FirebaseAuth.instance.signOut();
+  Navigator.pushAndRemoveUntil(
+    context,
+    MaterialPageRoute(builder: (context) => const LoginForm()),
+    (Route<dynamic> route) => false,
+  );
+}
+
+void editarDados() {
+  User? user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    // Um usuário está logado
+    print("Usuário logado: ${user.email}");
+  } else {
+    // Nenhum usuário está logado
+    print("Nenhum usuário está logado.");
   }
 }
 
