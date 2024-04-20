@@ -1,128 +1,167 @@
-// import 'package:flutter/material.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:inject_go/screens/token.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-// void main() {
-//   runApp(MyApp());
-// }
+void main() => runApp(MyApp());
 
-// class MyApp extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       title: 'Perfil do Usuário',
-//       home: UserProfileScreen(username: 'user123'),  // Substitua 'user123' pelo identificador real do usuário
-//     );
-//   }
-// }
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Profile Screen with Google Map',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: ProfileScreen(),
+    );
+  }
+}
 
-// class UserProfileScreen extends StatefulWidget {
-//   final String username;
+class ProfileScreen extends StatefulWidget {
+  @override
+  _ProfileScreenState createState() => _ProfileScreenState();
+}
 
-//   UserProfileScreen({required this.username});
+class _ProfileScreenState extends State<ProfileScreen> {
+  late GoogleMapController mapController;
 
-//   @override
-//   _UserProfileScreenState createState() => _UserProfileScreenState();
-// }
+  final LatLng _center = const LatLng(-19.92450, -43.93524); // Coordenadas de Belo Horizonte
 
-// class _UserProfileScreenState extends State<UserProfileScreen> {
-//   bool isEditing = false;
-//   final TextEditingController nameController = TextEditingController();
-//   final TextEditingController emailController = TextEditingController();
+  void _onMapCreated(GoogleMapController controller) {
+    mapController = controller;
+  }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SingleChildScrollView(
+        child: Column(
+          children: <Widget>[
+            _buildHeader(),
+            _buildProfileSection(),
+            _buildMapSection(), // Inserindo o mapa aqui
+            _buildMenu(),
+            // _buildFacialAnalysis(),
+            _buildBottomNavigationBar(),
+          ],
+        ),
+      ),
+    );
+  }
 
-//   @override
-//   void dispose() {
-//     nameController.dispose();
-//     emailController.dispose();
-//     super.dispose();
-//   }
+Widget _buildMapSection() {
+    return Container(
+      height: 200, // Altura desejada para o mapa
+      child: GoogleMap(
+        onMapCreated: _onMapCreated,
+        initialCameraPosition: CameraPosition(
+          target: _center,
+          zoom: 11.0,
+        ),
+      ),
+    );
+  }
 
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text("Perfil do Usuário"),
-//         actions: [
-//           if (!isEditing)
-//             IconButton(
-//               icon: Icon(Icons.edit),
-//               onPressed: () {
-//                 setState(() {
-//                   isEditing = true;
-//                 });
-//               },
-//             ),
-//         ],
-//       ),
-//       body: isEditing ? buildEditForm() : buildProfileView(),
-//     );
-//   }
+  Widget _buildHeader() {
+    return Container(
+      padding: EdgeInsets.only(top: 50),
+      alignment: Alignment.center,
+      child: Text(
+        'InjectGO',
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, height: 2),
+      ),
+    );
+  }
 
-//   Widget buildProfileView() {
-//     return FutureBuilder<DocumentSnapshot>(
-//       future: FirebaseFirestore.instance.collection('users').doc(widget.username).get(),
-//       builder: (context, snapshot) {
-//         if (snapshot.connectionState == ConnectionState.waiting) {
-//           return Center(child: CircularProgressIndicator());
-//         }
-//         if (snapshot.hasError) {
-//           return Center(child: Text("Erro ao carregar os dados."));
-//         }
-//         if (!snapshot.hasData || snapshot.data!.data() == null) {
-//           return Center(child: Text("Nenhum dado encontrado para o usuário."));
-//         }
+Widget _buildProfileSection() {
+  return ListTile(
+    leading: Stack(
+      alignment: Alignment.bottomRight,
+      children: <Widget>[
+        const CircleAvatar(
+          radius: 30,
+          backgroundImage: NetworkImage('https://link-to-your-image.com/image.jpg'),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.blue,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white,
+              width: 2,
+            ),
+          ),
+          child: IconButton(
+            icon: Icon(Icons.add, color: Colors.white),
+            onPressed: () {
+              // TODO: Implementar funcionalidade de adicionar foto
+            },
+          ),
+        ),
+      ],
+    ),
+    title: Text('Dra. Joana'),
+    subtitle: Text('Biomédica, 30 anos, reside em Belo Horizonte'),
+  );
+}
 
-//         var userData = snapshot.data!.data() as Map<String, dynamic>;
-//         nameController.text = userData['nome'];
-//         emailController.text = userData['email'];
-//         return ListView(
-//           padding: EdgeInsets.all(16),
-//           children: <Widget>[
-//             Text("Nome: ${userData['nome']}"),
-//             Text("E-mail: ${userData['email']}"),
-//             Text("Telefone: ${userData['telefone']}"),
-//             // Adicione mais campos conforme necessário
-//           ],
-//         );
-//       },
-//     );
-//   }
 
-//   Widget buildEditForm() {
-//     return SingleChildScrollView(
-//       padding: EdgeInsets.all(16),
-//       child: Column(
-//         children: [
-//           TextField(
-//             controller: nameController,
-//             decoration: InputDecoration(labelText: 'Nome'),
-//           ),
-//           TextField(
-//             controller: emailController,
-//             decoration: InputDecoration(labelText: 'E-mail'),
-//           ),
-//           // Adicione mais campos conforme necessário
-//           ElevatedButton(
-//             onPressed: () => saveProfileData(),
-//             child: Text("Salvar Alterações"),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
 
-//   void saveProfileData() {
-//     FirebaseFirestore.instance.collection('users').doc(widget.username)
-//       .update({
-//         'nome': nameController.text,
-//         'email': emailController.text,
-//         // Adicione mais campos conforme necessário
-//       }).then((_) {
-//         print("Dados atualizados com sucesso!");
-//         setState(() {
-//           isEditing = false;
-//         });
-//       }).catchError((error) {
-//         print("Erro ao atualizar os dados: $error");
-//       });
-//   }
-// }
+  Widget _buildMenu() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: <Widget>[
+        _buildMenuButton(Icons.check_circle, 'Avaliações/Agenda'),
+        _buildMenuButton(Icons.shopping_cart, 'Mercado'),
+        _buildMenuButton(Icons.more_horiz, 'Mais'),
+      ],
+    );
+  }
+
+  Widget _buildMenuButton(IconData icon, String label) {
+    return Column(
+      children: <Widget>[
+        Icon(icon, size: 30),
+        Text(label),
+      ],
+    );
+  }
+
+  Widget _buildFacialAnalysis(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Column(
+        children: <Widget>[
+          Image.asset('assets/images/logoInject.jpeg'),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () =>  
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => RandomNumberScreen())
+            ),
+            child: Text('Gerar Token'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    return BottomNavigationBar(
+      items: const <BottomNavigationBarItem>[
+        BottomNavigationBarItem(
+          icon: Icon(Icons.dashboard),
+          label: 'Dashboard',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.timeline),
+          label: 'Atividade',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person),
+          label: 'Perfil',
+        ),
+      ],
+    );
+  }
+}

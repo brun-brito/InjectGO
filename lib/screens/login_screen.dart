@@ -201,7 +201,7 @@ class _LoginFormState extends State<LoginForm> {
 
   void _showForgotPasswordDialog() async{
     String value = _emailController.text;
-    if(value == null || value.isEmpty || !value.contains('@') || !value.contains('.')){
+    if(value.isEmpty || !value.contains('@') || !value.contains('.')){
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Preencha seu e-mail corretamente antes.")),
       );

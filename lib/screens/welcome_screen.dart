@@ -46,7 +46,7 @@ class _WelcomePageState extends State<WelcomePage> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back), //seta pra voltar
+          icon: const Icon(Icons.arrow_back), 
               onPressed: () {
                 Navigator.push(
                   context,
@@ -54,7 +54,7 @@ class _WelcomePageState extends State<WelcomePage> {
                 );
               },
         ),
-        title: const Text('Seja bem vindo(a)!'), //título da pag
+        title: const Text('Seja bem vindo(a)!'), 
         centerTitle: true,
       ),
        body: SingleChildScrollView(
@@ -93,7 +93,7 @@ class _WelcomePageState extends State<WelcomePage> {
 
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(
-                labelText: 'Estado de residência',
+                labelText: 'UF de atuação',
                 prefixIcon: Icon(Icons.maps_home_work_outlined),
               ),
               value: _selectedState,
@@ -113,7 +113,7 @@ class _WelcomePageState extends State<WelcomePage> {
                   _isButtonEnabled = _emailController.text.isNotEmpty &&
                     _emailController.text.contains('@') &&
                     _emailController.text.contains('.') &&
-                    _selectedState == 'CE';
+                    _selectedState != null;
                 });
               },
             ),
@@ -199,7 +199,7 @@ class _WelcomePageState extends State<WelcomePage> {
       _isButtonEnabled = _emailController.text.isNotEmpty &&
         _emailController.text.contains('@') &&
         _emailController.text.contains('.') &&
-        _selectedState == 'CE';
+        _selectedState != null;
     });
   }
 
@@ -236,9 +236,10 @@ Future<void> onContinuePressed() async {
  if (_isButtonEnabled) {
     if(await verificaEmail(_emailController.text)){
       addEmail(_emailController.text,_selectedState!,{}); //add no banco e leva pro cadastro
-      Navigator.push(
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) =>  const SignUpScreen()),
+        (Route<dynamic> route) => false,
       );
     }
     else{
@@ -258,13 +259,13 @@ Future<void> onContinuePressed() async {
       ),
     );
   }
-  else if (_emailController.text.isNotEmpty && _selectedState != 'CE') {
-    if(await verificaEmail2(_emailController.text)){
-      addEmailIndisponivel(_emailController.text,_selectedState!,{});
-    }else{
-      _showIneligibilityMessage();  // mostra a mensagem que nao esta disponível
-    }  
-  }
+  // else if (_emailController.text.isNotEmpty /*&& _selectedState != 'CE'*/) {
+  //   if(await verificaEmail2(_emailController.text)){
+  //     addEmailIndisponivel(_emailController.text,_selectedState!,{});
+  //   }else{
+  //     _showIneligibilityMessage();  
+  //   }  
+  // }
   else{
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -275,40 +276,40 @@ Future<void> onContinuePressed() async {
   }
 }
 
-  void _showIneligibilityMessage() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Aviso"),
-          content: const SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-              Text(
-                "Infelizmente o nosso app não chegou na sua região ainda 😭\nMas não se preocupe! Nós iremos te mandar um e-mail, assim que o App estiver disponível para te atender 🥳",
-                style: TextStyle(
-                  fontSize: 20, // Aumente o valor de fontSize conforme necessário
-                ),
-              ),
-            ]
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // void _showIneligibilityMessage() {
+  //   showDialog(
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //       return AlertDialog(
+  //         title: const Text("Aviso"),
+  //         content: const SingleChildScrollView(
+  //           child: ListBody(
+  //             children: <Widget>[
+  //             Text(
+  //               "Infelizmente o nosso app não chegou na sua região ainda 😭\nMas não se preocupe! Nós iremos te mandar um e-mail, assim que o App estiver disponível para te atender 🥳",
+  //               style: TextStyle(
+  //                 fontSize: 20, 
+  //               ),
+  //             ),
+  //           ]
+  //           ),
+  //         ),
+  //         actions: <Widget>[
+  //           TextButton(
+  //             child: const Text('OK'),
+  //             onPressed: () {
+  //               Navigator.of(context).pop();
+  //             },
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   );
+  // }
 
 Future<bool> verificaEmail(String email) async{
   var emailQuery = await firestore
-    .collection('email')
+    .collection('email-uf')
     .where('email', isEqualTo: email)
     .limit(1)
     .get();
@@ -327,34 +328,32 @@ Future<void> addEmail(String email, String uf, Map<String, dynamic> userData) as
     };
     // Insere os dados no Firestore
     await firestore
-      .collection('email')
+      .collection('email-uf')
       .doc()
       .set(fullUserData, SetOptions(merge: false));
 }
 
-Future<bool> verificaEmail2(String email) async{
-  var emailQuery = await firestore
-    .collection('email-uf-indisponivel')
-    .where('email', isEqualTo: email)
-    .limit(1)
-    .get();
-
-  if (emailQuery.docs.isNotEmpty) {
-    return false;
-  }
-  return true;
-}
-
-Future<void> addEmailIndisponivel(String email, String uf, Map<String, dynamic> userData) async {  
-  Map<String, dynamic> fullUserData = {
-    'email': email,  
-    'UF': uf,
-  };
-  await firestore
-    .collection('email-uf-indisponivel')
-    .doc()
-    .set(fullUserData, SetOptions(merge: false));
-}
+// Future<bool> verificaEmail2(String email) async{
+//   var emailQuery = await firestore
+//     .collection('email-uf-indisponivel')
+//     .where('email', isEqualTo: email)
+//     .limit(1)
+//     .get();
+//   if (emailQuery.docs.isNotEmpty) {
+//     return false;
+//   }
+//   return true;
+// }
+// Future<void> addEmailIndisponivel(String email, String uf, Map<String, dynamic> userData) async {  
+//   Map<String, dynamic> fullUserData = {
+//     'email': email,  
+//     'UF': uf,
+//   };
+//   await firestore
+//     .collection('email-uf-indisponivel')
+//     .doc()
+//     .set(fullUserData, SetOptions(merge: false));
+// }
 
 
 }

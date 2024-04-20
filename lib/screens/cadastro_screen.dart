@@ -41,7 +41,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _municipioController = TextEditingController();
   final TextEditingController _imageController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final picker = ImagePicker();
@@ -50,13 +49,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String token = 'pxXxdW4xqw12EMWEEtMMNq8V8_0EJ3E46mD_TT78';
   String? _selectedProfession;
   String? _selectedState;
-  String? _selectedCategory;
   String? _senha;
   XFile? _selfie;
-  XFile? _image;
+  // XFile? _image;
   bool _isLoading = false;
-  bool _isLoadingLupa = false;
-  bool _mostrarCamposFarmaceutico = false;
+  bool _isLoadingVerify = false;
   Color _statusColor =Colors.black;
   FirebaseFirestore firestore = FirebaseFirestore.instance;
   
@@ -64,10 +61,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
+        // leading: IconButton(
+        //   icon: const Icon(Icons.arrow_back),
+        //   onPressed: () => Navigator.pop(context),
+        // ),
         title: const Text('Tela de Cadastro'),
       ),
             body: Form(
@@ -75,42 +72,42 @@ class _SignUpScreenState extends State<SignUpScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: <Widget>[
-            TextFormField(
-              decoration: InputDecoration(
-                labelText: 'Anexe uma foto da sua carteirinha*',
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.file_upload),
-                  onPressed: () async {
-                    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-                    setState(() {
-                      _image = pickedFile;
-                    });
-                    _imageController.clear();
-                  },
-                ),
-              ),
-              readOnly: true,
-              validator: (value) => _image == null ? 'Por favor, anexe uma foto de sua carteirinha' : null,
-            ),
-            if (_image != null)
-              Stack(
-                alignment: Alignment.topRight,
-                children: [
-                  Container(
-                    height: 200,
-                    child: Image.file(File(_image!.path)),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.cancel),
-                    color: Colors.red,
-                    onPressed: () {
-                      setState(() {
-                        _image = null;
-                      });
-                    },
-                  ),
-                ],
-              ),
+            // TextFormField(
+            //   decoration: InputDecoration(
+            //     labelText: 'Anexe uma foto do VERSO da sua carteirinha*',
+            //     suffixIcon: IconButton(
+            //       icon: Icon(Icons.file_upload),
+            //       onPressed: () async {
+            //         final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+            //         setState(() {
+            //           _image = pickedFile;
+            //         });
+            //         _imageController.clear();
+            //       },
+            //     ),
+            //   ),
+            //   readOnly: true,
+            //   validator: (value) => _image == null ? 'Por favor, anexe uma foto de sua carteirinha' : null,
+            // ),
+            // if (_image != null)
+            //   Stack(
+            //     alignment: Alignment.topRight,
+            //     children: [
+            //       Container(
+            //         height: 200,
+            //         child: Image.file(File(_image!.path)),
+            //       ),
+            //       IconButton(
+            //         icon: Icon(Icons.cancel),
+            //         color: Colors.red,
+            //         onPressed: () {
+            //           setState(() {
+            //             _image = null;
+            //           });
+            //         },
+            //       ),
+            //     ],
+            //   ),
 
             TextFormField(
               controller: _imageController,
@@ -128,12 +125,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
               Stack(
                 alignment: Alignment.topRight,
                 children: [
-                  Container(
+                  SizedBox(
                     height: 200,
                     child: Image.file(File(_selfie!.path)),
                   ),
                   IconButton(
-                    icon: Icon(Icons.cancel),
+                    icon: const Icon(Icons.cancel),
                     color: Colors.red,
                     onPressed: () {
                       setState(() {
@@ -148,11 +145,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
               controller: _nameController,
               decoration: const InputDecoration(labelText: 'Primeiro nome*'),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')),
+                FilteringTextInputFormatter.deny(RegExp(r'\s')),
                 FilteringTextInputFormatter.singleLineFormatter, 
               ],
               validator: (value) {
-                if (value == null || value.trim().isEmpty) { // Garante que espaços em branco não sejam considerados como nome válido
+                if (value == null || value.trim().isEmpty) { 
                   return 'Por favor, preencha seu nome';
                 }
                 return null;
@@ -166,7 +163,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z-\s]')),
               ],
               validator: (value) {
-                if (value == null || value.trim().isEmpty) { // Garante que espaços em branco não sejam considerados como nome válido
+                if (value == null || value.trim().isEmpty) { 
                   return 'Por favor, preencha seu sobrenome';
                 }
                 return null;
@@ -174,9 +171,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
             
             DropdownButtonFormField<String>(
-              decoration: const InputDecoration(labelText: 'Profissão*'),
+              decoration: const InputDecoration(labelText: 'Especialidade*'),
               value: _selectedProfession,
-              items: <String>['Dentista', 'Biomédico', 'Farmacêutico', 'Enfermeiro', 'Fisioterapeuta']
+              items: <String>['Biomédico', 'Dentista', 'Médico'/*, 'Farmacêutico', 'Enfermeiro', 'Fisioterapeuta'*/]
                   .map<DropdownMenuItem<String>>((String value) {
                 return DropdownMenuItem<String>(
                   value: value,
@@ -186,7 +183,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
               onChanged: (String? newValue) {
                 setState(() {
                   _selectedProfession = newValue;
-                  _mostrarCamposFarmaceutico = newValue == 'Farmacêutico';  // muda pra true se for farmaceutico
                 });
               },
               validator: (value) {
@@ -196,44 +192,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 return null;
               },
             ),
-            if (_mostrarCamposFarmaceutico) ...[
-              TextFormField(
-                controller: _municipioController,
-                decoration: const InputDecoration(
-                  labelText: 'Município*',
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) { 
-                    return 'Por favor, preencha seu município';
-                  }
-                  return null;
-                },
-              ),
-
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Categoria*'),
-                value: _selectedCategory,
-                items: <String>['farmaceutico', 'tecnico']
-                    .map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedCategory = newValue;
-                  });
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor, selecione sua categoria';
-                  }
-                  return null;
-                },
-              ),
-            ],
-
+            
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'Estado do Conselho*'),
               value: _selectedState,
@@ -284,18 +243,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                 ),
                 IconButton(
-                  icon: _isLoadingLupa 
+                  icon: _isLoadingVerify 
                     ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.blue)) 
-                    : const Icon(Icons.search),
-                  onPressed: _isLoadingLupa ? null : () async {
+                    :  Icon(Icons.check_box, color: _statusColor,),
+                  onPressed: _isLoadingVerify ? null : () async {
                     var funcao;
+                  
                     if (_selectedProfession == 'Dentista')
                       funcao = existeCRO();
                     if (_selectedProfession == 'Biomédico') 
-                      funcao = existeCFBM();                    
-                    if (_selectedProfession == 'Farmacêutico') 
-                      funcao = existeCFF();                    
-                    setState(() => _isLoadingLupa = true);
+                      funcao = existeCFBM();         
+                    if (_selectedProfession == 'Médico') 
+                      funcao = existeCRM();               
+                    // if (_selectedProfession == 'Farmacêutico') 
+                    //   funcao = existeCFF();                    
+                    setState(() => _isLoadingVerify = true);
                     try {
                       if(await funcao){
                         setState(() => _statusColor = Colors.green);
@@ -309,10 +271,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       }
                     } catch (e) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                         SnackBar(content: Text("Erro inesperado.: ${e.toString()}"))
+                         SnackBar(content: Text("Erro inesperado: ${e.toString()}"))
                   );
                     } finally {
-                      setState(() => _isLoadingLupa = false);
+                      setState(() => _isLoadingVerify = false);
                     }
                   },
                 ),
@@ -439,9 +401,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     _isLoading = true; // Inicia o carregamento
                   });
                   try {
-                    await addUserWithFirebase({});
                     await cadastrarAuth(_emailController.text, _passwordController.text);
-                    await uploadCarteira();
+                    await addUserWithFirebase({});
+                    // await uploadCarteira();
                     await uploadSelfie();
                     mensagemSucesso();
                   } catch (e) {
@@ -454,14 +416,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     });
                   }
                 }
-                else if (!_formKey.currentState!.validate() && (_statusColor == Colors.red || _statusColor == Colors.black)){
+                else if (_statusColor == Colors.red || _statusColor == Colors.black){
                   ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Insira um número de conselho válido e clique na lupa para verificar!"))
+                      SnackBar(content: Text("Insira um número de conselho válido e clique no ícone ao lado do campo para verificar!"))
                     );
                 }
-                else if (!_formKey.currentState!.validate() && (_selfie == null || _image == null)){
+                else if (!_formKey.currentState!.validate() && _selfie == null){
                   ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Carregue as fotos antes de concluir o cadastro."))
+                      SnackBar(content: Text("Carregue a foto antes de concluir o cadastro."))
                     );
                 }
                 else{
@@ -483,84 +445,84 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
 
-Future<void> addUserWithFirebase(Map<String, dynamic> userData) async {
-  String nome = _nameController.text;
-  String sobrenome = _lastNameController.text;
-  String cpf = _cpfController.text;
-  String telefone = _phoneController.text;
-  String email = _emailController.text;
-  String usuario = _usernameController.text;
-  String conselho = _councilNumberController.text;
+  Future<void> addUserWithFirebase(Map<String, dynamic> userData) async {
+    String nome = _nameController.text;
+    String sobrenome = _lastNameController.text;
+    String cpf = _cpfController.text;
+    String telefone = _phoneController.text;
+    String email = _emailController.text;
+    String usuario = _usernameController.text;
+    String conselho = _councilNumberController.text;
 
-  // Primeiro, verifica se já existe algum usuário com os mesmos dados.
-  var cpfQuery = await firestore
-    .collection('users')
-    .where('cpf', isEqualTo: cpf)
-    .limit(1)
-    .get();
-  var usernameQuery = await firestore
-    .collection('users')
-    .where('usuario', isEqualTo: usuario)
-    .limit(1)
-    .get();
-  var telQuery = await firestore
-    .collection('users')
-    .where('telefone', isEqualTo: telefone)
-    .limit(1)
-    .get();
-  var emailQuery = await firestore
-    .collection('users')
-    .where('email', isEqualTo: email)
-    .limit(1)
-    .get();
-  var conselhoQuery = await firestore
-    .collection('users')
-    .where('conselho', isEqualTo: conselho)
-    .limit(1)
-    .get();
+    // Primeiro, verifica se já existe algum usuário com os mesmos dados.
+    var cpfQuery = await firestore
+      .collection('users')
+      .where('cpf', isEqualTo: cpf)
+      .limit(1)
+      .get();
+    var usernameQuery = await firestore
+      .collection('users')
+      .where('usuario', isEqualTo: usuario)
+      .limit(1)
+      .get();
+    var telQuery = await firestore
+      .collection('users')
+      .where('telefone', isEqualTo: telefone)
+      .limit(1)
+      .get();
+    var emailQuery = await firestore
+      .collection('users')
+      .where('email', isEqualTo: email)
+      .limit(1)
+      .get();
+    var conselhoQuery = await firestore
+      .collection('users')
+      .where('conselho', isEqualTo: conselho)
+      .limit(1)
+      .get();
 
-  // Verifica se os documentos retornaram algum resultado
-  if (cpfQuery.docs.isNotEmpty) {
-    throw Exception("Cliente com este CPF já cadastrado.");
-  }
-  if (usernameQuery.docs.isNotEmpty) {
-    throw Exception("Cliente com este usuário já cadastrado.");
-  }
-  if (telQuery.docs.isNotEmpty) {
-    throw Exception("Cliente com este telefone já cadastrado.");
-  }
-  if (emailQuery.docs.isNotEmpty) {
-    throw Exception("Cliente com este e-mail já cadastrado.");
-  }
-  if (conselhoQuery.docs.isNotEmpty) {
-    throw Exception("Cliente com este número de conselho já cadastrado.");
-  }
+    // Verifica se os documentos retornaram algum resultado
+    if (cpfQuery.docs.isNotEmpty) {
+      throw Exception("Cliente com este CPF já cadastrado.");
+    }
+    if (usernameQuery.docs.isNotEmpty) {
+      throw Exception("Cliente com este usuário já cadastrado.");
+    }
+    if (telQuery.docs.isNotEmpty) {
+      throw Exception("Cliente com este telefone já cadastrado.");
+    }
+    if (emailQuery.docs.isNotEmpty) {
+      throw Exception("Cliente com este e-mail já cadastrado.");
+    }
+    if (conselhoQuery.docs.isNotEmpty) {
+      throw Exception("Cliente com este número de conselho já cadastrado.");
+    }
 
-  // Nome completo + cpf vai ser chave
-  String cliente = '$nome $sobrenome - $cpf';
-  String randomId = firestore.collection('users').doc().id;
+    // Nome completo + cpf vai ser chave
+    String cliente = '$nome $sobrenome - $cpf';
+    String randomId = firestore.collection('users').doc().id;
 
-  // Define os dados que serão inseridos
-  Map<String, dynamic> fullUserData = {
-    'idUser': randomId,
-    'nome': _nameController.text,
-    'sobrenome': _lastNameController.text,
-    'profissao': _selectedProfession,
-    'conselho': _councilNumberController.text,
-    'estadoConselho': _selectedState,
-    'cpf': _cpfController.text,
-    'telefone': _phoneController.text,
-    'email': _emailController.text,
-    'usuario': _usernameController.text,
-    'senha': _passwordController.text,
-  };
+    // Define os dados que serão inseridos
+    Map<String, dynamic> fullUserData = {
+      'idUser': randomId,
+      'nome': _nameController.text,
+      'sobrenome': _lastNameController.text,
+      'profissao': _selectedProfession,
+      'conselho': _councilNumberController.text,
+      'estadoConselho': _selectedState,
+      'cpf': _cpfController.text,
+      'telefone': _phoneController.text,
+      'email': _emailController.text,
+      'usuario': _usernameController.text,
+      'senha': _passwordController.text,
+    };
 
-  // Insere os dados no Firestore
-  await firestore
-    .collection('users')
-    .doc(cliente)
-    .set(fullUserData, SetOptions(merge: false));
-}
+    // Insere os dados no Firestore
+    await firestore
+      .collection('users')
+      .doc(cliente)
+      .set(fullUserData, SetOptions(merge: false));
+  }
 
   Future<void> cadastrarAuth(String email, String password) async {
     final _firebaseAuth = FirebaseAuth.instance;
@@ -589,191 +551,213 @@ Future<void> addUserWithFirebase(Map<String, dynamic> userData) async {
     }
   }
 
-void mensagemSucesso() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Sucesso! Você será direcionado para a página de login"),
-          actions: <Widget>[
-            TextButton(
-              child: const Text("Ok"),
-              onPressed: () {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => LoginForm()),
-                  (Route<dynamic> route) => false,
-                );
-              },
-            ),
-          ],
-        );
-      },
+  void mensagemSucesso() {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text("Sucesso! Você será direcionado para a página de login"),
+            actions: <Widget>[
+              TextButton(
+                child: const Text("Ok"),
+                onPressed: () {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => LoginForm()),
+                    (Route<dynamic> route) => false,
+                  );
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
+
+  bool isValidCPF(String cpf) {
+    cpf = cpf.replaceAll(RegExp(r'\D'), '');
+
+    if (cpf.length != 11) return false;
+
+    if (RegExp(r'^(\d)\1*$').hasMatch(cpf)) return false;
+
+    int calculateDigit(String cpf, int length) {
+      int sum = 0;
+      for (int i = 0; i < length; i++) {
+        sum += int.parse(cpf[i]) * (length + 1 - i);
+      }
+      int digit = 11 - (sum % 11);
+      return digit >= 10 ? 0 : digit;
+    }
+
+    int firstDigit = calculateDigit(cpf, 9);
+    int secondDigit = calculateDigit(cpf.substring(0, 9) + firstDigit.toString(), 10);
+
+    return cpf.substring(9) == firstDigit.toString() + secondDigit.toString();
+  }
+
+  Future<void> _takeSelfie() async {
+    final XFile? photo = await _picker.pickImage(
+      source: ImageSource.camera,
+      preferredCameraDevice: CameraDevice.front
     );
+    setState(() => _selfie = photo);
   }
 
-bool isValidCPF(String cpf) {
-  cpf = cpf.replaceAll(RegExp(r'\D'), '');
+  // Future<void> _uploadCard() async {
+  //   final XFile? photo = await _picker.pickImage(source: ImageSource.gallery);
+  //   setState(() => _image = photo);
+  // }
 
-  if (cpf.length != 11) return false;
+  Future uploadSelfie() async {
+    if (_selfie == null) return;
+    final file = File(_selfie!.path);
+    String nome = _nameController.text;
+    List<String> sobrenome = _lastNameController.text.split(' ');
+    String primSobrenome = sobrenome[0];
 
-  if (RegExp(r'^(\d)\1*$').hasMatch(cpf)) return false;
+    String fileName = 'selfie-$nome-$primSobrenome-$dateFormatted.jpg'; 
 
-  int calculateDigit(String cpf, int length) {
-    int sum = 0;
-    for (int i = 0; i < length; i++) {
-      sum += int.parse(cpf[i]) * (length + 1 - i);
+    try {
+      await FirebaseStorage.instance
+        .ref('$nome/$fileName') 
+        .putFile(file);
+    } catch (e) {
+        throw('Erro ao salvar selfie: $e');
     }
-    int digit = 11 - (sum % 11);
-    return digit >= 10 ? 0 : digit;
   }
 
-  int firstDigit = calculateDigit(cpf, 9);
-  int secondDigit = calculateDigit(cpf.substring(0, 9) + firstDigit.toString(), 10);
+  // Future uploadCarteira() async {
+  //   if (_image == null) return;
+  //   final file = File(_image!.path);
+  //   String nome = _nameController.text;
+  //   List<String> sobrenome = _lastNameController.text.split(' ');
+  //   String primSobrenome = sobrenome[0];
+  //   String fileName = 'carteirinha-$nome-$primSobrenome-$dateFormatted.jpg'; 
+  //   try {
+  //     await FirebaseStorage.instance
+  //       .ref('$nome/$fileName') 
+  //       .putFile(file);
+  //   } catch (e) {
+  //       throw('Erro ao salvar carteirinha: $e');
+  //   }
+  // }
 
-  return cpf.substring(9) == firstDigit.toString() + secondDigit.toString();
-}
+  Future<bool> existeCRO() async {
+    String nroCconselho = _councilNumberController.text;
 
-Future<void> _takeSelfie() async {
-  final XFile? photo = await _picker.pickImage(
-    source: ImageSource.camera,
-    preferredCameraDevice: CameraDevice.front
-  );
-  setState(() => _selfie = photo);
-}
+    var url = Uri.parse('https://api.infosimples.com/api/v2/consultas/cro/cadastro?inscricao=$nroCconselho&token=$token&uf=$_selectedState');
+    var response = await http.post(url);
 
-Future<void> _uploadCard() async {
-  final XFile? photo = await _picker.pickImage(source: ImageSource.gallery);
-  setState(() => _image = photo);
-}
-
-Future uploadSelfie() async {
-  if (_selfie == null) return;
-  final file = File(_selfie!.path);
-  String nome = _nameController.text;
-  List<String> sobrenome = _lastNameController.text.split(' ');
-  String primSobrenome = sobrenome[0];
-
-  String fileName = 'selfie-$nome-$primSobrenome-$dateFormatted.jpg'; 
-
-  try {
-    await FirebaseStorage.instance
-      .ref('selfies/$fileName') 
-      .putFile(file);
-  } catch (e) {
-      throw('Erro ao salvar selfie: $e');
-  }
-}
-
-Future uploadCarteira() async {
-  if (_image == null) return;
-  final file = File(_image!.path);
-  String nome = _nameController.text;
-  List<String> sobrenome = _lastNameController.text.split(' ');
-  String primSobrenome = sobrenome[0];
-
-  String fileName = 'carteira-$nome-$primSobrenome-$dateFormatted.jpg'; 
-
-  try {
-    await FirebaseStorage.instance
-      .ref('fotos-carteirinhas/$fileName') 
-      .putFile(file);
-  } catch (e) {
-      throw('Erro ao salvar carteirinha: $e');
-  }
-}
-
-Future<bool> existeCRO() async {
-  String nroCconselho = _councilNumberController.text;
-
-  var url = Uri.parse('https://api.infosimples.com/api/v2/consultas/cro/cadastro?inscricao=$nroCconselho&token=$token&uf=$_selectedState');
-    // print(url);
-  var response = await http.post(url);
-
-  if (response.statusCode == 200) {
-    var jsonResponse = json.decode(response.body);
-    List<dynamic> dataList = jsonResponse['data'];
-    return dataList.any((dataItem) {
-      var firstName = (dataItem['nome'] as String).split(' ')[0].toLowerCase();
-      var situacao = (dataItem['situacao'] as String);
-      enviaConselho();
-      return firstName == _nameController.text.toLowerCase() && situacao == 'ATIVO';
-    });
-  } else {
-    throw Exception('Erro ao verificar conselho');
-  }
-}
-
-Future<bool> existeCFBM() async {
-  String nroCconselho = _councilNumberController.text;
-
-  var url = Uri.parse('https://api.infosimples.com/api/v2/consultas/cfbm/cadastro?token=$token&registro=$nroCconselho');
-      // print(url);
-  var response = await http.post(url);
-
-  if (response.statusCode == 200) {
-    var jsonResponse = json.decode(response.body);
-    List<dynamic> dataList = jsonResponse['data'][0]['lista_registros'] as List;
-    return dataList.any((dataItem) {
-      var firstName = (dataItem['nome_razao_social'] as String).split(' ')[0].toLowerCase();
-      var situacao = (dataItem['situacao'] as String);
-      enviaConselho();
-      return firstName == _nameController.text.toLowerCase() && situacao == 'ATIVO';
-    });
-  } else {
-    throw Exception('Erro ao verificar conselho');
-  }
-
-}
-
-Future<bool> existeCFF() async {
-  String nroCconselho = _councilNumberController.text;
-  String vlrMunicipio = (_municipioController.text.replaceAll(' ', '%20')) ?? 'todos';
-  String selectedState = _selectedState ?? 'CE';  
-  String selectedCategory = _selectedCategory ?? 'farmaceutico';  
-
-  var url = Uri.parse('https://api.infosimples.com/api/v2/consultas/cff/cadastro?token=$token&uf=$selectedState&municipio=$vlrMunicipio&categoria=$selectedCategory&crf=$nroCconselho');
-  // print(url);
-  var response = await http.post(url);
-
-  if (response.statusCode == 200) {
-    var jsonResponse = json.decode(response.body);
-    if (jsonResponse['data'] != null && jsonResponse['data'].isNotEmpty) {
-      var resultList = jsonResponse['data'][0]['resultado'] as List;
-      return resultList.any((dataItem) {
-        String? nomeAPI = dataItem['nome'];
-        String situacao = dataItem['situacao'] ?? '';
-        List<String> nameParts = nomeAPI?.split(' ') ?? [];
-        String firstNameAPI = nameParts.isNotEmpty ? nameParts[0].toLowerCase() : '';
-        String firstNameUser = (_nameController.text.split(' ')[0]).toLowerCase();
-        enviaConselho();
-        return firstNameUser == firstNameAPI && situacao == 'Definitivo';
-        
+    if (response.statusCode == 200) {
+      var jsonResponse = json.decode(response.body);
+      List<dynamic> dataList = jsonResponse['data'];
+      return dataList.any((dataItem) {
+        var firstName = (dataItem['nome'] as String).split(' ')[0].toLowerCase();
+        var situacao = (dataItem['situacao'] as String);
+        if(firstName == _nameController.text.toLowerCase() && situacao == 'ATIVO'){
+          enviaConselho();
+          return true;
+        }
+        else
+          return false;
       });
+    } else {
+      throw Exception('Erro ao verificar conselho');
     }
-    return false;
-  } else {
-    throw Exception('Erro ao verificar conselho');
   }
-}
+
+  Future<bool> existeCFBM() async {
+    String nroCconselho = _councilNumberController.text;
+
+    var url = Uri.parse('https://api.infosimples.com/api/v2/consultas/cfbm/cadastro?token=$token&registro=$nroCconselho');
+    var response = await http.post(url);
+
+    if (response.statusCode == 200) {
+      var jsonResponse = json.decode(response.body);
+      List<dynamic> dataList = jsonResponse['data'][0]['lista_registros'] as List;
+      return dataList.any((dataItem) {
+        var firstName = (dataItem['nome_razao_social'] as String).split(' ')[0].toLowerCase();
+        var situacao = (dataItem['situacao'] as String);
+        if(firstName == _nameController.text.toLowerCase() && situacao == 'ATIVO'){
+          enviaConselho();
+          return true;
+        }
+        else
+          return false;
+      });
+    } else {
+      throw Exception('Erro ao verificar conselho');
+    }
+  }
+
+  Future<bool> existeCRM() async {
+    String nroCconselho = _councilNumberController.text;
+    var url = Uri.parse('https://api.infosimples.com/api/v2/consultas/cfm/cadastro?inscricao=$nroCconselho&token=$token&uf=$_selectedState');
+    var response = await http.post(url);
+
+    if (response.statusCode == 200) {
+      var jsonResponse = json.decode(response.body);
+      List<dynamic> dataList = jsonResponse['data'];
+      return dataList.any((dataItem) {
+        var firstName = (dataItem['nome'] as String).split(' ')[0].toLowerCase();
+        var situacao = (dataItem['situacao'] as String);
+        if(firstName == _nameController.text.toLowerCase() && situacao == 'Regular'){
+          enviaConselho();
+          return true;
+        }
+        else
+          return false;
+      });
+    } else {
+      throw Exception('Erro ao verificar conselho');
+    }
+  }
+
+  // Future<bool> existeCFF() async {
+  //   String nroCconselho = _councilNumberController.text;
+  //   String vlrMunicipio = 'todos';
+  //   String selectedState = _selectedState ?? 'CE';  
+  //   String selectedCategory = 'farmaceutico';  
+  //   var url = Uri.parse('https://api.infosimples.com/api/v2/consultas/cff/cadastro?token=$token&uf=$selectedState&municipio=$vlrMunicipio&categoria=$selectedCategory&crf=$nroCconselho');
+  //   var response = await http.post(url);
+  //   if (response.statusCode == 200) {
+  //     var jsonResponse = json.decode(response.body);
+  //     if (jsonResponse['data'] != null && jsonResponse['data'].isNotEmpty) {
+  //       var resultList = jsonResponse['data'][0]['resultado'] as List;
+  //       return resultList.any((dataItem) {
+  //         String? nomeAPI = dataItem['nome'];
+  //         String situacao = dataItem['situacao'] ?? '';
+  //         List<String> nameParts = nomeAPI?.split(' ') ?? [];
+  //         String firstNameAPI = nameParts.isNotEmpty ? nameParts[0].toLowerCase() : '';
+  //         String firstNameUser = (_nameController.text.split(' ')[0]).toLowerCase();
+  //         enviaConselho();
+  //         return firstNameUser == firstNameAPI && situacao == 'Definitivo';
+  //       });
+  //     }
+  //     return false;
+  //   } else {
+  //     throw Exception('Erro ao verificar conselho');
+  //   }
+  // }
 
 
-Future<void> enviaConselho() async{
-  String? nome = _nameController.text;
-  String? conselho = _councilNumberController.text;
-  String? profissao = _selectedProfession;
-  
-  Map<String, dynamic> conselhoUser = {
-    'conselho': conselho,
-    'cliente': nome,
-    'profissao': profissao,
-  };
-  
-  String cliente = '$nome - $conselho';
-  await firestore
-    .collection('conselhos-validos-$profissao')
-    .doc(cliente)
-    .set(conselhoUser, SetOptions(merge: false));
-}
+  Future<void> enviaConselho() async{
+    String? nome = _nameController.text;
+    String? conselho = _councilNumberController.text;
+    String? profissao = _selectedProfession;
+    
+    Map<String, dynamic> conselhoUser = {
+      'conselho': conselho,
+      'cliente': nome,
+      'profissao': profissao,
+    };
+    
+    String cliente = '$nome - $conselho';
+    await firestore
+      .collection('conselhos-validos-$profissao')
+      .doc(cliente)
+      .set(conselhoUser, SetOptions(merge: true));
+  }
 
 }

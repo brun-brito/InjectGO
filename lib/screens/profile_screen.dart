@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:inject_go/main.dart';
 import 'package:inject_go/screens/login_screen.dart';
 import 'package:inject_go/screens/token.dart';
+import 'package:inject_go/screens/teste.dart';
 import 'package:inject_go/screens/editar_dados.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -62,26 +63,26 @@ class UserProfileScreen extends StatelessWidget {
                 buildUserInfo("Nome de usuário", userData['usuario']),
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: () => logout(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text("Sair da Sessão"),
-                ),
-                
-                const SizedBox(height: 10),
-                ElevatedButton(
                   onPressed: () =>  
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => RandomNumberScreen())
+                    MaterialPageRoute(builder: (context) => ProfileScreen()/*RandomNumberScreen()*/)
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text("Gerar Token"),
+                  child: const Text("Gerar Token para compra"),
+                ),
+                
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: () => logout(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text("Sair"),
                 ),
               ],
             );
