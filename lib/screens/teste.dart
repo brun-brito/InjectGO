@@ -1,167 +1,168 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:inject_go/main.dart';
+import 'package:inject_go/screens/login_screen.dart';
 import 'package:inject_go/screens/token.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:inject_go/screens/editar_dados.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-void main() => runApp(MyApp());
+
+void main() async {
+  // WidgetsFlutterBinding.ensureInitialized();
+  // await Firebase.initializeApp();
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Profile Screen with Google Map',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: ProfileScreen(),
+      title: 'Perfil do Usuário',
+      home: Home(),
     );
   }
 }
 
-class ProfileScreen extends StatefulWidget {
-  @override
-  _ProfileScreenState createState() => _ProfileScreenState();
-}
+class UserProfileScreen extends StatelessWidget {
+  final String username;
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  late GoogleMapController mapController;
+  UserProfileScreen({required this.username});  // herda o email digitado na tela de login pra poder puxar do banco
 
-  final LatLng _center = const LatLng(-19.92450, -43.93524); // Coordenadas de Belo Horizonte
-
-  void _onMapCreated(GoogleMapController controller) {
-    mapController = controller;
-  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          children: <Widget>[
-            _buildHeader(),
-            _buildProfileSection(),
-            _buildMapSection(), // Inserindo o mapa aqui
-            _buildMenu(),
-            // _buildFacialAnalysis(),
-            _buildBottomNavigationBar(),
+      appBar: AppBar(
+        title: Text("Perfil do Usuário"),
+      ),
+      body: FutureBuilder<Map<String, dynamic>?>(
+        future: getUserData(username),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text("Erro ao carregar os dados."));
+          }
+          if (snapshot.data == null) {
+            return Center(child: Text("Nenhum dado encontrado para o usuário."));
+          }
+
+          var userData = snapshot.data!;
+          String fullName = "${userData['nome']} ${userData['sobrenome']}";
+          return ListView(
+              padding: const EdgeInsets.all(16),
+              children: <Widget>[
+                buildUserInfo("Nome Completo", fullName),
+                buildUserInfo("E-mail", userData['email']),
+                buildUserInfo("Telefone", userData['telefone']),
+                buildUserInfo("CPF", userData['cpf']),
+                buildUserInfo("Número conselho", userData['conselho']),
+                buildUserInfo("UF Conselho", userData['estadoConselho']),
+                buildUserInfo("Profissão", userData['profissao']),
+                buildUserInfo("Nome de usuário", userData['usuario']),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () =>  
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => TOTPDisplay())
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text("Gerar Token para compra"),
+                ),
+                
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: () => logout(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text("Sair"),
+                ),
+              ],
+            );
+          },
+        ),
+      
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => EditUserProfileScreen(username: username)),
+        ),
+        child: Icon(Icons.edit),
+        backgroundColor: Colors.blue,
+        ),
+    );
+  }
+
+    
+Widget buildUserInfo(String label, String? value) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      RichText(
+        text: TextSpan(
+          style: const TextStyle(fontSize: 20, color: Colors.black), 
+          children: <TextSpan>[
+            TextSpan(
+              text: "$label: ", 
+              style: const TextStyle(fontWeight: FontWeight.bold), 
+            ),
+            TextSpan(
+              text: value ?? '-Não informado-', 
+              style: const TextStyle(fontWeight: FontWeight.normal), 
+            ),
           ],
         ),
       ),
-    );
-  }
-
-Widget _buildMapSection() {
-    return Container(
-      height: 200, // Altura desejada para o mapa
-      child: GoogleMap(
-        onMapCreated: _onMapCreated,
-        initialCameraPosition: CameraPosition(
-          target: _center,
-          zoom: 11.0,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: EdgeInsets.only(top: 50),
-      alignment: Alignment.center,
-      child: Text(
-        'InjectGO',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, height: 2),
-      ),
-    );
-  }
-
-Widget _buildProfileSection() {
-  return ListTile(
-    leading: Stack(
-      alignment: Alignment.bottomRight,
-      children: <Widget>[
-        const CircleAvatar(
-          radius: 30,
-          backgroundImage: NetworkImage('https://link-to-your-image.com/image.jpg'),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.blue,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.white,
-              width: 2,
-            ),
-          ),
-          child: IconButton(
-            icon: Icon(Icons.add, color: Colors.white),
-            onPressed: () {
-              // TODO: Implementar funcionalidade de adicionar foto
-            },
-          ),
-        ),
-      ],
-    ),
-    title: Text('Dra. Joana'),
-    subtitle: Text('Biomédica, 30 anos, reside em Belo Horizonte'),
+      const SizedBox(height: 8),
+    ],
   );
 }
 
 
+Future<Map<String, dynamic>?> getUserData(String usuario) async {
+  FirebaseFirestore firestore = FirebaseFirestore.instance;
+  try {
+    var userQuery = await firestore
+        .collection('users')
+        .where('email', isEqualTo: usuario)
+        .limit(1)
+        .get();
 
-  Widget _buildMenu() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: <Widget>[
-        _buildMenuButton(Icons.check_circle, 'Avaliações/Agenda'),
-        _buildMenuButton(Icons.shopping_cart, 'Mercado'),
-        _buildMenuButton(Icons.more_horiz, 'Mais'),
-      ],
-    );
-  }
+    if (userQuery.docs.isEmpty) {
+      return null;  // Nenhum usuário encontrado.
+    }
 
-  Widget _buildMenuButton(IconData icon, String label) {
-    return Column(
-      children: <Widget>[
-        Icon(icon, size: 30),
-        Text(label),
-      ],
-    );
+    return userQuery.docs.first.data();  // Retorna todos os dados do usuário.
+  } catch (e) {
+    print('Erro ao buscar dados do usuário: $e');
+    return null;
   }
+}
 
-  Widget _buildFacialAnalysis(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
-        children: <Widget>[
-          Image.asset('assets/images/logoInject.jpeg'),
-          SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () =>  
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => RandomNumberScreen())
-            ),
-            child: Text('Gerar Token'),
-          ),
-        ],
-      ),
-    );
-  }
+Future<void> logout(BuildContext context) async {
+  await FirebaseAuth.instance.signOut();
+  Navigator.pushAndRemoveUntil(
+    context,
+    MaterialPageRoute(builder: (context) => const LoginForm()),
+    (Route<dynamic> route) => false,
+  );
+}
 
-  Widget _buildBottomNavigationBar() {
-    return BottomNavigationBar(
-      items: const <BottomNavigationBarItem>[
-        BottomNavigationBarItem(
-          icon: Icon(Icons.dashboard),
-          label: 'Dashboard',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.timeline),
-          label: 'Atividade',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person),
-          label: 'Perfil',
-        ),
-      ],
-    );
+void editarDados() {
+  User? user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    // Um usuário está logado
+    print("Usuário logado: ${user.email}");
+  } else {
+    // Nenhum usuário está logado
+    print("Nenhum usuário está logado.");
   }
+}
+
 }

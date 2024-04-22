@@ -18,7 +18,7 @@ class MeuApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Protótipo InjectGO',
+      title: 'InjectGO',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -46,7 +46,7 @@ class Home extends StatelessWidget {
                   child: Image.asset(
                   'assets/images/logoInject.jpeg',
                   width: 200,
-                  height: 90,
+                  height: 110,
                   fit: BoxFit.fitWidth,
                   ),
                 ),
@@ -54,7 +54,7 @@ class Home extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 5.0), // Espaçamento entre as imagens
               child: Image.asset(
-                'assets/images/inject.jpeg',
+                'assets/images/novaInject.jpeg',
                 fit: BoxFit.fitWidth,
               ),
             ),
@@ -64,14 +64,14 @@ class Home extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                   const Text(
-                    'Receba pacientes agendados e\n compre produtos sem \ncomplicações',
+                    'Inove na forma de comprar\ninjetáveis, com mais agilidade,\nsegurança e comodidade',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 32), // Espaço antes do botão
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.pink,
+                      backgroundColor: const Color.fromARGB(255, 236, 63, 121),
                       minimumSize: const Size(double.infinity, 50),
                       foregroundColor: Colors.white,
                     ),

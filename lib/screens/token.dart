@@ -1,6 +1,7 @@
 import 'dart:async';
-import 'dart:math';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(MyApp());
@@ -10,46 +11,59 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: RandomNumberScreen(),
+      home: TOTPDisplay(),
     );
   }
 }
 
-class RandomNumberScreen extends StatefulWidget {
+class TOTPDisplay extends StatefulWidget {
   @override
-  _RandomNumberScreenState createState() => _RandomNumberScreenState();
+  _TOTPDisplayState createState() => _TOTPDisplayState();
 }
 
-class _RandomNumberScreenState extends State<RandomNumberScreen> {
-  String _randomNumber = '';
+class _TOTPDisplayState extends State<TOTPDisplay> {
+  String _token = '';
+  int _secondsLeft = 30;
+  double _progress = 1.0;
   late Timer _timer;
-  double _progress = 0;  // Progresso do indicador de carregamento
 
   @override
   void initState() {
     super.initState();
-    _generateRandomNumber();
-    _timer = Timer.periodic(Duration(seconds: 1), (Timer t) {
+    exibeToken();
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
       setState(() {
-        _progress += 1/30;  // Atualiza o progresso a cada segundo
-        if (_progress >= 1) {
-          _generateRandomNumber();
-          _progress = 0;  // Reinicia o progresso após 30 segundos
+        if (_secondsLeft > 0) {
+          _secondsLeft--;
+          _progress = _secondsLeft / 30.0;
+        }
+        if (_secondsLeft == 0) {
+          exibeToken();
         }
       });
     });
   }
 
-  void _generateRandomNumber() {
-    final randomNumber = Random().nextInt(900000) + 100000; // Garante um número de 6 dígitos
-    setState(() {
-      _randomNumber = randomNumber.toString();
-    });
+  void exibeToken() async {
+    var url = Uri.parse('https://injectgo.rj.r.appspot.com/generate-totp');
+    var response = await http.get(url);
+    if (response.statusCode == 200) {
+      var jsonResponse = json.decode(response.body);
+      setState(() {
+        _token = jsonResponse['token'];
+        _secondsLeft = jsonResponse['tempoRestante'];
+        _progress = _secondsLeft / 30.0;
+      });
+    } else {
+      setState(() {
+        _token = 'Erro ao gerar token: ${response.statusCode}';
+      });
+    }
   }
 
   @override
   void dispose() {
-    _timer.cancel(); // evitar vazamento de memória
+    _timer.cancel();
     super.dispose();
   }
 
@@ -64,17 +78,17 @@ class _RandomNumberScreenState extends State<RandomNumberScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              _randomNumber,
+              '$_token',
               style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 24),  // Espaçamento entre o número e o indicador
+            SizedBox(height: 24),
             CircularProgressIndicator(
-              value: _progress,  // Vincula o valor do progresso ao indicador
+              value: _progress,
               backgroundColor: Colors.grey[300],
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+              valueColor: const AlwaysStoppedAnimation<Color>( Color.fromARGB(255, 236, 63, 121),),
             ),
-            SizedBox(height: 8),  // Espaçamento
-            Text('Atualizando token em ${(30 - _progress * 30).round()} segundos'),
+            SizedBox(height: 8),
+            Text('Faltam $_secondsLeft segundos para expirar', style: TextStyle(fontSize: 16)),
           ],
         ),
       ),

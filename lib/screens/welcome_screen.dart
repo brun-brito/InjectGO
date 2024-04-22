@@ -121,7 +121,7 @@ class _WelcomePageState extends State<WelcomePage> {
           const SizedBox(height: 8.0),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: _isButtonEnabled ? Colors.pink : Colors.grey,
+              backgroundColor: _isButtonEnabled ? const Color.fromARGB(255, 236, 63, 121) : Colors.grey,
               foregroundColor: Colors.white,
             ),
             onPressed: _isLoading ? null : () async {
@@ -153,7 +153,7 @@ class _WelcomePageState extends State<WelcomePage> {
                 const TextSpan(text: 'Ao se inscrever, você concorda com os termos da InjectGO '),
                 TextSpan(
                   text: 'Terms of Service',
-                  style: const TextStyle(decoration: TextDecoration.underline, color: Colors.blue),
+                  style: const TextStyle(decoration: TextDecoration.underline, color:  Color.fromARGB(255, 236, 63, 121),),
                   recognizer: TapGestureRecognizer()..onTap = () {
                     _showTermsDialog(context);
                   },
@@ -235,11 +235,10 @@ class _WelcomePageState extends State<WelcomePage> {
 Future<void> onContinuePressed() async {
  if (_isButtonEnabled) {
     if(await verificaEmail(_emailController.text)){
-      addEmail(_emailController.text,_selectedState!,{}); //add no banco e leva pro cadastro
-      Navigator.pushAndRemoveUntil(
+      addEmail(_emailController.text,_selectedState!,{}); 
+      Navigator.push(
         context,
         MaterialPageRoute(builder: (context) =>  const SignUpScreen()),
-        (Route<dynamic> route) => false,
       );
     }
     else{
@@ -313,24 +312,37 @@ Future<bool> verificaEmail(String email) async{
     .where('email', isEqualTo: email)
     .limit(1)
     .get();
+    
+  var cadastroQuery = await firestore
+    .collection('users')
+    .where('email', isEqualTo: email)
+    .limit(1)
+    .get();
 
-  if (emailQuery.docs.isNotEmpty) {
+  if (emailQuery.docs.isNotEmpty && cadastroQuery.docs.isNotEmpty) {
     return false;
   }
   return true;
 }
 
 Future<void> addEmail(String email, String uf, Map<String, dynamic> userData) async {  
-    // Cria um mapa com os dados do usuário
     Map<String, dynamic> fullUserData = {
       'email': email,  
       'UF': uf,
     };
-    // Insere os dados no Firestore
-    await firestore
-      .collection('email-uf')
-      .doc()
-      .set(fullUserData, SetOptions(merge: false));
+
+    var emailQuery = await firestore
+    .collection('email-uf')
+    .where('email', isEqualTo: email).where('UF', isEqualTo: uf)
+    .limit(1)
+    .get();
+
+    if(emailQuery.docs.isEmpty){
+      await firestore
+        .collection('email-uf')
+        .doc()
+        .set(fullUserData, SetOptions(merge: true));
+    }
 }
 
 // Future<bool> verificaEmail2(String email) async{

@@ -1,6 +1,6 @@
 // ignore_for_file: library_private_types_in_public_api
-import 'package:inject_go/screens/welcome_screen.dart';
 import 'package:inject_go/screens/profile_screen.dart';
+import 'package:inject_go/screens/welcome_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -106,7 +106,7 @@ class _LoginFormState extends State<LoginForm> {
             const SizedBox(height: 8.0),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.pink,
+                backgroundColor: const Color.fromARGB(255, 236, 63, 121),
                 foregroundColor: Colors.white,
               ),
               onPressed: _isLoading ? null : () async {
@@ -166,7 +166,7 @@ class _LoginFormState extends State<LoginForm> {
       
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => UserProfileScreen(username: _emailController.text)),
+        MaterialPageRoute(builder: (context) => ProfileScreen(username: _emailController.text)),
         (Route<dynamic> route) => false,
       );
     } else {

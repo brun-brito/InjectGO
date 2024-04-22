@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:inject_go/screens/welcome_screen.dart';
 import 'login_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -49,6 +50,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String token = 'pxXxdW4xqw12EMWEEtMMNq8V8_0EJ3E46mD_TT78';
   String? _selectedProfession;
   String? _selectedState;
+  String? _sexo;
   String? _senha;
   XFile? _selfie;
   // XFile? _image;
@@ -61,10 +63,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // leading: IconButton(
-        //   icon: const Icon(Icons.arrow_back),
-        //   onPressed: () => Navigator.pop(context),
-        // ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () =>  Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) =>  const WelcomePage()),
+          ),
+        ),
         title: const Text('Tela de Cadastro'),
       ),
             body: Form(
@@ -244,7 +249,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
                 IconButton(
                   icon: _isLoadingVerify 
-                    ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.blue)) 
+                    ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Color.fromARGB(255, 236, 63, 121),)) 
                     :  Icon(Icons.check_box, color: _statusColor,),
                   onPressed: _isLoadingVerify ? null : () async {
                     var funcao;
@@ -281,6 +286,28 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ],
             ),
 
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(labelText: 'Sexo*'),
+              value: _sexo,
+              items: <String>['Feminino', 'Masculino', 'Prefiro não informar']
+                  .map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                setState(() {
+                  _sexo = newValue;
+                });
+              },
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Por favor, selecione uma das opções';
+                }
+                return null;
+              },
+            ),
 
             TextFormField(
               controller: _cpfController,
@@ -392,7 +419,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             const SizedBox(height: 8.0),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.pink,
+                backgroundColor: const Color.fromARGB(255, 236, 63, 121),
                 foregroundColor: Colors.white,
               ),
               onPressed: () async {
@@ -436,6 +463,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ? CircularProgressIndicator(color: Colors.white) // Indica carregamento
                   : const Text('Cadastrar'),
             ),
+            Center(
+            child: TextButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const WelcomePage()),
+                ),
+              child: const Text('Cancelar', style: TextStyle(color: Colors.red)),
+            ),
+          ),
 
 
           ],
@@ -443,7 +479,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ),
     );
   }
-
 
   Future<void> addUserWithFirebase(Map<String, dynamic> userData) async {
     String nome = _nameController.text;
@@ -515,6 +550,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       'email': _emailController.text,
       'usuario': _usernameController.text,
       'senha': _passwordController.text,
+      'sexo': _sexo,
+      'bio': '',
     };
 
     // Insere os dados no Firestore
@@ -620,7 +657,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     try {
       await FirebaseStorage.instance
-        .ref('$nome/$fileName') 
+        .ref('$nome-$primSobrenome/$fileName') 
         .putFile(file);
     } catch (e) {
         throw('Erro ao salvar selfie: $e');

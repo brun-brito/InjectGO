@@ -5,8 +5,9 @@ Ao acessar e usar o aplicativo InjectGO, você concorda em cumprir estes Termos 
 A InjectGO reserva-se o direito de modificar ou substituir estes Termos de Serviço a qualquer momento. É sua responsabilidade revisar periodicamente os Termos.
 
 *3. Uso do Serviço*
-A. O aplicativo InjectGO permite que você faça [descreva a funcionalidade principal do aplicativo].
-B. Você concorda em não utilizar o aplicativo para qualquer finalidade ilegal ou não autorizada.
+A. O aplicativo InjectGO permite que você faça cadastro, caso seja um profissional apto para compra de injetáveis, por meio de uma busca e validação de perfil, além de gerar um token único, que habilita o usuário a realizar a compra em nossas máquinas distribuídas pelo Brasil.
+B. A utilização desse token por outra pessoa não autorizada, será de responsabilidade única do profissional que o forneceu.
+C. Você concorda em não utilizar o aplicativo para qualquer finalidade ilegal ou não autorizada.
 
 *4. Privacidade e Proteção de Dados*
 Sua privacidade é importante para nós. Nossa Política de Privacidade explica como coletamos, usamos e protegemos suas informações pessoais.
