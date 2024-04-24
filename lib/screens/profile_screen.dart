@@ -4,11 +4,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:inject_go/screens/editar_dados.dart';
+import 'package:inject_go/subtelas/arquivos.dart';
+import 'package:inject_go/subtelas/editar_dados.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:inject_go/screens/login_screen.dart';
-import 'package:inject_go/screens/token.dart';
+import 'package:inject_go/subtelas/token.dart';
+import 'package:inject_go/google-maps/mapa.dart';
 import 'package:intl/intl.dart'; 
+import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String username;
@@ -28,22 +32,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String dateFormatted = DateFormat('dd-MM-yyyy').format(DateTime.now());
   String? _imageUrl;
   bool _isLoading = false; 
+  VideoPlayerController? _videoPlayerController;
+  ChewieController? _chewieController;
+  PageController _pageController = PageController();
+  int _currentPage = 0;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Perfil do Usuário"),
+        title: const Text("Perfil do Usuário"),
         centerTitle: true,
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : buildUserProfile(),
     );
   }
 
   Widget buildUserProfile() {
-    // This method returns the ListView that was originally directly in the build method
     return ListView(
       children: <Widget>[
         Padding(
@@ -54,7 +61,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   alignment: Alignment.center,
                   children: [
                     CircleAvatar(
-                      radius: 100,
+                      radius: 90,
                       backgroundColor: Colors.grey.shade300,
                       backgroundImage: _imageUrl != null ? NetworkImage(_imageUrl!) : null,
                       child: _imageUrl == null ? const Icon(
@@ -98,97 +105,134 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 55),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: <Widget>[
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.pink), 
-                    borderRadius: BorderRadius.circular(8), 
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Flexible(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 8), // Espaçamento leve entre os botões
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.pink),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: TextButton.icon(
+                  icon: const Icon(Icons.edit, color: Colors.pink),
+                  label: const Text('Editar perfil'),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => EditUserProfileScreen(username: widget.username)),
                   ),
-                  child: TextButton.icon(
-                    icon: const Icon(Icons.edit, color: Colors.pink),
-                    label: const Text('Editar perfil'),
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => EditUserProfileScreen(username: widget.username)),
-                    ),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.all(8), 
-                    ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.all(8),
                   ),
                 ),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Color.fromARGB(255, 236, 63, 121),
-                    border: Border.all(color: Colors.pink), 
-                    borderRadius: BorderRadius.circular(8), 
-                  ),
-                  child: TextButton.icon(
-                    icon: const Icon(Icons.shopify_outlined, color: Colors.white),
-                    label: const Text('InjectBank', style: TextStyle(color: Colors.white)),
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: const Text("InjectBank", style: TextStyle(fontSize: 24,fontWeight: FontWeight.bold)), 
-                            content: const Text(
-                              "Em breve novidades para você, profissional que deseja facilitar seu dia a dia.",
-                              style: TextStyle(fontSize: 18), 
-                            ),
-                            actions: <Widget>[
-                              TextButton(
-                                child: const Text("OK", style: TextStyle(fontSize: 18)),
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                              )
-                            ],
-                          );
-                        },
-                      );
+              ),
+            ),
+            Flexible(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 8), // Espaçamento leve entre os botões
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 236, 63, 121),
+                  border: Border.all(color: Colors.pink),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: TextButton.icon(
+                  icon: const Icon(Icons.shopify_outlined, color: Colors.white),
+                  label: const Text('InjectBank', style: TextStyle(color: Colors.white)),
+                  onPressed: () {
+                     mensagemEmBreve('InjectBank');
                     },
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.all(8), // Margem interna ao redor do ícone e do texto
-                    ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.all(8), // Margem interna ao redor do ícone e do texto
+                ),
+                ),
                   ),
                 ),
               ],
             ),
           ),
 
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.folder),
-            title: const Text('Arquivo'),
-            onTap: () {
-              // Navigate to Arquivo
-            },
-          ),ListTile(
-            leading: const Icon(Icons.folder),
-            title: const Text('Arquivo'),
-            onTap: () {
-              // Navigate to Arquivo
-            },
+          // const Divider(),
+          Container(
+            margin: const EdgeInsets.only(left: 8, right: 8),
+            decoration: BoxDecoration(
+              color: Colors.white, 
+              borderRadius: BorderRadius.circular(10.0), 
+            ),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: <Widget>[
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => Arquivos(username: widget.username))
+                      );
+                    },
+                    icon: const Icon(Icons.folder), 
+                    label: const Text('Arquivos', style: TextStyle(color: Colors.black)), 
+                  ),
+                  const VerticalDivider(),
+                  TextButton.icon(
+                    onPressed: () {
+                      mensagemEmBreve('ID facial');
+                    },
+                    icon: Image.asset('assets/images/faceId.png', width: 24, height: 24,),
+                    label: const Text('ID facial', style: TextStyle(color: Colors.black)),
+                  ),
+                  const VerticalDivider(),
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => MapScreen())
+                      );
+                    },
+                    icon: const Icon(Icons.location_on), 
+                    label: const Text('Mercado', style: TextStyle(color: Colors.black)),
+                  ),
+                ],
+              ),
+            ),
           ),
-          ListTile(
-            leading: const Icon(Icons.face),
-            title: const Text('ID facial'),
-            onTap: () {
-              // Navigate to ID facial
-            },
+          
+          // Banner:
+          SizedBox(
+            height: 180, 
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: 2, // tamanho do carross
+              onPageChanged: (int page) {
+                if (page == 1) {
+                  // entrou na página do vídeo
+                  if (_videoPlayerController != null && !_videoPlayerController!.value.isPlaying) {
+                    _videoPlayerController!.play();
+                  }
+                } else if (_currentPage == 1) {
+                  // saindo da página do vídeo
+                  if (_videoPlayerController != null && _videoPlayerController!.value.isPlaying) {
+                    _videoPlayerController!.pause();
+                  }
+                }
+                setState(() {
+                  _currentPage = page;  
+                });
+              },
+              itemBuilder: (_, index) {
+                return index == 0 ? buildFirstPage() : buildSecondPage(); 
+              },
+            ),
           ),
-          ListTile(
-            leading: const Icon(Icons.shopping_cart),
-            title: const Text('Mercado'),
-            onTap: () {
-              // Navigate to Mercado
-            },
-          ),
+          if (_currentPage == 1) 
+            const SizedBox(height: 5),
+          Center(child:buildPageIndicator()),         
+          const SizedBox(height: 10),
+
+          // Token e Sair
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 90), // Adjust the padding as needed for your layout
+            padding: const EdgeInsets.symmetric(horizontal: 90), // Adjust the padding as needed for your layout
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color.fromARGB(255, 236, 63, 121),
@@ -215,6 +259,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
   
+  void mensagemEmBreve(String titulo){
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(titulo, style: const TextStyle(fontSize: 24,fontWeight: FontWeight.bold)), 
+          content: const Text(
+            "Em breve novidades para você, profissional que deseja facilitar seu dia a dia.",
+            style: TextStyle(fontSize: 18), 
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text("OK", style: TextStyle(fontSize: 18)),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            )
+          ],
+        );
+      },
+    );
+  }
+
   void setLoading(bool isLoading) {
     setState(() {
       _isLoading = isLoading;
@@ -225,6 +292,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     fetchProfileData();
+    _initializeVideoPlayer();
   }
 
   Future<void> fetchProfileData() async {
@@ -370,30 +438,129 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _initializeVideoPlayer() async {
+    _videoPlayerController = VideoPlayerController.asset('assets/videos/video_merz.mp4');
+    await _videoPlayerController!.initialize();
+    _chewieController = ChewieController(
+      videoPlayerController: _videoPlayerController!,
+      aspectRatio: 9 / 16, 
+      autoPlay: false,
+      looping: false,
+      autoInitialize: true,
+    );
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _videoPlayerController?.dispose();
+    _chewieController?.dispose();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Widget buildFirstPage() {
+    return Container(
+      padding: const EdgeInsets.only(left: 15),
+      margin: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Color.fromARGB(255, 236, 63, 121),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: <Widget>[
+          const Expanded(
+            flex: 2,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Text(
+                  'Sua jornada\ncomeça aqui.',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 7),
+                Text(
+                  'Apenas escolha onde\ne quando',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Image.asset(
+              'assets/images/merz.jpeg',
+              //     width: 200,
+              //     height: 110,
+              fit: BoxFit.fill,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+Widget buildSecondPage() {
+  return Padding(
+    padding: const EdgeInsets.only(left: 70, right: 70), 
+    child: _chewieController != null && _chewieController!.videoPlayerController.value.isInitialized ? Chewie(
+      controller: _chewieController!,
+    ) : const Center(child: CircularProgressIndicator()),
+  );
+}
+
+  Widget buildPageIndicator() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List<Widget>.generate(2, (index) => buildIndicator(index == _currentPage)),
+    );
+  }
+
+  Widget buildIndicator(bool isActive) {
+    return Container(
+      width: 8,
+      height: 8,
+      margin: EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isActive ? Colors.blue : Colors.grey,
+      ),
+    );
+  }
+
   void _showSelectionDialog(BuildContext context) {
   showDialog(
     context: context,
     builder: (BuildContext context) {
       return AlertDialog(
-        title: Text("Foto do Perfil"),
-        content: Text("Escolha a ação desejada:"),
+        title: const Text("Foto do Perfil"),
+        content: const Text("Escolha a ação desejada:"),
         actions: <Widget>[
           TextButton(
-            child: Text("Remover Foto"),
+            child: const Text("Remover Foto"),
             onPressed: () {
               Navigator.of(context).pop(); 
               removeSelfie(); 
             },
           ),
           TextButton(
-            child: Text("Adicionar/Trocar Foto"),
+            child: const Text("Adicionar/Trocar Foto"),
             onPressed: () {
               Navigator.of(context).pop(); 
               _pickImage();
             },
           ),
           TextButton(
-            child: Text("Cancelar"),
+            child: const Text("Cancelar"),
             onPressed: () {
               Navigator.of(context).pop(); 
             },

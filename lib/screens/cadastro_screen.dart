@@ -43,6 +43,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _imageController = TextEditingController();
+  final TextEditingController _certidaoController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final picker = ImagePicker();
   final ImagePicker _picker = ImagePicker(); 
@@ -53,7 +54,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String? _sexo;
   String? _senha;
   XFile? _selfie;
-  // XFile? _image;
+  XFile? _image;
   bool _isLoading = false;
   bool _isLoadingVerify = false;
   Color _statusColor =Colors.black;
@@ -124,8 +125,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
               ),
               readOnly: true,
-              validator: (value) => _selfie == null ? 'Por favor, anexe uma selfie segurando a carteirinha' : null,
-            ),
+              validator: (value) {
+                if (_image == null) {
+                  return 'Por favor, anexe uma selfie segurando a carteirinha';
+              }
+              return null;
+            },
+          ),
             if (_selfie != null)
               Stack(
                 alignment: Alignment.topRight,
@@ -175,27 +181,63 @@ class _SignUpScreenState extends State<SignUpScreen> {
               },
             ),
             
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(labelText: 'Especialidade*'),
-              value: _selectedProfession,
-              items: <String>['Biomédico', 'Dentista', 'Médico'/*, 'Farmacêutico', 'Enfermeiro', 'Fisioterapeuta'*/]
-                  .map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                setState(() {
-                  _selectedProfession = newValue;
-                });
-              },
+          DropdownButtonFormField<String>(
+            decoration: const InputDecoration(labelText: 'Especialidade*'),
+            value: _selectedProfession,
+            items: <String>['Biomédico', 'Dentista', 'Médico', 'Farmacêutico'].map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
+            onChanged: (String? newValue) {
+              setState(() {
+                _selectedProfession = newValue;
+              });
+              if(_selectedProfession != 'Farmacêutico')
+                _removeCertidaoImage();
+            },
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Por favor, selecione sua profissão';
+              }
+              return null;
+            },
+          ),
+
+          if (_selectedProfession == 'Farmacêutico')
+            TextFormField(
+              controller: _certidaoController,
+              decoration: InputDecoration(
+                labelText: 'Certidão de Regularidade Técnica*',
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.file_upload),
+                  onPressed: _pickCertidaoImage,
+                ),
+              ),
+              readOnly: true, 
               validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Por favor, selecione sua profissão';
+                if (_image == null) {
+                  return 'Por favor, faça upload da certidão de regularidade técnica';
                 }
                 return null;
               },
+            ),
+
+          if (_image != null)
+            Stack(
+              alignment: Alignment.topRight,
+              children: [
+                SizedBox(
+                  height: 200,
+                  child: Image.file(File(_image!.path)),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.cancel),
+                  color: Colors.red,
+                  onPressed: _removeCertidaoImage,
+                ),
+              ],
             ),
             
             DropdownButtonFormField<String>(
@@ -260,8 +302,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       funcao = existeCFBM();         
                     if (_selectedProfession == 'Médico') 
                       funcao = existeCRM();               
-                    // if (_selectedProfession == 'Farmacêutico') 
-                    //   funcao = existeCFF();                    
+                    if (_selectedProfession == 'Farmacêutico') 
+                      funcao = existeCFF();                    
                     setState(() => _isLoadingVerify = true);
                     try {
                       if(await funcao){
@@ -430,7 +472,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   try {
                     await cadastrarAuth(_emailController.text, _passwordController.text);
                     await addUserWithFirebase({});
-                    // await uploadCarteira();
+                    await uploadCertidao();
                     await uploadSelfie();
                     mensagemSucesso();
                   } catch (e) {
@@ -448,7 +490,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       SnackBar(content: Text("Insira um número de conselho válido e clique no ícone ao lado do campo para verificar!"))
                     );
                 }
-                else if (!_formKey.currentState!.validate() && _selfie == null){
+                else if (!_formKey.currentState!.validate() && (_selfie == null || _image == null)){
                   ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text("Carregue a foto antes de concluir o cadastro."))
                     );
@@ -641,11 +683,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() => _selfie = photo);
   }
 
-  // Future<void> _uploadCard() async {
-  //   final XFile? photo = await _picker.pickImage(source: ImageSource.gallery);
-  //   setState(() => _image = photo);
-  // }
-
   Future uploadSelfie() async {
     if (_selfie == null) return;
     final file = File(_selfie!.path);
@@ -664,21 +701,37 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-  // Future uploadCarteira() async {
-  //   if (_image == null) return;
-  //   final file = File(_image!.path);
-  //   String nome = _nameController.text;
-  //   List<String> sobrenome = _lastNameController.text.split(' ');
-  //   String primSobrenome = sobrenome[0];
-  //   String fileName = 'carteirinha-$nome-$primSobrenome-$dateFormatted.jpg'; 
-  //   try {
-  //     await FirebaseStorage.instance
-  //       .ref('$nome/$fileName') 
-  //       .putFile(file);
-  //   } catch (e) {
-  //       throw('Erro ao salvar carteirinha: $e');
-  //   }
-  // }
+void _pickCertidaoImage() async {
+  final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+  setState(() {
+    if (pickedFile != null) {
+      _image = pickedFile;
+    }
+  });
+}
+
+void _removeCertidaoImage() {
+  setState(() {
+    _image = null;
+    _certidaoController.clear();
+  });
+}
+
+  Future uploadCertidao() async {
+    if (_image == null) return;
+    final file = File(_image!.path);
+    String nome = _nameController.text;
+    List<String> sobrenome = _lastNameController.text.split(' ');
+    String primSobrenome = sobrenome[0];
+    String fileName = 'certidao-$nome-$primSobrenome-$dateFormatted.jpg'; 
+    try {
+      await FirebaseStorage.instance
+        .ref('$nome-$primSobrenome/$fileName') 
+        .putFile(file);
+    } catch (e) {
+        throw('Erro ao salvar certidao: $e');
+    }
+  }
 
   Future<bool> existeCRO() async {
     String nroCconselho = _councilNumberController.text;
@@ -751,32 +804,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-  // Future<bool> existeCFF() async {
-  //   String nroCconselho = _councilNumberController.text;
-  //   String vlrMunicipio = 'todos';
-  //   String selectedState = _selectedState ?? 'CE';  
-  //   String selectedCategory = 'farmaceutico';  
-  //   var url = Uri.parse('https://api.infosimples.com/api/v2/consultas/cff/cadastro?token=$token&uf=$selectedState&municipio=$vlrMunicipio&categoria=$selectedCategory&crf=$nroCconselho');
-  //   var response = await http.post(url);
-  //   if (response.statusCode == 200) {
-  //     var jsonResponse = json.decode(response.body);
-  //     if (jsonResponse['data'] != null && jsonResponse['data'].isNotEmpty) {
-  //       var resultList = jsonResponse['data'][0]['resultado'] as List;
-  //       return resultList.any((dataItem) {
-  //         String? nomeAPI = dataItem['nome'];
-  //         String situacao = dataItem['situacao'] ?? '';
-  //         List<String> nameParts = nomeAPI?.split(' ') ?? [];
-  //         String firstNameAPI = nameParts.isNotEmpty ? nameParts[0].toLowerCase() : '';
-  //         String firstNameUser = (_nameController.text.split(' ')[0]).toLowerCase();
-  //         enviaConselho();
-  //         return firstNameUser == firstNameAPI && situacao == 'Definitivo';
-  //       });
-  //     }
-  //     return false;
-  //   } else {
-  //     throw Exception('Erro ao verificar conselho');
-  //   }
-  // }
+  Future<bool> existeCFF() async {
+    // certidão de regularidade técnica
+    String nroCconselho = _councilNumberController.text;
+    String vlrMunicipio = 'todos';
+    String selectedState = _selectedState ?? 'CE';  
+    String selectedCategory = 'farmaceutico';  
+    var url = Uri.parse('https://api.infosimples.com/api/v2/consultas/cff/cadastro?token=$token&uf=$selectedState&municipio=$vlrMunicipio&categoria=$selectedCategory&crf=$nroCconselho');
+    var response = await http.post(url);
+    if (response.statusCode == 200) {
+      var jsonResponse = json.decode(response.body);
+      if (jsonResponse['data'] != null && jsonResponse['data'].isNotEmpty) {
+        var resultList = jsonResponse['data'][0]['resultado'] as List;
+        return resultList.any((dataItem) {
+          String? nomeAPI = dataItem['nome'];
+          String situacao = dataItem['situacao'] ?? '';
+          List<String> nameParts = nomeAPI?.split(' ') ?? [];
+          String firstNameAPI = nameParts.isNotEmpty ? nameParts[0].toLowerCase() : '';
+          String firstNameUser = (_nameController.text.split(' ')[0]).toLowerCase();
+          enviaConselho();
+          return firstNameUser == firstNameAPI && situacao == 'Definitivo';
+        });
+      }
+      return false;
+    } else {
+      throw Exception('Erro ao verificar conselho');
+    }
+  }
 
 
   Future<void> enviaConselho() async{
