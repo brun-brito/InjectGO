@@ -155,7 +155,7 @@ class _LoginFormState extends State<LoginForm> {
     }
 
     final user = querySnapshot.docs.first;
-    return user['senha'] == password; // Compare a senha do banco de dados com a fornecida
+    return user['senha'] == password; 
   }
   
   Future<void> confirmaLogin() async {

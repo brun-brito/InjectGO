@@ -1,7 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
+import 'package:inject_go/screens/login_screen.dart';
 import 'package:inject_go/screens/profile_screen.dart';
 
 class EditUserProfileScreen extends StatefulWidget {
@@ -76,71 +78,236 @@ class _EditUserProfileScreenState extends State<EditUserProfileScreen> {
     super.dispose();
   }
 
-
-  Future<bool> _saveUserData() async {
-    String email = _emailController.text.trim();
-    String telefone = _phoneController.text;
-    String usuario = _usernameController.text;
-    String bio = _bioController.text;
+  Future<bool> updateEmail(String newEmail) async {
+    User? user = FirebaseAuth.instance.currentUser;
     FirebaseFirestore firestore = FirebaseFirestore.instance;
-
-    DocumentSnapshot? originalDoc;
-
-    var originalQuery = await firestore.collection('users').where('email', isEqualTo: email).limit(1).get();
-    if (originalQuery.docs.isNotEmpty) {
-      originalDoc = originalQuery.docs.first;
-    }
-
-    // Verifica se existe e faz cast dos dados para Map<String, dynamic>
-    Map<String, dynamic>? originalData = originalDoc?.data() as Map<String, dynamic>?;
-
-    if (usuario != originalData?['usuario']) {
-      var usernameQuery = await firestore.collection('users').where('usuario', isEqualTo: usuario).limit(1).get();
-      if (usernameQuery.docs.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Cliente com este usuário já cadastrado.")));
-        return false;
+    String nome = _nameController.text;
+    String sobrenome = _surnameController.text.split(' ')[0];
+    try {
+      await user?.verifyBeforeUpdateEmail(newEmail);
+        
+      var users = FirebaseFirestore.instance.collection('users');
+      var querySnapshot = await users.where('email', isEqualTo: widget.username).get();
+      for (var doc in querySnapshot.docs) {
+        await doc.reference.update({'email': newEmail});
       }
-    }
-    if (telefone != originalData?['telefone']) {
-      var telQuery = await firestore.collection('users').where('telefone', isEqualTo: telefone).limit(1).get();
-      if (telQuery.docs.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Cliente com este telefone já cadastrado.")));
-        return false;
+
+      Map<String, dynamic> fullUserData = {'email-antigo': widget.username,'email-novo': newEmail};
+      await firestore
+        .collection('troca-email')
+        .doc('$nome $sobrenome')
+        .set(fullUserData);
+
+      await showDialogEmail(newEmail);
+      return true;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("O usuário precisa reautenticar antes de atualizar o email.")));
+          return false;
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erro ao atualizar o email: ${e.message} Tente novamente mais tarde.")));
+          return false;
       }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erro ao atualizar o email: $e Tente novamente mais tarde.")));
+        return false;
+    }
+  }
+
+
+  Future<bool> alterarSenha(BuildContext context) async {
+    String email = _emailController.text.trim(); 
+
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("O e-mail não pode estar vazio.")),
+      );
+      return false;
     }
 
     try {
-      Map<String, dynamic> updates = {};
-      if (_surnameController.text != originalData?['sobrenome']) {
-        updates['sobrenome'] = _surnameController.text;
-      }
-      if (telefone != originalData?['telefone']) {
-        updates['telefone'] = telefone;
-      }
-      if (usuario != originalData?['usuario']) {
-        updates['usuario'] = usuario;
-      }
-      if (bio != originalData?['bio']) {
-        updates['bio'] = bio;
-      }
-
-      if (updates.isNotEmpty) {
-        await originalDoc?.reference.update(updates);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Dados alterados com sucesso!")));
-        Navigator.pushAndRemoveUntil(context,
-        MaterialPageRoute(builder: (context) => ProfileScreen(username: _emailController.text)),
-        (Route<dynamic> route) => false,
-      );
-        return true;
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Nenhuma alteração detectada.")));
+      var users = FirebaseFirestore.instance.collection('users');
+      var querySnapshot = await users.where('email', isEqualTo: email).get();
+      if (querySnapshot.docs.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Nenhum usuário encontrado com esse e-mail.")),
+        );
         return false;
       }
+      else{
+        await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+        for (var doc in querySnapshot.docs) {
+          await doc.reference.update({'senha': 'SENHA-ALTERADA-EMAIL'});
+        }
+      }
+      return true;
+    
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erro ao enviar e-mail de redefinição de senha: ${e.message}")),
+      );
+      return false;
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Erro ao alterar dados: ${e.toString()}")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erro ao processar a solicitação: ${e.toString()}")),
+      );
       return false;
     }
   }
+
+  Future<void> showDialogEmail(String email) async {
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Atenção!"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "Você será direcionado(a) para a tela de Login, e deve realizar a verificação do seu novo e-mail no link enviado para caixa de $email (Verifique também se não está no lixo eletrônico/span).",
+                style: const TextStyle(fontSize: 17),  
+              )
+            ],
+          ),
+            actions: [
+              TextButton(
+                child: const Text('Ok'),
+                onPressed: () {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginForm()),
+                    (Route<dynamic> route) => false,
+                  ); 
+                },
+              ),
+            ],
+        );
+      },
+    );
+  }
+
+  void _showForgotPasswordDialog() async{
+    String value = _emailController.text;
+    if(value.isEmpty || !value.contains('@') || !value.contains('.')){
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Preencha seu e-mail corretamente antes.")),
+      );
+    }else{
+      if(await alterarSenha(context) == false){
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Erro ao enviar e-mail de redefinição.")),
+        );
+      }
+      else{
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text("Redefinir Senha"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Confira sua caixa de e-mail $value, para alterar sua senha, após isso, volte para realizar o login.",
+                    style: TextStyle(fontSize: 17),  
+                  )
+                ],
+              ),
+                actions: [
+                  TextButton(
+                    child: const Text('Ok'),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+            );
+          },
+        );
+      }
+    }
+  }
+
+Future<bool> _saveUserData() async {
+  String emailOriginal = widget.username;
+  String novoEmail = _emailController.text.trim();
+  String telefone = _phoneController.text;
+  String usuario = _usernameController.text;
+  String bio = _bioController.text;
+  FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+  var originalQuery = await firestore.collection('users').where('email', isEqualTo: emailOriginal).limit(1).get();
+  if (originalQuery.docs.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Documento original não encontrado.")));
+    return false;
+  }
+
+  DocumentSnapshot originalDoc = originalQuery.docs.first;
+  Map<String, dynamic>? originalData = originalDoc.data() as Map<String, dynamic>?;
+
+  // Verificações de duplicidade
+  if (novoEmail != originalData?['email']) {
+    var mailQuery = await firestore.collection('users').where('email', isEqualTo: novoEmail).limit(1).get();
+    if (mailQuery.docs.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Cliente com este email já cadastrado.")));
+      return false;
+    }
+  }
+  if (usuario != originalData?['usuario']) {
+    var usernameQuery = await firestore.collection('users').where('usuario', isEqualTo: usuario).limit(1).get();
+    if (usernameQuery.docs.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Cliente com este usuário já cadastrado.")));
+      return false;
+    }
+  }
+  if (telefone != originalData?['telefone']) {
+    var telQuery = await firestore.collection('users').where('telefone', isEqualTo: telefone).limit(1).get();
+    if (telQuery.docs.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Cliente com este telefone já cadastrado.")));
+      return false;
+    }
+  }
+
+  try {
+    Map<String, dynamic> updates = {};
+    if (_surnameController.text != originalData?['sobrenome']) {
+      updates['sobrenome'] = _surnameController.text;
+    }
+    if (telefone != originalData?['telefone']) {
+      updates['telefone'] = telefone;
+    }
+    if (usuario != originalData?['usuario']) {
+      updates['usuario'] = usuario;
+    }
+    if (bio != originalData?['bio']) {
+      updates['bio'] = bio;
+    }
+    if (novoEmail != originalData?['email']) {
+      if(await updateEmail(novoEmail)) // Garantindo que a atualização de e-mail seja concluída
+        updates['email'] = novoEmail;
+    }
+
+    if (updates.isNotEmpty) {
+      await originalDoc.reference.update(updates);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Dados alterados com sucesso!")));
+      Navigator.pushAndRemoveUntil(context,
+      MaterialPageRoute(builder: (context) => ProfileScreen(username: _emailController.text)),
+      (Route<dynamic> route) => false);
+      return true;
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Nenhuma alteração detectada.")));
+      return false;
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Erro ao alterar dados: ${e.toString()}")));
+    return false;
+  }
+}
+
 
 
 
@@ -157,7 +324,7 @@ class _EditUserProfileScreenState extends State<EditUserProfileScreen> {
             children: <Widget>[
               TextFormField(enabled:false, controller: _nameController, decoration: InputDecoration(labelText: "Primeiro nome")),
               TextFormField(controller: _surnameController, decoration: InputDecoration(labelText: "Sobrenome")),
-              TextFormField(enabled:false, controller: _emailController, decoration: InputDecoration(labelText: "E-mail")),
+              TextFormField(enabled:true, controller: _emailController, decoration: InputDecoration(labelText: "E-mail")),
               TextFormField(controller: _phoneController, decoration: InputDecoration(labelText: "Telefone"),
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(11),],
                   validator: (value) {
@@ -191,6 +358,16 @@ class _EditUserProfileScreenState extends State<EditUserProfileScreen> {
               ),
               
               SizedBox(height: 20),
+              TextButton(
+              onPressed: 
+                _showForgotPasswordDialog,
+              child: const Text(
+                "Trocar a senha",
+                style: TextStyle(
+                  decoration: TextDecoration.underline,  // Adiciona sublinhado ao texto
+                ),
+              ),
+            ),
               ElevatedButton(
                 style: 
                   ElevatedButton.styleFrom(
@@ -217,7 +394,9 @@ class _EditUserProfileScreenState extends State<EditUserProfileScreen> {
             ),
             Center(
             child: TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
               child: const Text('Cancelar', style: TextStyle(color: Colors.red)),
             ),
           ),

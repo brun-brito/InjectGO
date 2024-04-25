@@ -24,7 +24,7 @@ class _ArquivosState extends State<Arquivos> {
 
 Future<void> fetchImageUrls() async {
   setState(() {
-    isLoading = true;  // Inicia o loading antes de começar a operação
+    isLoading = true;  
   });
   try {
     var userProfileQuery = await FirebaseFirestore.instance

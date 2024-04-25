@@ -171,7 +171,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               controller: _lastNameController,
               decoration: const InputDecoration(labelText: 'Sobrenome*'),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z-\s]')),
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZáÁÃãéÉíÍóÓÕõúÚâÂêÊîÎôÔûÛàÀèÈìÌòÒùÙçÇñÑ-\s]')),
               ],
               validator: (value) {
                 if (value == null || value.trim().isEmpty) { 

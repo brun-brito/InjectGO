@@ -1,36 +1,53 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: TOTPDisplay(),
-    );
-  }
-}
-
 class TOTPDisplay extends StatefulWidget {
+  final String username;
+
+  const TOTPDisplay({Key? key, required this.username}) : super(key: key);
+
   @override
   _TOTPDisplayState createState() => _TOTPDisplayState();
 }
 
 class _TOTPDisplayState extends State<TOTPDisplay> {
   String _token = '';
+  String _user = '';
   int _secondsLeft = 30;
   double _progress = 1.0;
   late Timer _timer;
 
+  Future<void> getUser() async{
+    try {
+      var userProfileQuery = await FirebaseFirestore.instance
+        .collection('users')
+        .where('email', isEqualTo: widget.username)
+        .limit(1)
+        .get();
+
+      if (userProfileQuery.docs.isNotEmpty) {
+        var userProfile = userProfileQuery.docs.first;
+        _user = userProfile['usuario'];
+      }
+    }catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erro ao buscar usuário: $e"))
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    exibeToken();
+    initAsync();
+  }
+
+  Future<void> initAsync() async {
+    await getUser(); // Garante que o usuário seja recuperado primeiro
+    exibeToken(); // Depois que o usuário é recuperado, exibe o token
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
       setState(() {
         if (_secondsLeft > 0) {
@@ -38,15 +55,18 @@ class _TOTPDisplayState extends State<TOTPDisplay> {
           _progress = _secondsLeft / 30.0;
         }
         if (_secondsLeft == 0) {
+          getUser();
           exibeToken();
         }
       });
     });
   }
 
+
   void exibeToken() async {
-    var url = Uri.parse('https://injectgo.rj.r.appspot.com/generate-totp');
-    var response = await http.get(url);
+    var url = Uri.parse('https://injectgo.rj.r.appspot.com/generate-totp?user=$_user');
+    // var url = Uri.parse('http://10.0.2.2:8080/generate-totp?user=$_user'); 
+    var response = await http.get(url, headers: {'x-api-key': 'injectgoinjetaveis'});
     if (response.statusCode == 200) {
       var jsonResponse = json.decode(response.body);
       setState(() {

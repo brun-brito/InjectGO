@@ -244,7 +244,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),onPressed: () =>  
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => TOTPDisplay())
+                    MaterialPageRoute(builder: (context) => TOTPDisplay(username: widget.username,))
                   ),
               child: const Text('Gerar token de compra'),
             ),
@@ -532,7 +532,7 @@ Widget buildSecondPage() {
       margin: EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isActive ? Colors.blue : Colors.grey,
+        color: isActive ? const Color.fromARGB(255, 236, 63, 121) : Colors.grey,
       ),
     );
   }

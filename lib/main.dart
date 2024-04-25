@@ -34,7 +34,6 @@ class Home extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //double larguraTela = MediaQuery.of(context).size.width;
     return Scaffold(
       body: SingleChildScrollView(
             child: Column(
@@ -53,14 +52,14 @@ class Home extends StatelessWidget {
                 ),
               ),
             Padding(
-              padding: const EdgeInsets.only(top: 5.0), // Espaçamento entre as imagens
+              padding: const EdgeInsets.only(top: 5.0), 
               child: Image.asset(
                 'assets/images/novaInject.jpeg',
                 fit: BoxFit.fitWidth,
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(24.0), // Aumenta o recuo lateral
+              padding: const EdgeInsets.all(24.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
@@ -69,7 +68,7 @@ class Home extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 32), // Espaço antes do botão
+                  const SizedBox(height: 32),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color.fromARGB(255, 236, 63, 121),
