@@ -1,19 +1,21 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:inject_go/screens/profile_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-// import 'screens/teste.dart';
 
-void main() async{
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
-  options: DefaultFirebaseOptions.currentPlatform,
-);
-  runApp(const MeuApp());
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  // FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+  runApp(const MyApp());
 }
 
-class MeuApp extends StatelessWidget {
-  const MeuApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +26,17 @@ class MeuApp extends StatelessWidget {
         primarySwatch: Colors.pink,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: const Home(),
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            final user = snapshot.data!;
+            return ProfileScreen(username: user.email!); //se tiver logado, entra logado
+          } else {
+            return const Home(); 
+          }
+        },
+      ),
     );
   }
 }
@@ -36,25 +48,25 @@ class Home extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
             Align(
-                alignment: Alignment.topCenter,
-                child: Container(
-                  margin: const EdgeInsets.only(top: 20),  
-                  child: Image.asset(
-                  'assets/images/logoInject.jpeg',
+              alignment: Alignment.topCenter,
+              child: Container(
+                margin: const EdgeInsets.only(top: 20),
+                child: Image.asset(
+                  'assets/images/logoInject.jpeg', //logo-distribuidora.jpeg',
                   width: 200,
                   height: 110,
                   fit: BoxFit.fitWidth,
-                  ),
                 ),
               ),
+            ),
             Padding(
-              padding: const EdgeInsets.only(top: 5.0), 
+              padding: const EdgeInsets.only(top: 5.0),
               child: Image.asset(
-                'assets/images/novaInject.jpeg',
+                'assets/images/novaInject.jpeg',//rennova-logo.jpeg
                 fit: BoxFit.fitWidth,
               ),
             ),
@@ -71,23 +83,21 @@ class Home extends StatelessWidget {
                   const SizedBox(height: 32),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 236, 63, 121),
+                      backgroundColor: /*const Color(0xFFf6cbc2),*/const Color.fromARGB(255, 236, 63, 121),
                       minimumSize: const Size(double.infinity, 50),
                       foregroundColor: Colors.white,
                     ),
-
-                      onPressed: () {
+                    onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) =>  const WelcomePage() /*RegistrationScreen()*/),
+                        MaterialPageRoute(builder: (context) => const WelcomePage()),
                       );
                     },
                     child: const Row(
-                      mainAxisSize: MainAxisSize.min, 
+                      mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
                         Text('Iniciar '),
-                        Icon(Icons.arrow_forward), 
-                      
+                        Icon(Icons.arrow_forward),
                       ],
                     ),
                   ),

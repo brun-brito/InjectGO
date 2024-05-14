@@ -51,5 +51,5 @@ lib/firebase_options.dart
 # api Google Cloud
 .env
 
-# api Google Cloud
-screens/teste.dart
+# tela de teste
+lib/screens/teste.dart

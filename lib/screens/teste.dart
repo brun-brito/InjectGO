@@ -1,8 +1,11 @@
+// ignore_for_file: library_private_types_in_public_api
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 
 class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
+
   @override
   _ProfileScreenState createState() => _ProfileScreenState();
 }
@@ -10,7 +13,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
-  PageController _pageController = PageController();
+  final PageController _pageController = PageController();
   int _currentPage = 0;
 
   @override
@@ -20,7 +23,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _initializeVideoPlayer() async {
-    _videoPlayerController = VideoPlayerController.asset('assets/videos/video_merz.mp4');
+    _videoPlayerController = VideoPlayerController.asset('assets/videos/propaganda_renova.mp4');
     await _videoPlayerController!.initialize();
     _chewieController = ChewieController(
       videoPlayerController: _videoPlayerController!,
@@ -44,13 +47,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Chewie Video Player in Carousel"),
+        title: const Text("Chewie Video Player in Carousel"),
       ),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
+            SizedBox(
           height: 200, 
           child: PageView.builder(
             controller: _pageController,
@@ -65,9 +68,9 @@ Widget build(BuildContext context) {
             },
           ),
         ),
-            SizedBox(height: 5),
+            const SizedBox(height: 5),
             buildPageIndicator(),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
            ],
         ),
       ),
@@ -79,7 +82,7 @@ Widget build(BuildContext context) {
       padding: const EdgeInsets.only(left: 15),
       margin: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Color.fromARGB(255, 236, 63, 121),
+        color: const Color.fromARGB(255, 236, 63, 121),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -124,10 +127,10 @@ Widget build(BuildContext context) {
 
 Widget buildSecondPage() {
   return Padding(
-    padding: EdgeInsets.only(left: 70, right: 70), // Ajuste estes valores conforme necessário
+    padding: const EdgeInsets.only(left: 70, right: 70), // Ajuste estes valores conforme necessário
     child: _chewieController != null && _chewieController!.videoPlayerController.value.isInitialized ? Chewie(
       controller: _chewieController!,
-    ) : Center(child: CircularProgressIndicator()),
+    ) : const Center(child: CircularProgressIndicator()),
   );
 }
 
@@ -142,7 +145,7 @@ Widget buildSecondPage() {
     return Container(
       width: 8,
       height: 8,
-      margin: EdgeInsets.symmetric(horizontal: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: isActive ? Colors.blue : Colors.grey,

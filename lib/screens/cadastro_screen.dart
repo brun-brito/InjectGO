@@ -1,4 +1,4 @@
-// ignore_for_file: library_private_types_in_public_api, curly_braces_in_flow_control_structures
+// ignore_for_file: library_private_types_in_public_api, curly_braces_in_flow_control_structures, use_build_context_synchronously, prefer_typing_uninitialized_variables
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -57,8 +57,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
   XFile? _image;
   bool _isLoading = false;
   bool _isLoadingVerify = false;
-  Color _statusColor =Colors.black;
+  bool _isObscure = true;
+  bool _isObscure2 = true;
+  Color _statusColor = Colors.black;
   FirebaseFirestore firestore = FirebaseFirestore.instance;
+  var funcao;
   
   @override
   Widget build(BuildContext context) {
@@ -71,56 +74,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
             MaterialPageRoute(builder: (context) =>  const WelcomePage()),
           ),
         ),
-        title: const Text('Tela de Cadastro'),
+        title: const Text('Cadastro'),
       ),
             body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: <Widget>[
-            // TextFormField(
-            //   decoration: InputDecoration(
-            //     labelText: 'Anexe uma foto do VERSO da sua carteirinha*',
-            //     suffixIcon: IconButton(
-            //       icon: Icon(Icons.file_upload),
-            //       onPressed: () async {
-            //         final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-            //         setState(() {
-            //           _image = pickedFile;
-            //         });
-            //         _imageController.clear();
-            //       },
-            //     ),
-            //   ),
-            //   readOnly: true,
-            //   validator: (value) => _image == null ? 'Por favor, anexe uma foto de sua carteirinha' : null,
-            // ),
-            // if (_image != null)
-            //   Stack(
-            //     alignment: Alignment.topRight,
-            //     children: [
-            //       Container(
-            //         height: 200,
-            //         child: Image.file(File(_image!.path)),
-            //       ),
-            //       IconButton(
-            //         icon: Icon(Icons.cancel),
-            //         color: Colors.red,
-            //         onPressed: () {
-            //           setState(() {
-            //             _image = null;
-            //           });
-            //         },
-            //       ),
-            //     ],
-            //   ),
-
+            const Text(
+              '- Campos com * são obrigatórios',
+              style: TextStyle(
+                color: Colors.grey,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
             TextFormField(
               controller: _imageController,
               decoration: InputDecoration(
                 labelText: 'Selfie segurando a carteirinha*',
                 suffixIcon: IconButton(
-                  icon: Icon(Icons.camera_alt),
+                  icon: const Icon(Icons.camera_alt),
                   onPressed: _takeSelfie,
                 ),
               ),
@@ -157,7 +130,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
               decoration: const InputDecoration(labelText: 'Primeiro nome*'),
               inputFormatters: [
                 FilteringTextInputFormatter.deny(RegExp(r'\s')),
-                FilteringTextInputFormatter.singleLineFormatter, 
+                FilteringTextInputFormatter.singleLineFormatter,
+                LengthLimitingTextInputFormatter(15), 
+                TextInputFormatter.withFunction((oldValue, newValue) {
+                  if (newValue.text.isNotEmpty) {
+                    return TextEditingValue(
+                      text: newValue.text.substring(0, 1).toUpperCase() + newValue.text.substring(1).toLowerCase(),
+                      selection: TextSelection.collapsed(offset: newValue.text.length),
+                    );
+                  }
+                  return newValue;
+                }),
               ],
               validator: (value) {
                 if (value == null || value.trim().isEmpty) { 
@@ -165,6 +148,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 }
                 return null;
               },
+                onChanged: (value) {
+                  setState(() {
+                    _statusColor = Colors.black; 
+                  });
+                },
             ),
 
             TextFormField(
@@ -172,6 +160,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
               decoration: const InputDecoration(labelText: 'Sobrenome*'),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZáÁÃãéÉíÍóÓÕõúÚâÂêÊîÎôÔûÛàÀèÈìÌòÒùÙçÇñÑ-\s]')),
+                TextInputFormatter.withFunction((oldValue, newValue) {
+                  if (newValue.text.isNotEmpty) {
+                    final List<String> parts = newValue.text.split(' ');
+                    final List<String> capitalizedParts = parts.map((part) {
+                      if (part.isNotEmpty) {
+                        return part.substring(0, 1).toUpperCase() + part.substring(1).toLowerCase();
+                      }
+                      return part;
+                    }).toList();
+                    final String result = capitalizedParts.join(' ');
+                    return TextEditingValue(
+                      text: result,
+                      selection: TextSelection.collapsed(offset: result.length),
+                    );
+                  }
+                  return newValue;
+                }),
               ],
               validator: (value) {
                 if (value == null || value.trim().isEmpty) { 
@@ -193,6 +198,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             onChanged: (String? newValue) {
               setState(() {
                 _selectedProfession = newValue;
+                _statusColor = Colors.black;
               });
               if(_selectedProfession != 'Farmacêutico')
                 _removeCertidaoImage();
@@ -256,6 +262,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               onChanged: (newValue) {
                 setState(() {
                   _selectedState = newValue;
+                  _statusColor = Colors.black;
                 });
               },
               validator: (value) {
@@ -286,16 +293,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         return 'Por favor, preencha seu número de conselho';
                       }
                       return null;
-                    },
-                  ),
+                      },
+                      onChanged: (value) {
+                        setState(() {
+                          _statusColor = Colors.black; 
+                        });
+                      },
+                    ),
                 ),
                 IconButton(
                   icon: _isLoadingVerify 
-                    ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Color.fromARGB(255, 236, 63, 121),)) 
-                    :  Icon(Icons.check_box, color: _statusColor,),
+                    ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(/*Color(0xFFf6cbc2)*/Color.fromARGB(255, 236, 63, 121))) 
+                    :  Icon(Icons.check_box, color: _statusColor),
                   onPressed: _isLoadingVerify ? null : () async {
-                    var funcao;
-                  
+                    if(_councilNumberController.text.isEmpty || _nameController.text.isEmpty || _selectedProfession == null || _selectedState == null){
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Preencha seu nome, especialidade, Estado e conselho, antes de verificar")));
+                      return;
+                    }
                     if (_selectedProfession == 'Dentista')
                       funcao = existeCRO();
                     if (_selectedProfession == 'Biomédico') 
@@ -314,7 +329,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       else{
                         setState(() => _statusColor = Colors.red);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Dados não correspondem ao número de conselho.")));
+                          const SnackBar(content: Text("Não foi encontrado nenhum resultado. Por favor, confira os dados informados.")));
                       }
                     } catch (e) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -391,15 +406,31 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
             TextFormField(
               controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'E-mail*',
-                prefixIcon: Tooltip(
-                  message: 'Pode ser o mesmo da última tela',
-                  child: Icon(Icons.info_outline),
+              decoration: InputDecoration(
+                labelText: 'E-mail*', hintText: 'email@exemplo.com',
+                prefixIcon: IconButton(
+                  icon: const Icon(Icons.info_outline),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Informação'),
+                        content: const Text('Esse campo pode ser preenchido com o mesmo e-mail informado na última tela, ou outro que você preferir.', style: TextStyle(fontSize: 17),),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text('OK'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9-.-@]')),
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\;\:\",<>\.\/\?\|\\_`~]')),
                 FilteringTextInputFormatter.singleLineFormatter,
               ],
               validator: (value) {
@@ -416,7 +447,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               decoration: const InputDecoration(labelText: 'Crie um usuário*'),
               inputFormatters: [
                 FilteringTextInputFormatter.singleLineFormatter, 
-                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\;\:\",<>\.\/\?\|\\_`~]')),
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\;\:\",<>\.\?\|\\_`~]')),
                 LengthLimitingTextInputFormatter(15),
               ],
               validator: (value) {
@@ -430,8 +461,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
             TextFormField(
               controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Senha*'),
-              obscureText: true, 
+              decoration: InputDecoration(labelText: 'Senha*',
+              suffixIcon: IconButton(
+                  icon: const Icon(Icons.visibility),
+                  onPressed: () {
+                    setState(() {
+                      _isObscure = !_isObscure;
+                    });
+                  },
+                ),
+              ),
+              obscureText: _isObscure, 
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Por favor, preencha sua senha';
@@ -445,8 +485,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
 
             TextFormField(
-              decoration: const InputDecoration(labelText: 'Repetir senha*'),
-              obscureText: true,
+              decoration: InputDecoration(labelText: 'Repetir senha*',
+              suffixIcon: IconButton(
+                  icon: const Icon(Icons.visibility),
+                  onPressed: () {
+                    setState(() {
+                      _isObscure2 = !_isObscure2;
+                    });
+                  },
+                ),
+              ),
+              obscureText: _isObscure2, 
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Por favor, repita sua senha';
@@ -461,19 +510,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
             const SizedBox(height: 8.0),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromARGB(255, 236, 63, 121),
+                backgroundColor: const /*Color(0xFFf6cbc2*/ Color.fromARGB(255, 236, 63, 121),
                 foregroundColor: Colors.white,
               ),
               onPressed: () async {
-                if (_formKey.currentState!.validate() && _statusColor == Colors.green) {
+                if (_formKey.currentState!.validate() && _statusColor == Colors.green && _selfie != null) {
                   setState(() {
                     _isLoading = true; // Inicia o carregamento
                   });
                   try {
-                    await cadastrarAuth(_emailController.text, _passwordController.text);
                     await addUserWithFirebase({});
+                    await cadastrarAuth(_emailController.text, _passwordController.text);
+                 
                     await uploadCertidao();
                     await uploadSelfie();
+                    
                     mensagemSucesso();
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -487,22 +538,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 }
                 else if (_statusColor == Colors.red || _statusColor == Colors.black){
                   ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Insira um número de conselho válido e clique no ícone ao lado do campo para verificar!"))
+                      const SnackBar(content: Text("Insira um número de conselho válido e clique no ícone ao lado do campo para verificar!"))
                     );
                 }
-                else if (!_formKey.currentState!.validate() && (_selfie == null || _image == null)){
+                else if (_selfie == null || _image == null){
                   ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Carregue a foto antes de concluir o cadastro."))
+                      const SnackBar(content: Text("Carregue a(s) foto(s) antes de concluir o cadastro."))
                     );
                 }
                 else{
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Campos obrigatórios não foram preenchidos!"))
+                    const SnackBar(content: Text("Campos obrigatórios não foram preenchidos!"))
                   );  
                 }
               },
               child: _isLoading
-                  ? CircularProgressIndicator(color: Colors.white) // Indica carregamento
+                  ? const CircularProgressIndicator(color: Colors.white) // Indica carregamento
                   : const Text('Cadastrar'),
             ),
             Center(
@@ -554,7 +605,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       .get();
     var conselhoQuery = await firestore
       .collection('users')
-      .where('conselho', isEqualTo: conselho)
+      .where('conselho', isEqualTo: conselho).where('nome', isEqualTo: nome)
       .limit(1)
       .get();
 
@@ -572,7 +623,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       throw Exception("Cliente com este e-mail já cadastrado.");
     }
     if (conselhoQuery.docs.isNotEmpty) {
-      throw Exception("Cliente com este número de conselho já cadastrado.");
+      throw Exception("Cliente com este mesmo número de conselho e nome já cadastrado.");
     }
 
     // Nome completo + cpf vai ser chave
@@ -604,9 +655,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> cadastrarAuth(String email, String password) async {
-    final _firebaseAuth = FirebaseAuth.instance;
+    final firebaseAuth = FirebaseAuth.instance;
     try {
-      await _firebaseAuth.createUserWithEmailAndPassword(email: email, password: password);
+      await firebaseAuth.createUserWithEmailAndPassword(email: email, password: password);
       } on FirebaseAuthException catch (e) {
       if (e.code == 'weak-password') {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -621,37 +672,37 @@ class _SignUpScreenState extends State<SignUpScreen> {
           SnackBar(content: Text(e.message.toString()))
         );  
       }
-      throw e;
+      rethrow;
     } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Um erro ocorreu: $e'))
         );  
-      throw e;
+      rethrow;
     }
   }
 
   void mensagemSucesso() {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text("Sucesso! Você será direcionado para a página de login"),
-            actions: <Widget>[
-              TextButton(
-                child: const Text("Ok"),
-                onPressed: () {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => LoginForm()),
-                    (Route<dynamic> route) => false,
-                  );
-                },
-              ),
-            ],
-          );
-        },
-      );
-    }
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Cadastro realizado com sucesso! Você será direcionado para a página de login"),
+          actions: <Widget>[
+            TextButton(
+              child: const Text("Ok"),
+              onPressed: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginForm()),
+                  (Route<dynamic> route) => false,
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   bool isValidCPF(String cpf) {
     cpf = cpf.replaceAll(RegExp(r'\D'), '');
@@ -689,12 +740,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
     String nome = _nameController.text;
     List<String> sobrenome = _lastNameController.text.split(' ');
     String primSobrenome = sobrenome[0];
+    String cpf = _cpfController.text;
 
-    String fileName = 'selfie-$nome-$primSobrenome-$dateFormatted.jpg'; 
+    String fileName = 'selfie-$nome-$primSobrenome.jpg'; 
 
     try {
       await FirebaseStorage.instance
-        .ref('$nome-$primSobrenome/$fileName') 
+        .ref('$nome-$cpf/$fileName') 
         .putFile(file);
     } catch (e) {
         throw('Erro ao salvar selfie: $e');
@@ -723,10 +775,11 @@ void _removeCertidaoImage() {
     String nome = _nameController.text;
     List<String> sobrenome = _lastNameController.text.split(' ');
     String primSobrenome = sobrenome[0];
-    String fileName = 'certidao-$nome-$primSobrenome-$dateFormatted.jpg'; 
+    String cpf = _cpfController.text;
+    String fileName = 'certidao-$nome-$primSobrenome.jpg'; 
     try {
       await FirebaseStorage.instance
-        .ref('$nome-$primSobrenome/$fileName') 
+        .ref('$nome-$cpf/$fileName') 
         .putFile(file);
     } catch (e) {
         throw('Erro ao salvar certidao: $e');
@@ -745,7 +798,8 @@ void _removeCertidaoImage() {
       return dataList.any((dataItem) {
         var firstName = (dataItem['nome'] as String).split(' ')[0].toLowerCase();
         var situacao = (dataItem['situacao'] as String);
-        if(firstName == _nameController.text.toLowerCase() && situacao == 'ATIVO'){
+        var verificaCons = (dataItem['inscricao'] as String);
+        if(firstName == _nameController.text.toLowerCase() && situacao == 'ATIVO' && verificaCons == nroCconselho){
           enviaConselho();
           return true;
         }
@@ -769,7 +823,8 @@ void _removeCertidaoImage() {
       return dataList.any((dataItem) {
         var firstName = (dataItem['nome_razao_social'] as String).split(' ')[0].toLowerCase();
         var situacao = (dataItem['situacao'] as String);
-        if(firstName == _nameController.text.toLowerCase() && situacao == 'ATIVO'){
+        var verificaCons = (dataItem['numero_registro'] as String);
+        if(firstName == _nameController.text.toLowerCase() && situacao == 'ATIVO' && verificaCons == nroCconselho){
           enviaConselho();
           return true;
         }
@@ -792,7 +847,8 @@ void _removeCertidaoImage() {
       return dataList.any((dataItem) {
         var firstName = (dataItem['nome'] as String).split(' ')[0].toLowerCase();
         var situacao = (dataItem['situacao'] as String);
-        if(firstName == _nameController.text.toLowerCase() && situacao == 'Regular'){
+        var verificaCons = (dataItem['inscricao'] as String);
+        if(firstName == _nameController.text.toLowerCase() && situacao == 'Regular' && verificaCons == nroCconselho){
           enviaConselho();
           return true;
         }
@@ -822,8 +878,9 @@ void _removeCertidaoImage() {
           List<String> nameParts = nomeAPI?.split(' ') ?? [];
           String firstNameAPI = nameParts.isNotEmpty ? nameParts[0].toLowerCase() : '';
           String firstNameUser = (_nameController.text.split(' ')[0]).toLowerCase();
+          var verificaCons = (dataItem['crf'] as String);
           enviaConselho();
-          return firstNameUser == firstNameAPI && situacao == 'Definitivo';
+          return firstNameUser == firstNameAPI && situacao == 'Definitivo' && verificaCons == nroCconselho;
         });
       }
       return false;

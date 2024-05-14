@@ -83,15 +83,24 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
      - .env
+
+     - assets/terms/termoServico.txt
+
      - assets/images/logoInject.jpeg
      - assets/images/novaInject.jpeg
      - assets/images/logo.png
-     - assets/terms/termoServico.txt
      - assets/images/maquina.jpeg
      - assets/images/faceId.png
-     - assets/videos/video_merz.mp4
      - assets/images/merz.jpeg
+     - assets/images/rennova.png
+     - assets/images/rennova-logo.jpeg
+     - assets/images/rennova-vermelho.jpg
+     - assets/images/logo-distribuidora.jpeg
+    #  - assets/images/rennova-vermelho.jpg
+    #  - assets/images/rennova-vermelho.jpg
      
+     - assets/videos/video_merz.mp4
+     - assets/videos/propaganda_renova.mp4
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

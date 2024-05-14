@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,7 +11,7 @@ import 'package:inject_go/screens/profile_screen.dart';
 class EditUserProfileScreen extends StatefulWidget {
   final String username;
 
-  const EditUserProfileScreen({Key? key, required this.username}) : super(key: key);
+  const EditUserProfileScreen({super.key, required this.username});
 
   @override
   _EditUserProfileScreenState createState() => _EditUserProfileScreenState();
@@ -103,7 +105,7 @@ class _EditUserProfileScreenState extends State<EditUserProfileScreen> {
     } on FirebaseAuthException catch (e) {
       if (e.code == 'requires-recent-login') {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("O usuário precisa reautenticar antes de atualizar o email.")));
+          const SnackBar(content: Text("Erro: O usuário precisa se reautenticar (sair e entrar do perfil) antes de atualizar o email.")));
           return false;
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -123,7 +125,7 @@ class _EditUserProfileScreenState extends State<EditUserProfileScreen> {
 
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("O e-mail não pode estar vazio.")),
+        const SnackBar(content: Text("O e-mail não pode estar vazio.")),
       );
       return false;
     }
@@ -168,7 +170,7 @@ class _EditUserProfileScreenState extends State<EditUserProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                "Você será direcionado(a) para a tela de Login, e deve realizar a verificação do seu novo e-mail no link enviado para caixa de $email (Verifique também se não está no lixo eletrônico/span).",
+                "Você será direcionado(a) para a tela de Login, e deve realizar a verificação do seu novo e-mail no link enviado para caixa de $email (Verifique também se não está no lixo eletrônico/spam).",
                 style: const TextStyle(fontSize: 17),  
               )
             ],
@@ -213,7 +215,7 @@ class _EditUserProfileScreenState extends State<EditUserProfileScreen> {
                 children: [
                   Text(
                     "Confira sua caixa de e-mail $value, para alterar sua senha, após isso, volte para realizar o login.",
-                    style: TextStyle(fontSize: 17),  
+                    style: const TextStyle(fontSize: 17),  
                   )
                 ],
               ),
@@ -242,7 +244,7 @@ Future<bool> _saveUserData() async {
 
   var originalQuery = await firestore.collection('users').where('email', isEqualTo: emailOriginal).limit(1).get();
   if (originalQuery.docs.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Documento original não encontrado.")));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Documento original não encontrado.")));
     return false;
   }
 
@@ -253,21 +255,21 @@ Future<bool> _saveUserData() async {
   if (novoEmail != originalData?['email']) {
     var mailQuery = await firestore.collection('users').where('email', isEqualTo: novoEmail).limit(1).get();
     if (mailQuery.docs.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Cliente com este email já cadastrado.")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Cliente com este email já cadastrado.")));
       return false;
     }
   }
   if (usuario != originalData?['usuario']) {
     var usernameQuery = await firestore.collection('users').where('usuario', isEqualTo: usuario).limit(1).get();
     if (usernameQuery.docs.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Cliente com este usuário já cadastrado.")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Cliente com este usuário já cadastrado.")));
       return false;
     }
   }
   if (telefone != originalData?['telefone']) {
     var telQuery = await firestore.collection('users').where('telefone', isEqualTo: telefone).limit(1).get();
     if (telQuery.docs.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Cliente com este telefone já cadastrado.")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Cliente com este telefone já cadastrado.")));
       return false;
     }
   }
@@ -287,8 +289,10 @@ Future<bool> _saveUserData() async {
       updates['bio'] = bio;
     }
     if (novoEmail != originalData?['email']) {
-      if(await updateEmail(novoEmail)) // Garantindo que a atualização de e-mail seja concluída
+      if(await updateEmail(novoEmail)) {
+        // Garantindo que a atualização de e-mail seja concluída
         updates['email'] = novoEmail;
+      }
     }
 
     if (updates.isNotEmpty) {
@@ -315,17 +319,36 @@ Future<bool> _saveUserData() async {
     Widget build(BuildContext context) {
       return Scaffold(
         appBar: AppBar(
-          title: Text("Editar Perfil"),
+          title: const Text("Editar Perfil"),
         ),
         body: Form(
           key: _formKey,
           child: ListView(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             children: <Widget>[
-              TextFormField(enabled:false, controller: _nameController, decoration: InputDecoration(labelText: "Primeiro nome")),
-              TextFormField(controller: _surnameController, decoration: InputDecoration(labelText: "Sobrenome")),
-              TextFormField(enabled:true, controller: _emailController, decoration: InputDecoration(labelText: "E-mail")),
-              TextFormField(controller: _phoneController, decoration: InputDecoration(labelText: "Telefone"),
+              TextFormField(enabled:false, controller: _nameController, decoration: const InputDecoration(labelText: "Primeiro nome")),
+              TextFormField(controller: _surnameController, decoration: const InputDecoration(labelText: "Sobrenome"),inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZáÁÃãéÉíÍóÓÕõúÚâÂêÊîÎôÔûÛàÀèÈìÌòÒùÙçÇñÑ-\s]')),
+                TextInputFormatter.withFunction((oldValue, newValue) {
+                  if (newValue.text.isNotEmpty) {
+                    final List<String> parts = newValue.text.split(' ');
+                    final List<String> capitalizedParts = parts.map((part) {
+                      if (part.isNotEmpty) {
+                        return part.substring(0, 1).toUpperCase() + part.substring(1).toLowerCase();
+                      }
+                      return part;
+                    }).toList();
+                    final String result = capitalizedParts.join(' ');
+                    return TextEditingValue(
+                      text: result,
+                      selection: TextSelection.collapsed(offset: result.length),
+                    );
+                  }
+                  return newValue;
+                }),
+              ]),
+              TextFormField(enabled:true, controller: _emailController, decoration: const InputDecoration(labelText: "E-mail")),
+              TextFormField(controller: _phoneController, decoration: const InputDecoration(labelText: "Telefone"),
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(11),],
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -337,16 +360,16 @@ Future<bool> _saveUserData() async {
                     return null;
                   },
               ),
-              TextFormField(enabled:false, controller: _cpfController, decoration: InputDecoration(labelText: "CPF")),
-              TextFormField(enabled:false, controller: _councilNumberController, decoration: InputDecoration(labelText: "Número do conselho")),
-              TextFormField(enabled:false, controller: _councilStateController, decoration: InputDecoration(labelText: "UF do conselho")),
-              TextFormField(enabled:false, controller: _professionController, decoration: InputDecoration(labelText: "Profissão")),
-              TextFormField(controller: _bioController, decoration: const InputDecoration(labelText: "Biografia:",
-                hintText: 'ex: Dentista, 30 anos, reside em Belo Horizonte')),
-              TextFormField(controller: _usernameController, decoration: InputDecoration(labelText: "Nome de usuário"),
+              TextFormField(enabled:false, controller: _cpfController, decoration: const InputDecoration(labelText: "CPF")),
+              TextFormField(enabled:false, controller: _councilNumberController, decoration: const InputDecoration(labelText: "Número do conselho")),
+              TextFormField(enabled:false, controller: _councilStateController, decoration: const InputDecoration(labelText: "UF do conselho")),
+              TextFormField(enabled:false, controller: _professionController, decoration: const InputDecoration(labelText: "Profissão")),
+              TextFormField(controller: _bioController, decoration: const InputDecoration(labelText: "Biografia:", hintText: 'ex: Dentista, 30 anos, reside em Belo Horizonte'),
+              inputFormatters: [LengthLimitingTextInputFormatter(60)]),
+              TextFormField(controller: _usernameController, decoration: const InputDecoration(labelText: "Nome de usuário"),
                 inputFormatters: [
                   FilteringTextInputFormatter.singleLineFormatter, 
-                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\;\:\",<>\.\/\?\|\\_`~]')),
+                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\;\:\",<>\.\/\?\|\\_`~]')),
                   LengthLimitingTextInputFormatter(15),
                 ],
                 validator: (value) {
@@ -357,21 +380,21 @@ Future<bool> _saveUserData() async {
                 },
               ),
               
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               TextButton(
               onPressed: 
                 _showForgotPasswordDialog,
               child: const Text(
                 "Trocar a senha",
                 style: TextStyle(
-                  decoration: TextDecoration.underline,  // Adiciona sublinhado ao texto
+                  decoration: TextDecoration.underline,
                 ),
               ),
             ),
               ElevatedButton(
                 style: 
                   ElevatedButton.styleFrom(
-                    backgroundColor: Colors.pink, 
+                    backgroundColor: /*const Color(0xFFf6cbc2),*/Colors.pink, 
                     foregroundColor: Colors.white,
                   ),
                 onPressed: _isLoading ? null : () async {

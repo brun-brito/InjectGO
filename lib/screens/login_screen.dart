@@ -1,4 +1,4 @@
-// ignore_for_file: library_private_types_in_public_api
+// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously
 import 'package:inject_go/screens/profile_screen.dart';
 import 'package:inject_go/screens/welcome_screen.dart';
 import 'package:flutter/material.dart';
@@ -30,10 +30,11 @@ class LoginForm extends StatefulWidget {
 class _LoginFormState extends State<LoginForm> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
+  // final _formKey = GlobalKey<FormState>();
   // ignore: unused_field
   bool _isButtonEnabled = false; 
   bool _isLoading = false; 
+  bool _isObscure = true;
   FirebaseFirestore firestore = FirebaseFirestore.instance;
 
     @override
@@ -67,33 +68,62 @@ class _LoginFormState extends State<LoginForm> {
                 );
               },
         ),
-        title: const Text('Faça seu Login'),
+        title: const Text('Login'),
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+       
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment:
+          CrossAxisAlignment.stretch,
           children: <Widget>[
+            Align(
+              alignment:
+              Alignment.topCenter, 
+              child: Image.asset(
+                  'assets/images/logoInject.jpeg', //logo-distribuidora.jpeg',
+                fit: BoxFit.fitWidth,
+                width: 250,//300
+                height: 150, 
+              ),
+            ),
 
+            const Text(
+              'Faça seu Login', 
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 16.0),
             TextFormField(
               controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Digite seu e-mail:'),
+              decoration: const InputDecoration(labelText: 'Digite seu e-mail:',
+                  hintText: 'email-cadastrado@injectgo.com',),
               inputFormatters: [
-                FilteringTextInputFormatter.singleLineFormatter, 
+                FilteringTextInputFormatter.singleLineFormatter,
               ],
               validator: (value) {
                 if (value == null || value.isEmpty || !value.contains('@') || !value.contains('.')) {
                   return 'Por favor, preencha seu e-mail corretamente';
                 }
-
                 return null;
               },
             ),
 
             TextFormField(
               controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Senha:'),
-              obscureText: true, // Esconde a senha
+              decoration: InputDecoration(
+                labelText: 'Senha:',
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.visibility),
+                  onPressed: () {
+                    setState(() {
+                      _isObscure = !_isObscure;
+                    });
+                  },
+                ),
+              ),
+              obscureText: _isObscure, 
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Por favor, preencha sua senha';
@@ -102,7 +132,6 @@ class _LoginFormState extends State<LoginForm> {
               },
             ),
 
-              
             const SizedBox(height: 8.0),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -110,30 +139,29 @@ class _LoginFormState extends State<LoginForm> {
                 foregroundColor: Colors.white,
               ),
               onPressed: _isLoading ? null : () async {
-              setState(() => _isLoading = true); 
-              try {
-                await confirmaLogin();  
+                setState(() => _isLoading = true);
+                try {
+                  await confirmaLogin();
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Falha ao logar: ${e.toString()}"))
+                    SnackBar(content: Text("Falha ao logar: ${e.toString()}")),
                   );
-              } finally {
-                setState(() => _isLoading = false);  
-              }
-            },
-            child: _isLoading 
-              ? const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white)
-                )
-              : const Text('Entrar'),
-          ),
+                } finally {
+                  setState(() => _isLoading = false);
+                }
+              },
+              child: _isLoading
+                  ? const CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    )
+                  : const Text('Entrar'),
+            ),
             TextButton(
-              onPressed: 
-                _showForgotPasswordDialog,
+              onPressed: _showForgotPasswordDialog,
               child: const Text(
                 "Esqueci a senha",
                 style: TextStyle(
-                  decoration: TextDecoration.underline,  // Adiciona sublinhado ao texto
+                  decoration: TextDecoration.underline, // Adiciona sublinhado ao texto
                 ),
               ),
             ),
@@ -171,30 +199,29 @@ class _LoginFormState extends State<LoginForm> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Usuário ou senha incorreta"))
+        const SnackBar(content: Text("E-mail e/ou senha incorreto(s)"))
       );
     }
   }
 
   Future<bool> signInAuth(String email, String password) async {
     try {
-      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
+      /*UserCredential userCredential = */await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,password: password,
       );
-      print("Usuário logado com sucesso: ${userCredential.user?.email}");
+      // print("Usuário logado com sucesso: ${userCredential.user?.email}");
       return true;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
-        print('Nenhum usuário encontrado para esse email.');
+        // print('Nenhum usuário encontrado para esse email.');
       } else if (e.code == 'wrong-password') {
-        print('Senha incorreta fornecida para esse usuário.');
+        // print('Senha incorreta fornecida para esse usuário.');
       } else {
-        print('Erro de login: ${e.message}');
+        // print('Erro de login: ${e.message}');
       }
       return false;
     } catch (e) {
-      print('Erro: ${e.toString()}');
+      // print('Erro: ${e.toString()}');
       return false;
     }
   }
@@ -222,7 +249,7 @@ class _LoginFormState extends State<LoginForm> {
                 children: [
                   Text(
                     "Confira sua caixa de e-mail $value, para alterar sua senha, após isso, volte para realizar o login.",
-                    style: TextStyle(fontSize: 17),  // Aumenta a fonte para 18
+                    style: const TextStyle(fontSize: 17),  // Aumenta a fonte para 18
                   )
                 ],
               ),
@@ -246,7 +273,7 @@ class _LoginFormState extends State<LoginForm> {
 
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("O e-mail não pode estar vazio.")),
+        const SnackBar(content: Text("O e-mail não pode estar vazio.")),
       );
       return false;
     }

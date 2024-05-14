@@ -54,7 +54,7 @@ class _WelcomePageState extends State<WelcomePage> {
                 );
               },
         ),
-        title: const Text('Seja bem vindo(a)!'), 
+        title: const Text('Seja bem-vindo(a)!'), 
         centerTitle: true,
       ),
        body: SingleChildScrollView(
@@ -67,9 +67,9 @@ class _WelcomePageState extends State<WelcomePage> {
               alignment:
               Alignment.topCenter, 
               child: Image.asset(
-                'assets/images/logoInject.jpeg',  //logo da marca
+                  'assets/images/logoInject.jpeg', //logo-distribuidora.jpeg',
                 fit: BoxFit.fitWidth,
-                width: 300,
+                width: 250,//300
                 height: 150, 
               ),
             ),
@@ -87,7 +87,7 @@ class _WelcomePageState extends State<WelcomePage> {
                 const InputDecoration(
                   labelText: 'Digite seu melhor e-mail',
                   prefixIcon: Icon(Icons.mail),
-                  hintText: 'email@teste.com',
+                  hintText: 'email@exemplo.com',
                 ),
             ),
 
@@ -121,7 +121,7 @@ class _WelcomePageState extends State<WelcomePage> {
           const SizedBox(height: 8.0),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: _isButtonEnabled ? const Color.fromARGB(255, 236, 63, 121) : Colors.grey,
+              backgroundColor: _isButtonEnabled ? const Color.fromARGB(255, 236, 63, 121)/*Color(0xFFf6cbc2)*/ : Colors.grey,
               foregroundColor: Colors.white,
             ),
             onPressed: _isLoading ? null : () async {
@@ -150,14 +150,15 @@ class _WelcomePageState extends State<WelcomePage> {
             text: TextSpan(
               style: const TextStyle(color: Color.fromARGB(255, 64, 62, 62), fontSize: 14.0),
               children: <TextSpan>[
-                const TextSpan(text: 'Ao se inscrever, você concorda com os termos da InjectGO '),
+                const TextSpan(text: 'Ao se inscrever, você concorda com os\n'),
                 TextSpan(
-                  text: 'Terms of Service',
-                  style: const TextStyle(decoration: TextDecoration.underline, color:  Color.fromARGB(255, 236, 63, 121),),
+                  text: 'Termos de Serviço',
+                  style: const TextStyle(decoration: TextDecoration.underline, color:  Color.fromARGB(255, 236, 63, 121)),
                   recognizer: TapGestureRecognizer()..onTap = () {
                     _showTermsDialog(context);
                   },
                 ),
+                const TextSpan(text: ' da InjectGO'),
               ],
             ),
           ),
@@ -166,17 +167,18 @@ class _WelcomePageState extends State<WelcomePage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                const Text('Já possui conta? '),
+                const Text('Já possui conta? Faça '),
                 InkWell(
                   child: const Text(
-                    'Log in',
+                    'Login',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold,decoration: TextDecoration.underline),
+                    style: TextStyle(fontSize: 25.0, fontWeight: FontWeight.bold,decoration: TextDecoration.underline, color:  Color.fromARGB(255, 236, 63, 121),
+                      decorationColor: Color.fromARGB(255, 236, 63, 121),),
                   ),
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => LoginForm()),
+                        MaterialPageRoute(builder: (context) => const LoginForm()),
                       );
                     }
                 ),
@@ -307,11 +309,11 @@ Future<void> onContinuePressed() async {
   // }
 
 Future<bool> verificaEmail(String email) async{
-  var emailQuery = await firestore
-    .collection('email-uf')
-    .where('email', isEqualTo: email)
-    .limit(1)
-    .get();
+  // var emailQuery = await firestore
+  //   .collection('email-uf')
+  //   .where('email', isEqualTo: email)
+  //   .limit(1)
+  //   .get();
     
   var cadastroQuery = await firestore
     .collection('users')
@@ -319,7 +321,7 @@ Future<bool> verificaEmail(String email) async{
     .limit(1)
     .get();
 
-  if (emailQuery.docs.isNotEmpty && cadastroQuery.docs.isNotEmpty) {
+  if (/*emailQuery.docs.isNotEmpty && */cadastroQuery.docs.isNotEmpty) {
     return false;
   }
   return true;

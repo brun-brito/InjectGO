@@ -1,4 +1,5 @@
-// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: curly_braces_in_flow_control_structures, use_build_context_synchronously, library_private_types_in_public_api
+
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -28,13 +29,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final ImagePicker _picker = ImagePicker();
   String prefixo = "";
   String fullName = ""; 
+  String cpf = ""; 
   String bio = ""; 
   String dateFormatted = DateFormat('dd-MM-yyyy').format(DateTime.now());
   String? _imageUrl;
   bool _isLoading = false; 
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
-  PageController _pageController = PageController();
+  final PageController _pageController = PageController();
   int _currentPage = 0;
 
   @override
@@ -54,7 +56,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return ListView(
       children: <Widget>[
         Padding(
-            padding: EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20),
             child: GestureDetector(
                 onTap: () => _showSelectionDialog(context),
                 child: Stack(
@@ -113,12 +115,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 8), // Espaçamento leve entre os botões
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.pink),
+                  border: Border.all(color: /*const Color(0xFFf6cbc2)*/Colors.pink),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: TextButton.icon(
-                  icon: const Icon(Icons.edit, color: Colors.pink),
-                  label: const Text('Editar perfil'),
+                  icon: const Icon(Icons.edit, color:  /*Color(0xFFf6cbc2)*/ Colors.pink),
+                  label: const Text('Editar perfil', style: TextStyle(color: Colors.black)),
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => EditUserProfileScreen(username: widget.username)),
@@ -133,8 +135,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 8), // Espaçamento leve entre os botões
                 decoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 236, 63, 121),
-                  border: Border.all(color: Colors.pink),
+                  color: const /*Color(0xFFf6cbc2),*/ Color.fromARGB(255, 236, 63, 121),
+                  border: Border.all(color: /*const Color(0xFFf6cbc2)*/Colors.pink),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: TextButton.icon(
@@ -154,46 +156,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
 
           // const Divider(),
-          Container(
-            margin: const EdgeInsets.only(left: 8, right: 8),
-            decoration: BoxDecoration(
-              color: Colors.white, 
-              borderRadius: BorderRadius.circular(10.0), 
-            ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: <Widget>[
-                  TextButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => Arquivos(username: widget.username))
-                      );
-                    },
-                    icon: const Icon(Icons.folder), 
-                    label: const Text('Arquivos', style: TextStyle(color: Colors.black)), 
-                  ),
-                  const VerticalDivider(),
-                  TextButton.icon(
-                    onPressed: () {
-                      mensagemEmBreve('ID facial');
-                    },
-                    icon: Image.asset('assets/images/faceId.png', width: 24, height: 24,),
-                    label: const Text('ID facial', style: TextStyle(color: Colors.black)),
-                  ),
-                  const VerticalDivider(),
-                  TextButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => MapScreen())
-                      );
-                    },
-                    icon: const Icon(Icons.location_on), 
-                    label: const Text('Mercado', style: TextStyle(color: Colors.black)),
-                  ),
-                ],
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(left: 8, right: 8),
+              decoration: BoxDecoration(
+                color: Colors.white, 
+                borderRadius: BorderRadius.circular(10.0), 
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: <Widget>[
+                    TextButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => Arquivos(username: widget.username))
+                        );
+                      },
+                      icon: const Icon(Icons.folder, color: Colors.grey), 
+                      label: const Text('Arquivos', style: TextStyle(color: Colors.black)), 
+                    ),
+                    const VerticalDivider(),
+                    TextButton.icon(
+                      onPressed: () {
+                        mensagemEmBreve('ID facial');
+                      },
+                      icon: Image.asset('assets/images/faceId.png', width: 24, height: 24,),
+                      label: const Text('ID facial', style: TextStyle(color: Colors.black)),
+                    ),
+                    const VerticalDivider(),
+                    TextButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const MapScreen())
+                        );
+                      },
+                      icon: const Icon(Icons.location_on, color: Colors.grey), 
+                      label: const Text('Mercado', style: TextStyle(color: Colors.black)),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -232,15 +236,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           // Token e Sair
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 90), // Adjust the padding as needed for your layout
+            padding: const EdgeInsets.symmetric(horizontal: 90), 
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromARGB(255, 236, 63, 121),
+                backgroundColor: const /*Color(0xFFf6cbc2),*/ Color.fromARGB(255, 236, 63, 121),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.0), // Border radius
+                  borderRadius: BorderRadius.circular(10.0), 
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10), // Button padding
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10), 
               ),onPressed: () =>  
                   Navigator.push(
                     context,
@@ -312,6 +316,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           else if (userProfile['sexo'] == 'Masculino')
             prefixo = 'Dr.';
           fullName = "${userProfile['nome']} ${userProfile['sobrenome']}";
+          cpf = "${userProfile['cpf']}";
           if(userProfile['bio'] == "")
             bio = 'Adicione sua biografia em Editar perfil';
           else
@@ -338,7 +343,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       String sobrenome = fullName.split(' ')[1];
       String filePath = 'foto-perfil-$nome-$sobrenome.jpg';
       String imageUrl = await FirebaseStorage.instance
-        .ref('$nome-$sobrenome/$filePath')
+        .ref('$nome-$cpf/$filePath')
           .getDownloadURL();
 
       setState(() {
@@ -360,14 +365,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
 }
 
   Future<void> _pickImage() async {
-    setLoading(true);
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      File imageFile = File(pickedFile.path);
-      uploadSelfie(imageFile);
-    } else {
-      setLoading(false);
-    }
+    showModalBottomSheet<void>(
+      context: context,
+      // isDismissible: true,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            children: <Widget>[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () {
+                      Navigator.pop(context); 
+                    },
+                  ),
+                ],
+              ),
+              Wrap(
+                children: <Widget>[
+                  ListTile(
+                    leading: const Icon(Icons.photo_library),
+                    title: const Text('Selecionar da galeria'),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      setLoading(true);
+                      final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+                      if (pickedFile != null) {
+                        File imageFile = File(pickedFile.path);
+                        uploadSelfie(imageFile);
+                      } else {
+                        setLoading(false);
+                      }
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.camera_alt),
+                    title: const Text('Tirar uma foto'),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final pickedFile = await _picker.pickImage(source: ImageSource.camera);
+                      if (pickedFile != null) {
+                        File imageFile = File(pickedFile.path);
+                        setLoading(true);
+                        uploadSelfie(imageFile);
+                      } else {
+                        setLoading(false);
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> uploadSelfie(File imageFile) async {
@@ -380,11 +434,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       String sobrenome = fullName.split(' ')[1];
       String filePath = 'foto-perfil-$nome-$sobrenome.jpg';
       await FirebaseStorage.instance
-        .ref('$nome-$sobrenome/$filePath')
+        .ref('$nome-$cpf/$filePath')
         .putFile(imageFile);
 
       String imageUrl = await FirebaseStorage.instance
-        .ref('$nome-$sobrenome/$filePath')
+        .ref('$nome-$cpf/$filePath')
         .getDownloadURL();
       setState(() {
         _imageUrl = imageUrl;
@@ -413,7 +467,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       String fileName = 'foto-perfil-$nome-$sobrenome.jpg';
 
       await FirebaseStorage.instance
-        .ref('$nome-$sobrenome/$fileName')
+        .ref('$nome-$cpf/$fileName')
         .delete(); 
       setState(() {
         _imageUrl = null;
@@ -439,16 +493,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _initializeVideoPlayer() async {
-    _videoPlayerController = VideoPlayerController.asset('assets/videos/video_merz.mp4');
-    await _videoPlayerController!.initialize();
-    _chewieController = ChewieController(
-      videoPlayerController: _videoPlayerController!,
-      aspectRatio: 9 / 16, 
-      autoPlay: false,
-      looping: false,
-      autoInitialize: true,
-    );
-    setState(() {});
+    try {
+      _videoPlayerController = VideoPlayerController.asset('assets/videos/video_merz.mp4');
+      await _videoPlayerController!.initialize();
+      _chewieController = ChewieController(
+        videoPlayerController: _videoPlayerController!,
+        aspectRatio: 9 / 16, 
+        autoPlay: false,
+        looping: true,
+        autoInitialize: true,
+      );
+      setState(() {});
+    } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erro ao inicializar o vídeo: $e"))
+        );
+      }
   }
 
   @override
@@ -464,7 +524,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.only(left: 15),
       margin: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Color.fromARGB(255, 236, 63, 121),
+        color: const /*Color(0xFFf6cbc2)*/ Color.fromARGB(255, 236, 63, 121),
+        // border: Border.all(color: Colors.pink),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -499,8 +560,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             flex: 2,
             child: Image.asset(
               'assets/images/merz.jpeg',
-              //     width: 200,
-              //     height: 110,
+                  height: 140,
               fit: BoxFit.fill,
             ),
           ),
@@ -529,10 +589,10 @@ Widget buildSecondPage() {
     return Container(
       width: 8,
       height: 8,
-      margin: EdgeInsets.symmetric(horizontal: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isActive ? const Color.fromARGB(255, 236, 63, 121) : Colors.grey,
+        color: isActive ? const /*Color(0xFFf6cbc2)*/ Color.fromARGB(255, 236, 63, 121) : Colors.grey,
       ),
     );
   }
