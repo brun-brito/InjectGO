@@ -71,7 +71,7 @@ class _TOTPDisplayState extends State<TOTPDisplay> {
     setState(() {
       _isLoading = true; 
     });
-    var url = Uri.parse('https://injectgo.rj.r.appspot.com/generate-totp?user=$_user');
+    var url = Uri.parse('https://20240528t132936-dot-injectgo.rj.r.appspot.com//generate-totp?user=$_user');
     // var url = Uri.parse('http://10.0.2.2:8080/generate-totp?user=$_user'); 
     var response = await http.get(url, headers: {'x-api-key': 'injectgoinjetaveis'});
     if (response.statusCode == 200) {

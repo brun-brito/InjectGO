@@ -1,6 +1,7 @@
 // ignore_for_file: library_private_types_in_public_api, curly_braces_in_flow_control_structures, use_build_context_synchronously, prefer_typing_uninitialized_variables
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -157,7 +158,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
             TextFormField(
               controller: _lastNameController,
-              decoration: const InputDecoration(labelText: 'Sobrenome*'),
+              decoration: const InputDecoration(labelText: 'Sobrenome completo*'),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZáÁÃãéÉíÍóÓÕõúÚâÂêÊîÎôÔûÛàÀèÈìÌòÒùÙçÇñÑ-\s]')),
                 TextInputFormatter.withFunction((oldValue, newValue) {
@@ -329,11 +330,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       else{
                         setState(() => _statusColor = Colors.red);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Não foi encontrado nenhum resultado. Por favor, confira os dados informados.")));
+                          const SnackBar(content: Text("Não foi encontrado nenhum resultado válido. Por favor, confira os dados informados ou tente novamente mais tarde.")));
                       }
                     } catch (e) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                         SnackBar(content: Text("Erro inesperado: ${e.toString()}"))
+                         const SnackBar(content: Text("Erro inesperado. Tente novamente mais tarde."))//${e.toString()}"))
                   );
                     } finally {
                       setState(() => _isLoadingVerify = false);
@@ -528,7 +529,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     mensagemSucesso();
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Falha ao registrar: ${e.toString()}"))
+                      SnackBar(content: Text("Falha ao registrar profissional: ${e.toString()}"))
                     );
                   } finally {
                     setState(() {
@@ -565,13 +566,43 @@ class _SignUpScreenState extends State<SignUpScreen> {
               child: const Text('Cancelar', style: TextStyle(color: Colors.red)),
             ),
           ),
-
-
-          ],
-        ),
+          SelectableText.rich(    
+            TextSpan(
+              text: 'Se estiver enfrentando alguma dificuldade em se cadastrar, envie um e-mail para ',
+              style: const TextStyle(
+                fontStyle: FontStyle.italic,
+                fontSize: 14.5,
+              ),
+              children: [
+                TextSpan(
+                  text: 'suporte@injectgo.com',
+                  style: const TextStyle(
+                    color: Colors.blue,
+                    decoration: TextDecoration.underline,
+                  ),
+                  recognizer: TapGestureRecognizer()
+                    ..onTap = () {
+                      Clipboard.setData(const ClipboardData(text: 'suporte@injectgo.com'));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('E-mail copiado para a área de transferência')),
+                      );
+                    },
+                ),
+                const TextSpan(
+                  text: ', que iremos lhe ajudar!',
+                  style: TextStyle(
+                    fontStyle: FontStyle.italic,
+                    fontSize: 14.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Future<void> addUserWithFirebase(Map<String, dynamic> userData) async {
     String nome = _nameController.text;
@@ -822,8 +853,8 @@ void _removeCertidaoImage() {
       List<dynamic> dataList = jsonResponse['data'][0]['lista_registros'] as List;
       return dataList.any((dataItem) {
         var firstName = (dataItem['nome_razao_social'] as String).split(' ')[0].toLowerCase();
-        var situacao = (dataItem['situacao'] as String);
-        var verificaCons = (dataItem['numero_registro'] as String);
+         var situacao = (dataItem['situacao'] as String);
+        var verificaCons = (dataItem['numero_registro'] as String).trim();
         if(firstName == _nameController.text.toLowerCase() && situacao == 'ATIVO' && verificaCons == nroCconselho){
           enviaConselho();
           return true;
