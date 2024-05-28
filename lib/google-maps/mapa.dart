@@ -1,16 +1,8 @@
 // ignore_for_file: library_private_types_in_public_api
-
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:inject_go/main.dart';
 import 'package:flutter/services.dart';
-import 'dart:async';
 
-Future<void> main() async {
-  await dotenv.load(fileName: ".env");
-  runApp(const Home());
-}
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});

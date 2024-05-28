@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 class TOTPDisplay extends StatefulWidget {
@@ -71,7 +72,7 @@ class _TOTPDisplayState extends State<TOTPDisplay> {
     setState(() {
       _isLoading = true; 
     });
-    var url = Uri.parse('https://20240528t132936-dot-injectgo.rj.r.appspot.com//generate-totp?user=$_user');
+    var url = Uri.parse('${dotenv.env['API_URL']}/generate-totp?user=$_user');
     // var url = Uri.parse('http://10.0.2.2:8080/generate-totp?user=$_user'); 
     var response = await http.get(url, headers: {'x-api-key': 'injectgoinjetaveis'});
     if (response.statusCode == 200) {
