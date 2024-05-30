@@ -89,23 +89,34 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 fontStyle: FontStyle.italic,
               ),
             ),
-            TextFormField(
-              controller: _imageController,
-              decoration: InputDecoration(
-                labelText: 'Selfie segurando a carteirinha*',
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.camera_alt),
-                  onPressed: _takeSelfie,
-                ),
+            
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey), // Define a cor da borda
+                borderRadius: BorderRadius.circular(5), // Define os cantos arredondados
               ),
-              readOnly: true,
-              validator: (value) {
-                if (_image == null) {
-                  return 'Por favor, anexe uma selfie segurando a carteirinha';
-              }
-              return null;
-            },
-          ),
+              child: TextFormField(
+                controller: _imageController,
+                decoration: InputDecoration(
+                  labelText: 'Selfie segurando a carteirinha*',
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.camera_alt),
+                    onPressed: _takeSelfie,
+                  ),
+                  border: InputBorder.none, // Remove a borda padrão do TextFormField
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10), // Adiciona espaço interno
+                ),
+                readOnly: true,
+                validator: (value) {
+                  if (_selfie == null) {
+                    return 'Por favor, anexe uma selfie segurando a carteirinha';
+                  }
+                  return null;
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+
             if (_selfie != null)
               Stack(
                 alignment: Alignment.topRight,
@@ -125,110 +136,153 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                 ],
               ),
+            if (_selfie != null)
+              const SizedBox(height: 8),
 
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Primeiro nome*'),
-              inputFormatters: [
-                FilteringTextInputFormatter.deny(RegExp(r'\s')),
-                FilteringTextInputFormatter.singleLineFormatter,
-                LengthLimitingTextInputFormatter(15), 
-                TextInputFormatter.withFunction((oldValue, newValue) {
-                  if (newValue.text.isNotEmpty) {
-                    return TextEditingValue(
-                      text: newValue.text.substring(0, 1).toUpperCase() + newValue.text.substring(1).toLowerCase(),
-                      selection: TextSelection.collapsed(offset: newValue.text.length),
-                    );
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey), 
+                borderRadius: BorderRadius.circular(5), 
+              ),
+              child: TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Primeiro nome*',
+                  border: InputBorder.none, 
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10), 
+                ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                  FilteringTextInputFormatter.singleLineFormatter,
+                  LengthLimitingTextInputFormatter(15),
+                  TextInputFormatter.withFunction((oldValue, newValue) {
+                    if (newValue.text.isNotEmpty) {
+                      return TextEditingValue(
+                        text: newValue.text.substring(0, 1).toUpperCase() + newValue.text.substring(1).toLowerCase(),
+                        selection: TextSelection.collapsed(offset: newValue.text.length),
+                      );
+                    }
+                    return newValue;
+                  }),
+                ],
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Por favor, preencha seu nome';
                   }
-                  return newValue;
-                }),
-              ],
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) { 
-                  return 'Por favor, preencha seu nome';
-                }
-                return null;
-              },
+                  return null;
+                },
                 onChanged: (value) {
                   setState(() {
-                    _statusColor = Colors.black; 
+                    _statusColor = Colors.black;
                   });
                 },
+              ),
             ),
-
-            TextFormField(
-              controller: _lastNameController,
-              decoration: const InputDecoration(labelText: 'Sobrenome completo*'),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZáÁÃãéÉíÍóÓÕõúÚâÂêÊîÎôÔûÛàÀèÈìÌòÒùÙçÇñÑ-\s]')),
-                TextInputFormatter.withFunction((oldValue, newValue) {
-                  if (newValue.text.isNotEmpty) {
-                    final List<String> parts = newValue.text.split(' ');
-                    final List<String> capitalizedParts = parts.map((part) {
-                      if (part.isNotEmpty) {
-                        return part.substring(0, 1).toUpperCase() + part.substring(1).toLowerCase();
-                      }
-                      return part;
-                    }).toList();
-                    final String result = capitalizedParts.join(' ');
-                    return TextEditingValue(
-                      text: result,
-                      selection: TextSelection.collapsed(offset: result.length),
-                    );
+            const SizedBox(height: 8),
+            
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey), 
+                borderRadius: BorderRadius.circular(5), 
+              ),
+              child: TextFormField(
+                controller: _lastNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Sobrenome completo*',
+                  border: InputBorder.none, 
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10), 
+                ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZáÁÃãéÉíÍóÓÕõúÚâÂêÊîÎôÔûÛàÀèÈìÌòÒùÙçÇñÑ-\s]')),
+                  TextInputFormatter.withFunction((oldValue, newValue) {
+                    if (newValue.text.isNotEmpty) {
+                      final List<String> parts = newValue.text.split(' ');
+                      final List<String> capitalizedParts = parts.map((part) {
+                        if (part.isNotEmpty) {
+                          return part.substring(0, 1).toUpperCase() + part.substring(1).toLowerCase();
+                        }
+                        return part;
+                      }).toList();
+                      final String result = capitalizedParts.join(' ');
+                      return TextEditingValue(
+                        text: result,
+                        selection: TextSelection.collapsed(offset: result.length),
+                      );
+                    }
+                    return newValue;
+                  }),
+                ],
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Por favor, preencha seu sobrenome';
                   }
-                  return newValue;
-                }),
-              ],
+                  return null;
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+            
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey), 
+              borderRadius: BorderRadius.circular(5), 
+            ),
+            child: DropdownButtonFormField<String>(
+              decoration: const InputDecoration(
+                labelText: 'Especialidade*',
+                border: InputBorder.none, // Remove a borda padrão do DropdownButtonFormField
+                contentPadding: EdgeInsets.symmetric(horizontal: 10), 
+              ),
+              value: _selectedProfession,
+              items: <String>['Biomédico', 'Dentista', 'Médico', 'Farmacêutico']
+                  .map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                setState(() {
+                  _selectedProfession = newValue;
+                  _statusColor = Colors.black;
+                });
+                if (_selectedProfession != 'Farmacêutico') _removeCertidaoImage();
+              },
               validator: (value) {
-                if (value == null || value.trim().isEmpty) { 
-                  return 'Por favor, preencha seu sobrenome';
+                if (value == null || value.isEmpty) {
+                  return 'Por favor, selecione sua profissão';
                 }
                 return null;
               },
             ),
-            
-          DropdownButtonFormField<String>(
-            decoration: const InputDecoration(labelText: 'Especialidade*'),
-            value: _selectedProfession,
-            items: <String>['Biomédico', 'Dentista', 'Médico', 'Farmacêutico'].map<DropdownMenuItem<String>>((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-              );
-            }).toList(),
-            onChanged: (String? newValue) {
-              setState(() {
-                _selectedProfession = newValue;
-                _statusColor = Colors.black;
-              });
-              if(_selectedProfession != 'Farmacêutico')
-                _removeCertidaoImage();
-            },
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Por favor, selecione sua profissão';
-              }
-              return null;
-            },
           ),
+          const SizedBox(height: 8),
 
           if (_selectedProfession == 'Farmacêutico')
-            TextFormField(
-              controller: _certidaoController,
-              decoration: InputDecoration(
-                labelText: 'Certidão de Regularidade Técnica*',
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.file_upload),
-                  onPressed: _pickCertidaoImage,
-                ),
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey), 
+                borderRadius: BorderRadius.circular(5), 
               ),
-              readOnly: true, 
-              validator: (value) {
-                if (_image == null) {
-                  return 'Por favor, faça upload da certidão de regularidade técnica';
-                }
-                return null;
-              },
+              child: TextFormField(
+                controller: _certidaoController,
+                decoration: InputDecoration(
+                  labelText: 'Certidão de Regularidade Técnica*',
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.file_upload),
+                    onPressed: _pickCertidaoImage,
+                  ),
+                  border: InputBorder.none, 
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10), 
+                ),
+                readOnly: true,
+                validator: (value) {
+                  if (_image == null) {
+                    return 'Por favor, faça upload da certidão de regularidade técnica';
+                  }
+                  return null;
+                },
+              ),
             ),
 
           if (_image != null)
@@ -246,106 +300,153 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
               ],
             ),
+          if (_selectedProfession == 'Farmacêutico')
+            const SizedBox(height: 8),
             
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(labelText: 'Estado do Conselho*'),
-              value: _selectedState,
-              items: <String>[
-                'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO',
-                'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',
-                'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
-              ].map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-              onChanged: (newValue) {
-                setState(() {
-                  _selectedState = newValue;
-                  _statusColor = Colors.black;
-                });
-              },
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Por favor, selecione o estado do seu conselho';
-                }
-                return null;
-              },
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey), 
+                borderRadius: BorderRadius.circular(5), 
+              ),
+              child: DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  labelText: 'Estado do Conselho*',
+                  border: InputBorder.none, 
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10), 
+                ),
+                value: _selectedState,
+                items: <String>[
+                  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO',
+                  'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',
+                  'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+                ].map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (newValue) {
+                  setState(() {
+                    _selectedState = newValue;
+                    _statusColor = Colors.black;
+                  });
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor, selecione o estado do seu conselho';
+                  }
+                  return null;
+                },
+              ),
             ),
+            
+            const SizedBox(height: 8),
 
             Row(
               children: [
                 Expanded(
-                  child: TextFormField(
-                    controller: _councilNumberController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Número de conselho*',
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(5),
                     ),
-                    style: TextStyle(
-                      color: _statusColor,  // Cor do texto baseado no estado
-                    ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                    ],
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Por favor, preencha seu número de conselho';
-                      }
-                      return null;
+                    child: TextFormField(
+                      controller: _councilNumberController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Número de conselho*',
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                      ),
+                      style: TextStyle(
+                        color: _statusColor, 
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Por favor, preencha seu número de conselho';
+                        }
+                        return null;
                       },
                       onChanged: (value) {
                         setState(() {
-                          _statusColor = Colors.black; 
+                          _statusColor = Colors.black;
                         });
                       },
                     ),
+                  ),
                 ),
                 IconButton(
-                  icon: _isLoadingVerify 
-                    ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(/*Color(0xFFf6cbc2)*/Color.fromARGB(255, 236, 63, 121))) 
-                    :  Icon(Icons.check_box, color: _statusColor),
-                  onPressed: _isLoadingVerify ? null : () async {
-                    if(_councilNumberController.text.isEmpty || _nameController.text.isEmpty || _selectedProfession == null || _selectedState == null){
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Preencha seu nome, especialidade, Estado e conselho, antes de verificar")));
-                      return;
-                    }
-                    if (_selectedProfession == 'Dentista')
-                      funcao = existeCRO();
-                    if (_selectedProfession == 'Biomédico') 
-                      funcao = existeCFBM();         
-                    if (_selectedProfession == 'Médico') 
-                      funcao = existeCRM();               
-                    if (_selectedProfession == 'Farmacêutico') 
-                      funcao = existeCFF();                    
-                    setState(() => _isLoadingVerify = true);
-                    try {
-                      if(await funcao){
-                        setState(() => _statusColor = Colors.green);
+                  icon: _isLoadingVerify
+                    ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Color.fromARGB(255, 236, 63, 121)/*Color(0xFFf6cbc2)*/)) 
+                    :  Icon(Icons.person_search_rounded, color: _statusColor),
+                    onPressed: _isLoadingVerify ? null : () async {
+                      if (_councilNumberController.text.isEmpty ||
+                          _nameController.text.isEmpty ||
+                          _selectedProfession == null ||
+                          _selectedState == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Número de conselho validado!")));
+                            const SnackBar(
+                                content: Text(
+                                    "Preencha seu nome, especialidade, Estado e conselho, antes de verificar")));
+                        return;
                       }
-                      else{
-                        setState(() => _statusColor = Colors.red);
+
+                      Future<bool> Function() funcao;
+
+                      if (_selectedProfession == 'Dentista')
+                        funcao = existeCRO;
+                      else if (_selectedProfession == 'Biomédico')
+                        funcao = existeCFBM;
+                      else if (_selectedProfession == 'Médico')
+                        funcao = existeCRM;
+                      else if (_selectedProfession == 'Farmacêutico')
+                        funcao = existeCFF;
+                      else
+                        return;
+
+                      setState(() => _isLoadingVerify = true);
+                      try {
+                        if (await funcao()) {
+                          setState(() => _statusColor = Colors.green);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text(
+                                      "Número de conselho validado!")));
+                        } else {
+                          setState(() => _statusColor = Colors.red);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text(
+                                      "Não foi encontrado nenhum resultado válido. Por favor, confira os dados informados ou tente novamente mais tarde.")));
+                        }
+                      } catch (e) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Não foi encontrado nenhum resultado válido. Por favor, confira os dados informados ou tente novamente mais tarde.")));
+                            const SnackBar(
+                                content: Text(
+                                    "Erro inesperado. Tente novamente mais tarde.")));
+                      } finally {
+                        setState(() => _isLoadingVerify = false);
                       }
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                         const SnackBar(content: Text("Erro inesperado. Tente novamente mais tarde."))//${e.toString()}"))
-                  );
-                    } finally {
-                      setState(() => _isLoadingVerify = false);
-                    }
-                  },
+                    },
                 ),
               ],
             ),
+            const SizedBox(height: 8),
 
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(labelText: 'Sexo*'),
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey), 
+                borderRadius: BorderRadius.circular(5), 
+              ),
+              child: DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  labelText: 'Sexo*',
+                  border: InputBorder.none, 
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10), 
+                ),
               value: _sexo,
               items: <String>['Feminino', 'Masculino', 'Prefiro não informar']
                   .map<DropdownMenuItem<String>>((String value) {
@@ -366,149 +467,214 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 return null;
               },
             ),
-
-            TextFormField(
-              controller: _cpfController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'CPF (apenas números)*'),
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly, 
-                LengthLimitingTextInputFormatter(11), 
-              ],
-              validator: (value) {
-                if (value == null || value.isEmpty || !isValidCPF(value)) {
-                  return 'Por favor, preencha um CPF válido';
-                }
-                return null;
-              },
             ),
+            const SizedBox(height: 8),
 
-            TextFormField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'Telefone (apenas números)*',
-                hintText: '85999999999'
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(color: Colors.grey),
               ),
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(11),
-              ],
+              child: TextFormField(
+                controller: _cpfController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'CPF (apenas números)*',
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(11),
+                ],
+                validator: (value) {
+                  if (value == null || value.isEmpty || !isValidCPF(value)) {
+                    return 'Por favor, preencha um CPF válido';
+                  }
+                  return null;
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(color: Colors.grey),
+              ),
+              child: TextFormField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Telefone (apenas números)*',
+                  hintText: '85999999999',
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(11),
+                ],
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Por favor, preencha seu telefone';
-                  }
-                  else if (value.length != 11) {
+                  } else if (value.length != 11) {
                     return 'Por favor, preencha um telefone válido';
                   }
                   return null;
                 },
+              ),
             ),
+            const SizedBox(height: 8),
 
-            TextFormField(
-              controller: _emailController,
-              decoration: InputDecoration(
-                labelText: 'E-mail*', hintText: 'email@exemplo.com',
-                prefixIcon: IconButton(
-                  icon: const Icon(Icons.info_outline),
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Informação'),
-                        content: const Text('Esse campo pode ser preenchido com o mesmo e-mail informado na última tela, ou outro que você preferir.', style: TextStyle(fontSize: 17),),
-                        actions: [
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                            child: const Text('OK'),
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(color: Colors.grey),
+              ),
+              child: TextFormField(
+                controller: _emailController,
+                decoration: InputDecoration(
+                  labelText: 'E-mail*',
+                  hintText: 'email@exemplo.com',
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                  prefixIcon: IconButton(
+                    icon: const Icon(Icons.info_outline),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Informação'),
+                          content: const Text(
+                            'Esse campo pode ser preenchido com o mesmo e-mail informado na última tela, ou outro que você preferir.',
+                            style: TextStyle(fontSize: 17),
                           ),
-                        ],
-                      ),
-                    );
-                  },
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                              child: const Text('OK'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(
+                      RegExp(r'[a-zA-Z0-9\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\;\:\",<>\.\/\?\|\\_`~]')),
+                  FilteringTextInputFormatter.singleLineFormatter,
+                ],
+                validator: (value) {
+                  if (value == null || value.isEmpty || !value.contains('@') || !value.contains('.')) {
+                    return 'Por favor, preencha seu e-mail corretamente';
+                  }
+
+                  return null;
+                },
               ),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\;\:\",<>\.\/\?\|\\_`~]')),
-                FilteringTextInputFormatter.singleLineFormatter,
-              ],
-              validator: (value) {
-                if (value == null || value.isEmpty || !value.contains('@') || !value.contains('.')) {
-                  return 'Por favor, preencha seu e-mail corretamente';
-                }
-
-                return null;
-              },
             ),
+            const SizedBox(height: 8),
 
-            TextFormField(
-              controller: _usernameController,
-              decoration: const InputDecoration(labelText: 'Crie um usuário*'),
-              inputFormatters: [
-                FilteringTextInputFormatter.singleLineFormatter, 
-                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\;\:\",<>\.\?\|\\_`~]')),
-                LengthLimitingTextInputFormatter(15),
-              ],
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Por favor, preencha seu usuário';
-                }
-
-                return null;
-              },
-            ),
-
-            TextFormField(
-              controller: _passwordController,
-              decoration: InputDecoration(labelText: 'Senha*',
-              suffixIcon: IconButton(
-                  icon: const Icon(Icons.visibility),
-                  onPressed: () {
-                    setState(() {
-                      _isObscure = !_isObscure;
-                    });
-                  },
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(color: Colors.grey),
+              ),
+              child: TextFormField(
+                controller: _usernameController,
+                decoration: const InputDecoration(
+                  labelText: 'Crie um usuário*',
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10),
                 ),
-              ),
-              obscureText: _isObscure, 
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Por favor, preencha sua senha';
-                }                
-                else if (value.length < 6 ) {
-                  return 'A senha deve ter ao menos 6 caracteres';
-                }
-                _senha = value; 
-                return null;
-              },
-            ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.singleLineFormatter,
+                  FilteringTextInputFormatter.allow(
+                      RegExp(r'[a-zA-Z0-9\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\;\:\",<>\.\?\|\\_`~]')),
+                  LengthLimitingTextInputFormatter(15),
+                ],
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor, preencha seu usuário';
+                  }
 
-            TextFormField(
-              decoration: InputDecoration(labelText: 'Repetir senha*',
-              suffixIcon: IconButton(
-                  icon: const Icon(Icons.visibility),
-                  onPressed: () {
-                    setState(() {
-                      _isObscure2 = !_isObscure2;
-                    });
-                  },
-                ),
+                  return null;
+                },
               ),
-              obscureText: _isObscure2, 
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Por favor, repita sua senha';
-                }
-                if (value != _senha) {
-                  return 'As senhas não coincidem';
-                }
-                return null;
-              },
             ),
-              
-            const SizedBox(height: 8.0),
+            const SizedBox(height: 8),
+
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(color: Colors.grey),
+              ),
+              child: TextFormField(
+                controller: _passwordController,
+                decoration: InputDecoration(
+                  labelText: 'Senha*',
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.visibility),
+                    onPressed: () {
+                      setState(() {
+                        _isObscure = !_isObscure;
+                      });
+                    },
+                  ),
+                ),
+                obscureText: _isObscure,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor, preencha sua senha';
+                  } else if (value.length < 6) {
+                    return 'A senha deve ter ao menos 6 caracteres';
+                  }
+                  _senha = value;
+                  return null;
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+            
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(color: Colors.grey),
+              ),
+              child: TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Repetir senha*',
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.visibility),
+                    onPressed: () {
+                      setState(() {
+                        _isObscure2 = !_isObscure2;
+                      });
+                    },
+                  ),
+                ),
+                obscureText: _isObscure2,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor, repita sua senha';
+                  }
+                  if (value != _senha) {
+                    return 'As senhas não coincidem';
+                  }
+                  return null;
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const /*Color(0xFFf6cbc2*/ Color.fromARGB(255, 236, 63, 121),

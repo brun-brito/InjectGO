@@ -57,6 +57,9 @@ dependencies:
   video_player: ^2.4.5
   chewie: ^1.8.1
   webview_flutter: ^4.7.0 
+  qr_code_scanner: ^1.0.1
+  qr_flutter: ^4.0.0
+  permission_handler: ^10.2.0
 
 dev_dependencies:
   flutter_test:

@@ -249,7 +249,7 @@ class _LoginFormState extends State<LoginForm> {
                 children: [
                   Text(
                     "Confira sua caixa de e-mail $value, para alterar sua senha, após isso, volte para realizar o login.",
-                    style: const TextStyle(fontSize: 17),  // Aumenta a fonte para 18
+                    style: const TextStyle(fontSize: 17),  
                   )
                 ],
               ),
@@ -257,7 +257,7 @@ class _LoginFormState extends State<LoginForm> {
                   TextButton(
                     child: const Text('Ok'),
                     onPressed: () {
-                      Navigator.of(context).pop(); // Fechar o diálogo após a atualização
+                      Navigator.of(context).pop(); 
                     },
                   ),
                 ],

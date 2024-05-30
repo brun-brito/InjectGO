@@ -9,11 +9,13 @@ import 'package:inject_go/subtelas/arquivos.dart';
 import 'package:inject_go/subtelas/editar_dados.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:inject_go/screens/login_screen.dart';
-import 'package:inject_go/subtelas/token.dart';
+// import 'package:inject_go/subtelas/token.dart';
 import 'package:inject_go/google-maps/mapa.dart';
 import 'package:intl/intl.dart'; 
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
+
+import '../subtelas/leitor_qrcode.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String username;
@@ -207,7 +209,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             height: 180, 
             child: PageView.builder(
               controller: _pageController,
-              itemCount: 2, // tamanho do carross
+              itemCount: 2, // tamanho do carrossel
               onPageChanged: (int page) {
                 if (page == 1) {
                   // entrou na página do vídeo
@@ -239,18 +241,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 90), 
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const /*Color(0xFFf6cbc2),*/ Color.fromARGB(255, 236, 63, 121),
+                backgroundColor: const Color.fromARGB(255, 236, 63, 121),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10.0), 
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10), 
-              ),onPressed: () =>  
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => TOTPDisplay(username: widget.username,))
-                  ),
-              child: const Text('Gerar token de compra'),
+              ),
+              onPressed: () => Navigator.push(
+                context,
+                  MaterialPageRoute(builder: (context) => QRViewExample(username: widget.username))
+                // se for usar o TOKEN use essa classe: 'TOTPDisplay(username: widget.username))'
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.qr_code_scanner),
+                  SizedBox(width: 8),  
+                  Text('Validar QR Codex'),
+                ],
+              ),
             ),
           ),
           Center(
