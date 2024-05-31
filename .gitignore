@@ -48,8 +48,13 @@ ios/firebase_app_id_file.json
 ios/Runner/GoogleServices-Info.plist
 lib/firebase_options.dart
 
-# api Google Cloud
+# arquivo .env
 .env
 
 # tela de teste
 lib/screens/teste.dart
+
+inject_go.iml
+firebase.json
+.flutter-plugins-dependencies
+.flutter-plugins

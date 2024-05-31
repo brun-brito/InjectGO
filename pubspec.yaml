@@ -59,6 +59,7 @@ dependencies:
   webview_flutter: ^4.7.0 
   qr_code_scanner: ^1.0.1
   qr_flutter: ^4.0.0
+  flutter_barcode_scanner: ^2.0.0
   permission_handler: ^10.2.0
 
 dev_dependencies:
@@ -104,6 +105,8 @@ flutter:
      
      - assets/videos/video_merz.mp4
      - assets/videos/propaganda_renova.mp4
+     - assets/videos/qr_tutorial.mp4
+     - assets/videos/aaa.mov
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

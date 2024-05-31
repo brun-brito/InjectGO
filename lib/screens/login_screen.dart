@@ -187,14 +187,15 @@ class _LoginFormState extends State<LoginForm> {
   }
   
   Future<void> confirmaLogin() async {
-    if (/*(await validateUser(_emailController.text, _passwordController.text)) &&*/ (await signInAuth(_emailController.text, _passwordController.text))) {
+    String email = _emailController.text.trim();
+    if (/*(await validateUser(_emailController.text, _passwordController.text)) &&*/ (await signInAuth(email, _passwordController.text))) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Sucesso!"))
       );
       
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => ProfileScreen(username: _emailController.text)),
+        MaterialPageRoute(builder: (context) => ProfileScreen(username: email)),
         (Route<dynamic> route) => false,
       );
     } else {
@@ -227,7 +228,7 @@ class _LoginFormState extends State<LoginForm> {
   }
 
   void _showForgotPasswordDialog() async{
-    String value = _emailController.text;
+    String value = _emailController.text.trim();
     if(value.isEmpty || !value.contains('@') || !value.contains('.')){
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Preencha seu e-mail corretamente antes.")),

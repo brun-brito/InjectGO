@@ -115,7 +115,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: <Widget>[
             Flexible(
               child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 8), // Espaçamento leve entre os botões
+                margin: const EdgeInsets.symmetric(horizontal: 8), 
                 decoration: BoxDecoration(
                   border: Border.all(color: /*const Color(0xFFf6cbc2)*/Colors.pink),
                   borderRadius: BorderRadius.circular(8),
@@ -135,7 +135,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             Flexible(
               child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 8), // Espaçamento leve entre os botões
+                margin: const EdgeInsets.symmetric(horizontal: 8), 
                 decoration: BoxDecoration(
                   color: const /*Color(0xFFf6cbc2),*/ Color.fromARGB(255, 236, 63, 121),
                   border: Border.all(color: /*const Color(0xFFf6cbc2)*/Colors.pink),
@@ -250,7 +250,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               onPressed: () => Navigator.push(
                 context,
-                  MaterialPageRoute(builder: (context) => QRViewExample(username: widget.username))
+                  MaterialPageRoute(builder: (context) => QRCodePage(username: widget.username))
                 // se for usar o TOKEN use essa classe: 'TOTPDisplay(username: widget.username))'
               ),
               child: const Row(
@@ -258,7 +258,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Icon(Icons.qr_code_scanner),
                   SizedBox(width: 8),  
-                  Text('Validar QR Codex'),
+                  Text('Validar QR Code'),
                 ],
               ),
             ),

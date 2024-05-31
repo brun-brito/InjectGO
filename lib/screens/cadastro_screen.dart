@@ -92,8 +92,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
             
             Container(
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey), // Define a cor da borda
-                borderRadius: BorderRadius.circular(5), // Define os cantos arredondados
+                border: Border.all(color: Colors.grey), 
+                borderRadius: BorderRadius.circular(5), 
               ),
               child: TextFormField(
                 controller: _imageController,
@@ -103,8 +103,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     icon: const Icon(Icons.camera_alt),
                     onPressed: _takeSelfie,
                   ),
-                  border: InputBorder.none, // Remove a borda padrão do TextFormField
-                  contentPadding: EdgeInsets.symmetric(horizontal: 10), // Adiciona espaço interno
+                  border: InputBorder.none, 
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10), 
                 ),
                 readOnly: true,
                 validator: (value) {
@@ -230,7 +230,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             child: DropdownButtonFormField<String>(
               decoration: const InputDecoration(
                 labelText: 'Especialidade*',
-                border: InputBorder.none, // Remove a borda padrão do DropdownButtonFormField
+                border: InputBorder.none, 
                 contentPadding: EdgeInsets.symmetric(horizontal: 10), 
               ),
               value: _selectedProfession,
@@ -273,7 +273,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     onPressed: _pickCertidaoImage,
                   ),
                   border: InputBorder.none, 
-                  contentPadding: EdgeInsets.symmetric(horizontal: 10), 
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10), 
                 ),
                 readOnly: true,
                 validator: (value) {
@@ -538,7 +538,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   labelText: 'E-mail*',
                   hintText: 'email@exemplo.com',
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10),
                   prefixIcon: IconButton(
                     icon: const Icon(Icons.info_outline),
                     onPressed: () {
@@ -618,7 +618,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 decoration: InputDecoration(
                   labelText: 'Senha*',
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10),
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.visibility),
                     onPressed: () {
@@ -651,7 +651,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 decoration: InputDecoration(
                   labelText: 'Repetir senha*',
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10),
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.visibility),
                     onPressed: () {
@@ -683,7 +683,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               onPressed: () async {
                 if (_formKey.currentState!.validate() && _statusColor == Colors.green && _selfie != null) {
                   setState(() {
-                    _isLoading = true; // Inicia o carregamento
+                    _isLoading = true; 
                   });
                   try {
                     await addUserWithFirebase({});
@@ -699,7 +699,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     );
                   } finally {
                     setState(() {
-                      _isLoading = false; // Termina o carregamento
+                      _isLoading = false; 
                     });
                   }
                 }
@@ -720,7 +720,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 }
               },
               child: _isLoading
-                  ? const CircularProgressIndicator(color: Colors.white) // Indica carregamento
+                  ? const CircularProgressIndicator(color: Colors.white) 
                   : const Text('Cadastrar'),
             ),
             Center(
@@ -1058,7 +1058,6 @@ void _removeCertidaoImage() {
   }
 
   Future<bool> existeCFF() async {
-    // certidão de regularidade técnica
     String nroCconselho = _councilNumberController.text;
     String vlrMunicipio = 'todos';
     String selectedState = _selectedState ?? 'CE';  

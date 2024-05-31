@@ -1,152 +1,124 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:inject_go/screens/profile_screen.dart';
-import 'package:qr_code_scanner/qr_code_scanner.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class QRViewExample extends StatefulWidget {
+class QRCodePage extends StatefulWidget {
   final String username;
-  const QRViewExample({super.key, required this.username});
+  const QRCodePage({super.key, required this.username});
 
   @override
-  State<StatefulWidget> createState() => _QRViewExampleState();
+  // ignore: library_private_types_in_public_api
+  _QRCodePageState createState() => _QRCodePageState();
 }
 
-class _QRViewExampleState extends State<QRViewExample> {
-  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
-  Barcode? result;
-  QRViewController? _qrController;
-  Color borderColor = Colors.white;
+class _QRCodePageState extends State<QRCodePage> {
+  String ticket = '';
+  late bool status;
+  VideoPlayerController? _videoPlayerController;
+  ChewieController? _chewieController;
+  List<String> idsValidos = ['01-CE-FOR']; //TODO: Adicionar as maquinas aqui
+  FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
     super.initState();
-    _requestCameraPermission();
+    _initializeVideoPlayer();
   }
 
-  Future<void> _requestCameraPermission() async {
-    var status = await Permission.camera.status;
-    if (!status.isGranted) {
-      await Permission.camera.request();
-    }
-  }
-
-  @override
-  void reassemble() {
-    super.reassemble();
-    if (Platform.isAndroid) {
-      _qrController?.pauseCamera();
-    } else if (Platform.isIOS) {
-      _qrController?.resumeCamera();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Escanear QR Code'),
-        leading: IconButton(
-        icon: Icon(Icons.arrow_back),
-        onPressed: () {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => ProfileScreen(username: widget.username)),
-            (Route<dynamic> route) => false,
-          );
-        },
-      ),
-      ),
-      body: Column(
-        children: <Widget>[
-          Expanded(
-            flex: 5,
-            child: QRView(
-              key: qrKey,
-              onQRViewCreated: _onQRViewCreated,
-              overlay: QrScannerOverlayShape(
-                borderColor: borderColor,
-                borderRadius: 10,
-                borderLength: 30,
-                borderWidth: 10,
-                cutOutSize: 300,
-              ),
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.fromLTRB(35, 20, 35, 10),
-            child: Expanded(
-              flex: 1,
-              child: Center(
-                child: (result != null)
-                ? Text('QR Code incorreto detectado: ${result!.code}')
-                : const Text(
-                    'Escaneie o QR Code da máquina no quadrado acima, ou clique no botão abaixo para digitar o ID manualmente.',
-                    style: TextStyle(fontSize: 18), textAlign: TextAlign.center,
-                  ),
-              ),
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.only(bottom: 30), 
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromARGB(255, 236, 63, 121),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.0), 
-                ),
-              ),
-              onPressed: () {
-                _openDialog();
-              },
-              child: const Text('Digitar ID'),
-            ),
-          ),
-        ],
-      ),
+  void _initializeVideoPlayer() {
+    _videoPlayerController = VideoPlayerController.asset('assets/videos/qr_tutorial.mp4');
+    _chewieController = ChewieController(
+      videoPlayerController: _videoPlayerController!,
+      aspectRatio: 16 / 9,
+      autoPlay: false,
+      looping: true,
+      autoInitialize: true,
     );
   }
 
-  void _onQRViewCreated(QRViewController controller) {
-    setState(() {
-      _qrController = controller;
-    });
-    controller.scannedDataStream.listen((scanData) {
-      setState(() {
-        result = scanData;
-        if (scanData.code != null) {
-          _handleAuthentication(scanData.code!);
-        }
-      });
+  @override
+  void dispose() {
+    _videoPlayerController?.dispose();
+    _chewieController?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _registerScanEvent(String code, String username) async {
+    String nome = '';
+    String cpf = '';
+    var emailQuery = await firestore
+      .collection('users')
+      .where('email', isEqualTo: widget.username)
+      .limit(1)
+      .get();
+
+    if (emailQuery.docs.isNotEmpty) {
+      final userDoc = emailQuery.docs.first;
+      nome = userDoc['nome'] + ' ' + userDoc['sobrenome'];
+      cpf = userDoc['cpf'];
+    }
+
+    final CollectionReference scans = firestore.collection('leituras-maquinas');
+    await scans.add({
+      'nome': nome,
+      'cpf': cpf,
+      'id-maquina': code,
+      'data-hora': FieldValue.serverTimestamp(),
+      'status': status,
     });
   }
 
-  void _openDialog() {
+  Future<void> readQRCode() async {
+    String code = await FlutterBarcodeScanner.scanBarcode(
+      "#FFFFFF",
+      "Cancelar",
+      true,
+      ScanMode.QR
+    );
+    setState(() => ticket = code != '-1' ? code : 'Inválido!');
+    if (ticket != 'Inválido!') {
+      _registerScanEvent(ticket, widget.username);
+      _handleAuthentication(ticket);
+    }
+  }
+
+  Future<void> _handleAuthentication(String code) async {
+    if (code == "01-CE-FOR") {
+      _showDialog('Sucesso!', 'ID da máquina válido! Máquina será liberada para compras.', true);
+      status = true;
+    } else {
+      _showDialog('Erro!', 'ID da máquina inválido! Confira o código e tente novamente.', false);
+      status = false;
+    }
+  }
+
+  void _showDialog(String title, String message, bool isSuccess) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        String typedId = '';
         return AlertDialog(
-          title: const Text('Digite o ID da máquina:'),
-          content: TextField(
-            onChanged: (value) {
-              typedId = value;
-            },
-            decoration: const InputDecoration(hintText: 'ID da máquina'),
+          title: Row(
+            children: [
+              Icon(
+                isSuccess ? Icons.check_circle : Icons.error,
+                color: isSuccess ? Colors.green : Colors.red,
+                size: 40,
+              ),
+              const SizedBox(width: 10),
+              Text(title),
+            ],
           ),
+          content: Text(message, style: const TextStyle(fontSize: 16)),
           actions: <Widget>[
             TextButton(
-              child: const Text('Cancelar', style: TextStyle(fontSize: 16)),
+              child: const Text('OK', style: TextStyle(fontSize: 16)),
               onPressed: () {
                 Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('Enviar', style: TextStyle(fontSize: 16)),
-              onPressed: () {
+              if (isSuccess) {                
                 Navigator.of(context).pop();
-                _handleAuthentication(typedId);
+              }
               },
             ),
           ],
@@ -155,60 +127,62 @@ class _QRViewExampleState extends State<QRViewExample> {
     );
   }
 
-  void _handleAuthentication(String code) async {
-    if (code == "01-CE-FOR") {
-      setState(() {
-        borderColor = Colors.green;
-      });
-      await Future.delayed(const Duration(seconds: 1));
-      _showDialog('ID da máquina válido! Máquina será liberada para compras.', true);
-    } else {
-      setState(() {
-        borderColor = Colors.red;
-      });
-      await Future.delayed(const Duration(seconds: 1));
-      _showDialog('ID da máquina inválido! Confira o código e tente novamente.', false);
-    }
-  }
-
-  void _showDialog(String message, bool isValid) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Atenção!'),
-        content: Text(message, style: const TextStyle(fontSize: 16)),
-        actions: <Widget>[
-          TextButton(
-            child: const Text('OK', style: TextStyle(fontSize: 16)),
-            onPressed: () {
-              Navigator.of(context).pop(); 
-              if (isValid) {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => ProfileScreen(username: widget.username)),
-                  (Route<dynamic> route) => false,
-                );
-              }
-              else{Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => QRViewExample(username: widget.username)),
-                  (Route<dynamic> route) => false,
-                );
-                
-              }
-            },
-          ),
-        ],
-      );
-    },
+  @override
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: const Text('Escanear QR Code'),
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () {
+          Navigator.of(context).pop();
+        },
+      ),
+    ),
+    body: SingleChildScrollView(
+      child: SizedBox(
+        width: MediaQuery.of(context).size.width,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 16.0),
+              child: AspectRatio(
+                aspectRatio: 16 / 9, // Aspect ratio do vídeo
+                child: Chewie(controller: _chewieController!),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16.0),
+              child: Text(
+                'Clique no botão abaixo e escaneie o QR code da máquina, assim como no vídeo mostrado.',
+                style: TextStyle(fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            if (!idsValidos.contains(ticket)) // se o valor escaneado nao estiver na lista de ids válidos (ou seja, for inválido), ele exibe o botao dnv
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 90),
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(255, 236, 63, 121),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  ),
+                  onPressed: readQRCode,
+                  icon: const Icon(Icons.qr_code_scanner),
+                  label: const Text('Validar QR Code'),
+                ),
+              )
+          ],
+        ),
+      ),
+    ),
   );
 }
 
-
-  @override
-  void dispose() {
-    _qrController?.dispose();
-    super.dispose();
-  }
 }

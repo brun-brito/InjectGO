@@ -23,7 +23,7 @@ class _MapScreenState extends State<MapScreen> {
       'Máquina 1 - Fortaleza',
       'Edifício Business Center - Av. Treze de Maio, 1096 - Fátima, Fortaleza - CE, 60040-530',
     );
-    // PARA ADD OUTRA MÁQUINA:
+    // //TODO: PARA ADD OUTRA MÁQUINA:
     // _onAddMarkerButtonPressed(
     //   -23.550520, -46.633308,
     //   'Máquina 2 - Sao paulo',
