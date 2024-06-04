@@ -106,7 +106,6 @@ flutter:
      - assets/videos/video_merz.mp4
      - assets/videos/propaganda_renova.mp4
      - assets/videos/qr_tutorial.mp4
-     - assets/videos/aaa.mov
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
