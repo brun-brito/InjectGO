@@ -41,7 +41,6 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
-
 android {
     namespace "com.example.inject_go"
     compileSdk flutter.compileSdkVersion
