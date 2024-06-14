@@ -1102,7 +1102,7 @@ void _removeCertidaoImage() {
     await firestore
       .collection('conselhos-validos-$profissao')
       .doc(cliente)
-      .set(conselhoUser, SetOptions(merge: true));
+      .set(conselhoUser, SetOptions(merge: true)); 
   }
 
 }

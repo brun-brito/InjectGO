@@ -351,8 +351,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     try {
       String nome = fullName.split(' ')[0];
-      String sobrenome = fullName.split(' ')[1];
-      String filePath = 'foto-perfil-$nome-$sobrenome.jpg';
+      String filePath = 'foto-perfil-$nome.jpg';
       String imageUrl = await FirebaseStorage.instance
         .ref('$nome-$cpf/$filePath')
           .getDownloadURL();
@@ -442,8 +441,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     try {
       String nome = fullName.split(' ')[0];
-      String sobrenome = fullName.split(' ')[1];
-      String filePath = 'foto-perfil-$nome-$sobrenome.jpg';
+      String filePath = 'foto-perfil-$nome.jpg';
       await FirebaseStorage.instance
         .ref('$nome-$cpf/$filePath')
         .putFile(imageFile);
@@ -474,8 +472,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     try {
       String nome = fullName.split(' ')[0];
-      String sobrenome = fullName.split(' ')[1];
-      String fileName = 'foto-perfil-$nome-$sobrenome.jpg';
+      String fileName = 'foto-perfil-$nome.jpg';
 
       await FirebaseStorage.instance
         .ref('$nome-$cpf/$fileName')
