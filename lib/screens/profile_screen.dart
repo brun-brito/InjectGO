@@ -44,6 +44,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text("Perfil do Usuário"),
         centerTitle: true,
@@ -508,17 +509,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await _videoPlayerController!.initialize();
       _chewieController = ChewieController(
         videoPlayerController: _videoPlayerController!,
-        aspectRatio: 9 / 16, 
+        aspectRatio: _videoPlayerController!.value.aspectRatio,
         autoPlay: false,
         looping: true,
         autoInitialize: true,
       );
       setState(() {});
     } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erro ao inicializar o vídeo: $e"))
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erro ao inicializar o vídeo: $e")),
+      );
+    }
   }
 
   @override
@@ -581,7 +582,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
 Widget buildSecondPage() {
   return Padding(
-    padding: const EdgeInsets.only(left: 70, right: 70), 
+      padding: const EdgeInsets.all(8.0),
     child: _chewieController != null && _chewieController!.videoPlayerController.value.isInitialized ? Chewie(
       controller: _chewieController!,
     ) : const Center(child: CircularProgressIndicator()),
