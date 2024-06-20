@@ -67,6 +67,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -736,7 +737,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             TextSpan(
               text: 'Se estiver enfrentando alguma dificuldade em se cadastrar, envie um e-mail para ',
               style: const TextStyle(
-                fontStyle: FontStyle.italic,
+                fontStyle: FontStyle.normal,
                 fontSize: 14.5,
               ),
               children: [
@@ -757,7 +758,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 const TextSpan(
                   text: ', que iremos lhe ajudar!',
                   style: TextStyle(
-                    fontStyle: FontStyle.italic,
+                    fontStyle: FontStyle.normal,
                     fontSize: 14.5,
                   ),
                 ),
@@ -1101,7 +1102,7 @@ void _removeCertidaoImage() {
     await firestore
       .collection('conselhos-validos-$profissao')
       .doc(cliente)
-      .set(conselhoUser, SetOptions(merge: true));
+      .set(conselhoUser, SetOptions(merge: true)); 
   }
 
 }
