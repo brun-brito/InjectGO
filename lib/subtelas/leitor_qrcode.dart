@@ -20,7 +20,7 @@ class _QRCodePageState extends State<QRCodePage> {
   String status = '';
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
-  List<String> idsValidos = ['01-CE-FOR']; //TODO: Adicionar as maquinas aqui
+  List<String> idsValidos = [];
   FirebaseFirestore firestore = FirebaseFirestore.instance;
   bool enviouSms = false; 
   bool isLoading = false;
@@ -113,21 +113,61 @@ class _QRCodePageState extends State<QRCodePage> {
         enviouSms = true;
       } else {
         enviouSms = false;
+        throw('Erro ao liberar máquina: ${response.statusCode}');
       }
     } catch (e) {
         enviouSms = false;
+      throw('Erro ao liberar máquina: $e');
+    }
+  }
+
+  Future<void> _lerIdValidos() async {  //método para ler os IDs cadastrados no Firestore
+    try {
+      QuerySnapshot snapshot = await firestore.collection('maquinas').get();
+      List<String> ids = snapshot.docs.map((doc) => doc['id-maquina'].toString()).toList();
+      setState(() {
+        idsValidos = ids;
+      });
+    } catch (e) {
+      throw('Erro ao ler IDs: $e');
+    }
+  }
+
+    Future<String?> _lerChip(String code) async {
+    try {
+      QuerySnapshot querySnapshot = await firestore
+          .collection('maquinas')
+          .where('id-maquina', isEqualTo: code)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        return querySnapshot.docs.first['chip'].toString();
+      } else {
+        return null;
+      }
+    } catch (e) {
+      throw('Erro ao ler o chip: $e');
     }
   }
 
   Future<void> _handleAuthentication(String code) async {
-    if (code == "01-CE-FOR") {
+    await _lerIdValidos();
+
+    if (idsValidos.contains(code)) {
       setState(() {
         isLoading = true;
       });
-        
-      // await Future.delayed(const Duration(seconds: 15)); //delay para simular o tempo de processamento do SMS
 
-      await sendSMS("liberar máquina!", "31986281212"); // TODO: Alterar código da máquina e número de telefone
+      String? chip = await _lerChip(code);
+      if (chip != null) {
+          await sendSMS(code, chip);
+        } 
+      else{
+        _showDialog('Erro!', 'Não foi possível liberar a máquina para compras. Tente novamente mais tarde.', false);
+        status = "Leu corretamente o QR code, mas deu erro no envio do SMS";
+      }
+      
       setState(() {
         isLoading = false;
       });

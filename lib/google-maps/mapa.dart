@@ -1,7 +1,8 @@
-// ignore_for_file: library_private_types_in_public_api
+// ignore_for_file: library_private_types_in_public_api, avoid_print
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter/services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 
 class MapScreen extends StatefulWidget {
@@ -16,39 +17,55 @@ class _MapScreenState extends State<MapScreen> {
   final Set<Marker> _markers = {};
   int id = 1;
 
-  void _onMapCreated(GoogleMapController controller) {
-    mapController = controller;
-    _onAddMarkerButtonPressed(
-      -3.7492340963758783,-38.52882451827645,
-      'Máquina 1 - Fortaleza',
-      'Edifício Business Center - Av. Treze de Maio, 1096 - Fátima, Fortaleza - CE, 60040-530',
-    );
-    // //TODO: PARA ADD OUTRA MÁQUINA:
-    // _onAddMarkerButtonPressed(
-    //   -23.550520, -46.633308,
-    //   'Máquina 2 - Sao paulo',
-    //   'Edifício Business Center - Av. Treze de Maio, 1096 - Fátima, Fortaleza - CE, 60040-530',
-    // );
+ @override
+  void initState() {
+    super.initState();
+    _getLocations();
   }
 
-  void _onAddMarkerButtonPressed(double latitude, double longitude, String titulo, String descricao) {
-    id++;
-    setState(() {
-      _markers.add(
-        Marker(
-          markerId: MarkerId('id-$id'),
-          position: LatLng(latitude, longitude), 
-          infoWindow: InfoWindow(
-            title: titulo,
-            snippet: descricao,
-            onTap: () {
-              copiaEndereco(descricao);
+  Future<void> _getLocations() async {
+    try {
+      QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('maquinas').get();
+      for (var doc in snapshot.docs) {
+        if (doc.exists) {
+          try {
+            double latitude = doc['latitude'];
+            double longitude = doc['longitude'];
+            String cidade = doc['cidade'];
+            String estado = doc['estado'];
+            String endereco = doc['endereco'];
+
+            // ignore: unnecessary_null_comparison
+            if (latitude != null && longitude != null) {
+              setState(() {
+                _markers.add(
+                  Marker(
+                    markerId: MarkerId(doc.id),
+                    position: LatLng(latitude, longitude),
+                    infoWindow: InfoWindow(
+                      title: '$cidade - $estado',
+                      snippet: endereco,
+                      onTap: () {
+                        copiaEndereco(endereco);
+                      }
+                    ),
+                    icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+                  ), 
+                );
+              });
             }
-          ),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-        ),
-      );
-    });
+          } catch (e) {
+            print('Erro ao processar documento ${doc.id}: $e');
+          }
+        }
+      }
+    } catch (e) {
+      print('Erro ao carregar localizações: $e');
+    }
+  }
+
+  void _onMapCreated(GoogleMapController controller) {
+    mapController = controller;
   }
 
   void copiaEndereco(String endereco){

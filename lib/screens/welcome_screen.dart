@@ -90,6 +90,10 @@ class _WelcomePageState extends State<WelcomePage> {
                   prefixIcon: Icon(Icons.mail),
                   hintText: 'email@exemplo.com',
                 ),
+              keyboardType: TextInputType.emailAddress,       
+              inputFormatters: [
+                FilteringTextInputFormatter.deny(RegExp(r'\s')),
+              ],
             ),
 
             DropdownButtonFormField<String>(

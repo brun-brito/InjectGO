@@ -564,6 +564,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     },
                   ),
                 ),
+                keyboardType: TextInputType.emailAddress,
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(
                       RegExp(r'[a-zA-Z0-9\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\;\:\",<>\.\/\?\|\\_`~]')),
