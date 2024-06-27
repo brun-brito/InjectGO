@@ -1,3 +1,7 @@
+// ignore_for_file: empty_catches
+
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'package:video_player/video_player.dart';
@@ -21,14 +25,31 @@ class _QRCodePageState extends State<QRCodePage> {
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
   List<String> idsValidos = [];
+  String? chip;
   FirebaseFirestore firestore = FirebaseFirestore.instance;
   bool enviouSms = false; 
   bool isLoading = false;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     _initializeVideoPlayer();
+  }
+
+  void setLoading(bool valor){
+    setState(() {
+      isLoading = valor;
+    });
+    if (isLoading) {
+      _timer = Timer(const Duration(seconds: 30), () {
+        if (isLoading) {
+          setLoading(false);
+        }
+      });
+    } else {
+      _timer?.cancel();
+    }
   }
 
   void _initializeVideoPlayer() {
@@ -91,9 +112,36 @@ class _QRCodePageState extends State<QRCodePage> {
     }
   }
 
-    Future<void> sendSMS(String message, String number) async {
-    String napiKey= "T21HY2gyU1pnM2ZqM1ZoTlo5YjlZZjUzbFNtNmFEN2o=";
+  Future<void> sendSMS2(String numero, String mensagem) async {
+    String url = 'https://sms.comtele.com.br/api/v2/send';
+    String authKey = 'd338d07f-94de-4efb-81a8-626efa245e0b';
+
+    final Map<String, String> headers = {
+      'content-type': 'application/json',
+      'auth-key': authKey,
+    };
+
+    final Map<String, String> body = {
+      'Receivers': numero,
+      'Content': mensagem,
+    };
+
+    final http.Response response = await http.post(
+      Uri.parse(url),
+      headers: headers,
+      body: json.encode(body),
+    );
+
+    if (response.statusCode == 200) {
+        enviouSms = true;
+      } else {
+        enviouSms = false;
+    }
+  }
+
+    Future<void> sendSMS(String number, String message) async {
     String baseUrl = "https://api.nvoip.com.br/v2/sms";
+    String napiKey= "T21HY2gyU1pnM2ZqM1ZoTlo5YjlZZjUzbFNtNmFEN2o=";
     final url = Uri.parse('$baseUrl?napikey=$napiKey');
 
     final Map<String, dynamic> bodyParameters = {
@@ -113,28 +161,20 @@ class _QRCodePageState extends State<QRCodePage> {
         enviouSms = true;
       } else {
         enviouSms = false;
-        throw('Erro ao liberar máquina: ${response.statusCode}');
       }
     } catch (e) {
         enviouSms = false;
-      throw('Erro ao liberar máquina: $e');
     }
   }
 
-  Future<void> _lerIdValidos() async {  //método para ler os IDs cadastrados no Firestore
+  Future<void> lerIdsEChip(String code) async {
     try {
       QuerySnapshot snapshot = await firestore.collection('maquinas').get();
       List<String> ids = snapshot.docs.map((doc) => doc['id-maquina'].toString()).toList();
       setState(() {
         idsValidos = ids;
       });
-    } catch (e) {
-      throw('Erro ao ler IDs: $e');
-    }
-  }
 
-    Future<String?> _lerChip(String code) async {
-    try {
       QuerySnapshot querySnapshot = await firestore
           .collection('maquinas')
           .where('id-maquina', isEqualTo: code)
@@ -142,38 +182,25 @@ class _QRCodePageState extends State<QRCodePage> {
           .get();
 
       if (querySnapshot.docs.isNotEmpty) {
-        return querySnapshot.docs.first['chip'].toString();
-      } else {
-        return null;
+        chip = querySnapshot.docs.first['chip'].toString();
       }
-    } catch (e) {
-      throw('Erro ao ler o chip: $e');
-    }
+    } catch (e) {}
   }
 
+
   Future<void> _handleAuthentication(String code) async {
-    await _lerIdValidos();
-
+    await lerIdsEChip(code);
     if (idsValidos.contains(code)) {
-      setState(() {
-        isLoading = true;
-      });
-
-      String? chip = await _lerChip(code);
-      if (chip != null) {
-          await sendSMS(code, chip);
-        } 
-      else{
-        _showDialog('Erro!', 'Não foi possível liberar a máquina para compras. Tente novamente mais tarde.', false);
-        status = "Leu corretamente o QR code, mas deu erro no envio do SMS";
-      }
-      
-      setState(() {
-        isLoading = false;
-      });
-
-      if (enviouSms){  //se ele conseguir mandar o SMS, ele libera a máquina
-        _showDialog('Sucesso!', 'ID da máquina válido! Máquina será liberada para compras.', true);
+      setLoading(true);  
+      try {
+        await sendSMS(chip!, code); 
+        if (!enviouSms) {
+          await sendSMS2(chip!, code);            
+        }
+      } catch (e) {}
+      setLoading(false);
+      if (enviouSms){  //se ele conseguir ler o QRCode e mandar o SMS, ele libera a máquina
+        _showDialog('Sucesso!', 'ID da máquina válido! Por favor, aguarde a máquina ser liberada para compras.', true);
         status = "Leu corretamente o QR code e mandou SMS";
       }
       else{
@@ -181,6 +208,7 @@ class _QRCodePageState extends State<QRCodePage> {
         status = "Leu corretamente o QR code, mas deu erro no envio do SMS";
       }
     } else {
+      setLoading(false);
       _showDialog('Erro!', 'ID da máquina inválido! Confira o código e tente novamente.', false);
       status = "Leu incorretamente o QR code";
     }

@@ -743,14 +743,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               children: [
                 TextSpan(
-                  text: 'suporte@injectgo.com',
+                  text: 'suporte@injectgo.com.br',
                   style: const TextStyle(
                     color: Colors.blue,
                     decoration: TextDecoration.underline,
                   ),
                   recognizer: TapGestureRecognizer()
                     ..onTap = () {
-                      Clipboard.setData(const ClipboardData(text: 'suporte@injectgo.com'));
+                      Clipboard.setData(const ClipboardData(text: 'suporte@injectgo.com.br'));
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('E-mail copiado para a área de transferência')),
                       );

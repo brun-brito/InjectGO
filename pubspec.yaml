@@ -61,6 +61,8 @@ dependencies:
   qr_flutter: ^4.0.0
   flutter_barcode_scanner: ^2.0.0
   permission_handler: ^10.2.0
+  mockito: ^5.0.16
+  build_runner: ^2.1.7
 
 dev_dependencies:
   flutter_test:
