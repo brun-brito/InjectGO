@@ -107,7 +107,10 @@ flutter:
      - assets/images/rennova-logo.jpeg
      - assets/images/rennova-vermelho.jpg
      - assets/images/logo-distribuidora.jpeg
-    #  - assets/images/rennova-vermelho.jpg
+     - assets/images/logoInjectPreta.jpeg
+     - assets/images/print-produto.jpg
+     - assets/images/print-tecnicas1.jpg
+     - assets/images/print-tecnicas2.jpg
     #  - assets/images/rennova-vermelho.jpg
      
      - assets/videos/video_merz.mp4

@@ -17,92 +17,148 @@ class _TutorialCarouselState extends State<TutorialCarousel> {
   int _current = 0;
   final CarouselController _controller = CarouselController();
 
- final List<Widget> tutorialItems = [
-    const Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Image.network('https://via.placeholder.com/300x200', fit: BoxFit.cover),
-        SizedBox(height: 20),
-        Text(
-          'Bem-vindo ao nosso Speaker!',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        Padding(
-          padding: EdgeInsets.all(8.0),
-          child: Text(
-            'Descubra como a nossa tecnologia pode transformar sua prática estética! Tire todas suas dúvidas e melhore seu dia a dia com respostas precisas e rápidas.',
-            textAlign: TextAlign.center,
+  void _showImageDialog(String imagePath) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          child: InteractiveViewer(
+            child: Image.asset(imagePath),
           ),
-        ),
-      ],
-    ),
-    const Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Image.network('https://via.placeholder.com/300x200', fit: BoxFit.cover),
-        SizedBox(height: 20),
-        Text(
-          'Encontre os melhores produtos!',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        Padding(
-          padding: EdgeInsets.all(8.0),
-          child: Text(
-            'Peça sugestões ao Speaker e descubra os produtos ideais para obter resultados impressionantes em seus pacientes.',
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ],
-    ),
-    const Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Image.network('https://via.placeholder.com/300x200', fit: BoxFit.cover),
-        SizedBox(height: 20),
-        Text(
-          'Dúvidas técnicas?\nNós temos as respostas!',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        Padding(
-          padding: EdgeInsets.all(8.0),
-          child: Text(
-            'O Speaker está aqui para te apoiar com questões técnicas, desde métodos de aplicação até técnicas avançadas, para que você trabalhe com confiança.',
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ],
-    ),
-    const Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Image.network('https://via.placeholder.com/300x200', fit: BoxFit.cover),
-        SizedBox(height: 20),
-        Text(
-          'Novidade chegando...',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        Padding(
-          padding: EdgeInsets.all(8.0),
-          child: Text(
-            'Em breve, envie fotos de seus pacientes e receba conselhos personalizados para alcançar a harmonização facial perfeita!',
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ],
-    ),
-  ];
-      
-  void _finish() async{
+        );
+      },
+    );
+  }
+
+  void _finish() async {
     var users = FirebaseFirestore.instance.collection('users');
-      var querySnapshot = await users.where('email', isEqualTo: widget.username).get();
-      for (var doc in querySnapshot.docs) {
-        await doc.reference.update({'viu-tutorial': true});
-      }
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => ChatPage(username: widget.username)));
+    var querySnapshot = await users.where('email', isEqualTo: widget.username).get();
+    for (var doc in querySnapshot.docs) {
+      await doc.reference.update({'viu-tutorial': true});
+    }
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => ChatPage(username: widget.username)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> tutorialItems = [
+      Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset('assets/images/logoInjectPreta.jpeg', fit: BoxFit.cover),
+          const SizedBox(height: 20),
+          const Text(
+            'Bem-vindo ao nosso Speaker!',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 236, 63, 121)),
+          ),
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Text(
+              'Descubra como a nossa tecnologia pode transformar sua prática estética! Tire todas suas dúvidas e melhore seu dia a dia com respostas precisas e rápidas.',
+              textAlign: TextAlign.center, style: TextStyle(fontSize: 15),
+            ),
+          ),
+        ],
+      ),
+      Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: GestureDetector(
+                onTap: () => _showImageDialog('assets/images/print-produto.jpg'),
+                child: Image.asset('assets/images/print-produto.jpg', fit: BoxFit.fitWidth,),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Encontre os melhores produtos!',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color.fromARGB(255, 236, 63, 121),
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Text(
+              'Peça sugestões ao Speaker e descubra os produtos ideais para obter resultados impressionantes em seus pacientes.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 15),
+            ),
+          ),
+        ],
+      ),
+      Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _showImageDialog('assets/images/print-tecnicas1.jpg'),
+                      child: Image.asset('assets/images/print-tecnicas1.jpg'),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _showImageDialog('assets/images/print-tecnicas2.jpg'),
+                      child: Image.asset('assets/images/print-tecnicas2.jpg'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Dúvidas técnicas?\nNós temos as respostas!',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 236, 63, 121)),
+          ),
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Text(
+              'O Speaker está aqui para te apoiar com questões técnicas, desde métodos de aplicação até técnicas avançadas, para que você trabalhe com confiança.',
+              textAlign: TextAlign.center, style: TextStyle(fontSize: 15),
+            ),
+          ),
+        ],
+      ),
+      Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          GestureDetector(
+            onTap: () => _showImageDialog('assets/images/logoInject.jpeg'),
+            child: Image.asset('assets/images/logoInject.jpeg', fit: BoxFit.cover),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Novidade chegando...',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 236, 63, 121)),
+          ),
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Text(
+              'Em breve, envie fotos de seus pacientes e receba conselhos personalizados para alcançar a harmonização facial perfeita!',
+              textAlign: TextAlign.center, style: TextStyle(fontSize: 15),
+            ),
+          ),
+        ],
+      ),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tutorial Speaker'),
@@ -124,6 +180,30 @@ class _TutorialCarouselState extends State<TutorialCarousel> {
               ),
             ),
           ),
+          if (_current == tutorialItems.length - 1)
+            TextButton(
+              onPressed: _finish,
+              child: const Text(
+                'Concluir',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.black,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            )
+          else
+            TextButton(
+              onPressed: _finish,
+              child: const Text(
+                'Pular Tutorial',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.black,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: tutorialItems.asMap().entries.map((entry) {
@@ -137,27 +217,17 @@ class _TutorialCarouselState extends State<TutorialCarousel> {
                     shape: BoxShape.circle,
                     color: (Theme.of(context).brightness == Brightness.dark
                             ? Colors.white
-                            : Colors.black)
+                            : const Color.fromARGB(255, 236, 63, 121))
                         .withOpacity(_current == entry.key ? 0.9 : 0.4),
                   ),
                 ),
               );
             }).toList(),
           ),
-          const SizedBox(height: 20),
-          if (_current == tutorialItems.length - 1)
-            ElevatedButton(
-              onPressed: _finish,
-              child: const Text('Concluir'),
-            )
-          else
-            ElevatedButton(
-              onPressed: _finish,
-              child: const Text('Pular'),
-            ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 40),
         ],
       ),
     );
   }
 }
+ 
