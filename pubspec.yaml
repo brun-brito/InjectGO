@@ -17,6 +17,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
 version: 1.0.0+1
+#lembra que essa é a versão desenvolvimento, não precisa mudar a vesion
 
 environment:
   sdk: '>=3.3.3 <4.0.0'
@@ -38,7 +39,7 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
-  image_picker: ^1.0.7
+  image_picker: ^1.1.2
   firebase_auth: ^4.19.1
   firebase_core: ^2.29.0
   firebase_storage: ^11.7.1
@@ -63,6 +64,10 @@ dependencies:
   permission_handler: ^10.2.0
   mockito: ^5.0.16
   build_runner: ^2.1.7
+  dart_openai: ^5.1.0
+  chat_gpt_sdk: ^3.0.7
+  bubble: ^1.2.1
+  carousel_slider: ^4.2.1
 
 dev_dependencies:
   flutter_test:

@@ -5,17 +5,17 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:inject_go/subtelas/speaker.dart';
 import 'package:inject_go/subtelas/arquivos.dart';
 import 'package:inject_go/subtelas/editar_dados.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:inject_go/screens/login_screen.dart';
-// import 'package:inject_go/subtelas/token.dart';
 import 'package:inject_go/google-maps/mapa.dart';
+import 'package:inject_go/subtelas/tutorial_speaker.dart';
 import 'package:intl/intl.dart'; 
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
-
-import '../subtelas/leitor_qrcode.dart';
+import 'package:inject_go/subtelas/leitor_qrcode.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String username;
@@ -36,6 +36,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String dateFormatted = DateFormat('dd-MM-yyyy').format(DateTime.now());
   String? _imageUrl;
   bool _isLoading = false; 
+  bool? viuTutorial; 
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
   final PageController _pageController = PageController();
@@ -110,50 +111,86 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Flexible(
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 8), 
-                decoration: BoxDecoration(
-                  border: Border.all(color: /*const Color(0xFFf6cbc2)*/Colors.pink),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: TextButton.icon(
-                  icon: const Icon(Icons.edit, color:  /*Color(0xFFf6cbc2)*/ Colors.pink),
-                  label: const Text('Editar perfil', style: TextStyle(color: Colors.black)),
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => EditUserProfileScreen(username: widget.username)),
-                  ),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.all(8),
-                  ),
-                ),
-              ),
-            ),
-            Flexible(
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 8), 
-                decoration: BoxDecoration(
-                  color: const /*Color(0xFFf6cbc2),*/ Color.fromARGB(255, 236, 63, 121),
-                  border: Border.all(color: /*const Color(0xFFf6cbc2)*/Colors.pink),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: TextButton.icon(
-                  icon: const Icon(Icons.shopify_outlined, color: Colors.white),
-                  label: const Text('InjectBank', style: TextStyle(color: Colors.white)),
-                  onPressed: () {
-                     mensagemEmBreve('InjectBank');
-                    },
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.all(8), // Margem interna ao redor do ícone e do texto
-                ),
-                ),
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+
+                Flexible(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.pink),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: TextButton.icon(
+                      icon: const Icon(Icons.edit, color: Colors.pink),
+                      label: const Text('Editar perfil', style: TextStyle(color: Colors.black, fontSize: 13)),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => EditUserProfileScreen(username: widget.username)),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.all(5),
+                      ),
+                    ),
                   ),
                 ),
+                Flexible(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      border: Border.all(color: Colors.black),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: TextButton.icon(
+                      icon: const Icon(Icons.mic, color: Colors.white),
+                      label: const Text('Speaker', style: TextStyle(color: Colors.white, fontSize: 13)),
+                      onPressed: () async {
+                        await getTutorial();
+                        if (viuTutorial != null && viuTutorial!) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => ChatPage(username: widget.username)),
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    TutorialCarousel(username: widget.username)),
+                          );
+                        }
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.all(8),
+                      ),
+                    ),
+                  ),
+                ),
+                Flexible(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(255, 236, 63, 121),
+                      border: Border.all(color: Colors.pink),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: TextButton.icon(
+                      icon: const Icon(Icons.shopify_outlined, color: Colors.white),
+                      label: const Text('InjectBank', style: TextStyle(color: Colors.white, fontSize: 13)),
+                      onPressed: (){
+                        mensagemEmBreve('InjectBank');
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.all(8),
+                      ),
+                    ),
+                  ),
+                ),
+                
               ],
             ),
           ),
@@ -310,6 +347,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _initializeVideoPlayer();
   }
 
+  Future<void> getTutorial() async {
+    var userProfileQuery = await FirebaseFirestore.instance
+        .collection('users')
+        .where('email', isEqualTo: widget.username)
+        .limit(1)
+        .get();
+
+    if (userProfileQuery.docs.isNotEmpty) {
+      var userProfile = userProfileQuery.docs.first;
+      setState(() {
+        viuTutorial = userProfile['viu-tutorial'];
+      });
+    }
+  }
+
   Future<void> fetchProfileData() async {
     setLoading(true);
     try {
@@ -332,6 +384,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             bio = 'Adicione sua biografia em Editar perfil';
           else
             bio = userProfile['bio'];
+          viuTutorial = userProfile['viu-tutorial'];
         });
         loadImage();
       }
