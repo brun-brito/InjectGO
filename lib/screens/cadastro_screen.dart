@@ -844,6 +844,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       'senha': _passwordController.text,
       'sexo': _sexo,
       'bio': '',
+      'viu-tutorial': false,
     };
 
     // Insere os dados no Firestore

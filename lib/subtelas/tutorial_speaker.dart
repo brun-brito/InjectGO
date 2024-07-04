@@ -139,7 +139,6 @@ class _TutorialCarouselState extends State<TutorialCarousel> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           GestureDetector(
-            onTap: () => _showImageDialog('assets/images/logoInject.jpeg'),
             child: Image.asset('assets/images/logoInject.jpeg', fit: BoxFit.cover),
           ),
           const SizedBox(height: 20),
