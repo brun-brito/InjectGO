@@ -235,6 +235,7 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
               ],
             ),
           ),
+          const SizedBox(height: 20),
         ],
       ),
     );

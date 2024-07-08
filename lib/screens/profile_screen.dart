@@ -115,8 +115,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-
-                Flexible(
+                Expanded(
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 8),
                     decoration: BoxDecoration(
@@ -125,7 +124,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     child: TextButton.icon(
                       icon: const Icon(Icons.edit, color: Colors.pink),
-                      label: const Text('Editar perfil', style: TextStyle(color: Colors.black, fontSize: 13)),
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Editar perfil',
+                          style: TextStyle(color: Colors.black, fontSize: 13),
+                        ),
+                      ),
                       onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => EditUserProfileScreen(username: widget.username)),
@@ -136,7 +141,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
-                Flexible(
+                Expanded(
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 8),
                     decoration: BoxDecoration(
@@ -146,21 +151,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     child: TextButton.icon(
                       icon: const Icon(Icons.mic, color: Colors.white),
-                      label: const Text('Speaker', style: TextStyle(color: Colors.white, fontSize: 13)),
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Speaker',
+                          style: TextStyle(color: Colors.white, fontSize: 13),
+                        ),
+                      ),
                       onPressed: () async {
                         await getTutorial();
                         if (viuTutorial != null && viuTutorial!) {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => ChatPage(username: widget.username)),
+                              builder: (context) => ChatPage(username: widget.username),
+                            ),
                           );
                         } else {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) =>
-                                    TutorialCarousel(username: widget.username)),
+                              builder: (context) => TutorialCarousel(username: widget.username),
+                            ),
                           );
                         }
                       },
@@ -170,30 +182,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
-                Flexible(
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: const Color.fromARGB(255, 236, 63, 121),
-                      border: Border.all(color: Colors.pink),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: TextButton.icon(
-                      icon: const Icon(Icons.shopify_outlined, color: Colors.white),
-                      label: const Text('InjectBank', style: TextStyle(color: Colors.white, fontSize: 13)),
-                      onPressed: (){
-                        mensagemEmBreve('InjectBank');
-                      },
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.all(8),
+              Expanded(
+                child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 236, 63, 121),
+                  border: Border.all(color: Colors.pink),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.shopify_outlined, color: Colors.white),
+                    label: const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'InjectBank',
+                        style: TextStyle(color: Colors.white, fontSize: 13),
                       ),
+                    ),
+                    onPressed: () {
+                      mensagemEmBreve('InjectBank');
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.all(8),
                     ),
                   ),
                 ),
-                
-              ],
-            ),
+              ),
+            ],
           ),
+        ),
 
           // const Divider(),
           Center(
@@ -690,6 +707,4 @@ Widget buildSecondPage() {
       );
     },
   );
-}
-
 }
