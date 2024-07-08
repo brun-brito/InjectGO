@@ -676,35 +676,36 @@ Widget buildSecondPage() {
   }
 
   void _showSelectionDialog(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text("Foto do Perfil"),
-        content: const Text("Escolha a ação desejada:"),
-        actions: <Widget>[
-          TextButton(
-            child: const Text("Remover Foto"),
-            onPressed: () {
-              Navigator.of(context).pop(); 
-              removeSelfie(); 
-            },
-          ),
-          TextButton(
-            child: const Text("Adicionar/Trocar Foto"),
-            onPressed: () {
-              Navigator.of(context).pop(); 
-              _pickImage();
-            },
-          ),
-          TextButton(
-            child: const Text("Cancelar"),
-            onPressed: () {
-              Navigator.of(context).pop(); 
-            },
-          ),
-        ],
-      );
-    },
-  );
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Foto do Perfil"),
+          content: const Text("Escolha a ação desejada:"),
+          actions: <Widget>[
+            TextButton(
+              child: const Text("Remover Foto"),
+              onPressed: () {
+                Navigator.of(context).pop(); 
+                removeSelfie(); 
+              },
+            ),
+            TextButton(
+              child: const Text("Adicionar/Trocar Foto"),
+              onPressed: () {
+                Navigator.of(context).pop(); 
+                _pickImage();
+              },
+            ),
+            TextButton(
+              child: const Text("Cancelar"),
+              onPressed: () {
+                Navigator.of(context).pop(); 
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
