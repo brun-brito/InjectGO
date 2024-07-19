@@ -68,6 +68,7 @@ dependencies:
   chat_gpt_sdk: ^3.0.7
   bubble: ^1.2.1
   carousel_slider: ^4.2.1
+  openai_dart: ^0.3.3+1
 
 dev_dependencies:
   flutter_test:

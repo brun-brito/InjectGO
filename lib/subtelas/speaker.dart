@@ -1,16 +1,21 @@
-// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously, depend_on_referenced_packages
+// ignore_for_file: use_build_context_synchronously, depend_on_referenced_packages, library_private_types_in_public_api
 
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
-import 'package:inject_go/screens/profile_screen.dart';
 import 'package:inject_go/subtelas/tutorial_speaker.dart';
 import 'package:bubble/bubble.dart';
+import 'package:openai_dart/openai_dart.dart' hide Image; // Esconde a classe Image do openai_dart
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
 
 class ChatPage extends StatefulWidget {
   final String username;
-  const ChatPage({super.key, required this.username});
+  final String? nome;
+  final String? cpf;
+  const ChatPage({super.key, required this.username, this.nome, this.cpf});
 
   @override
   _ChatPageState createState() => _ChatPageState();
@@ -24,6 +29,10 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
   late AnimationController _animationController;
   late Animation<int> _dotsAnimation;
   final String _loadingText = "Speaker está digitando";
+  late String assistantId;
+  late OpenAIClient client;
+  String? tempImageUrl;   
+  bool _isUploadingImage = false;
 
   @override
   void initState() {
@@ -31,6 +40,11 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
     dotenv.load().then((_) {
       String token = dotenv.get('API_GPT');
       String orgId = dotenv.get('ORG_ID');
+      assistantId = dotenv.get('ASSISTANT_ID');
+      client = OpenAIClient(
+        apiKey: token,
+        organization: orgId,
+      );
       openAI = OpenAI.instance.build(
         token: token,
         orgId: orgId,
@@ -53,53 +67,67 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
     super.dispose();
   }
 
-  Future<void> _sendMessage(String message) async {
+Future<void> _sendMessage() async {
+    String message = _controller.text;
+    String? imageUrl = tempImageUrl;
+    _controller.clear(); 
+
     setState(() {
-      _messages.add({'role': 'user', 'content': message, 'type': 'text'});
+      if (message.isNotEmpty) {
+        _messages.add({'role': 'user', 'content': message, 'type': 'text'});
+      }
+      if (imageUrl != null) {
+        _messages.add({'role': 'user', 'content': imageUrl, 'type': 'image'});
+        tempImageUrl = null; 
+      }
       _isLoading = true;
     });
 
+    final List<Map<String, dynamic>> content = [];
+
+    if (message.isNotEmpty) {
+      content.add({"type": "text", "text": message});
+    }
+    if (imageUrl != null) {
+      content.add({
+        "type": "image_url",
+        "image_url": {"url": imageUrl}
+      });
+    }
+
+    final request = CreateThreadAndRun(assistantId: assistantId, thread: {
+      "messages": [
+        {
+          "role": "user",
+          "content": content
+        }
+      ],
+    });
+
     try {
-      String assistantId = dotenv.get('ASSISTANT_ID');
-      final thread = await openAI.threads.createThread(request: ThreadRequest());
-      final requestMessage = CreateMessage(
-        role: 'user',
-        content: message,
-      );
-      await openAI.threads.messages.createMessage(
-        threadId: thread.id,
-        request: requestMessage,
-      );
+      final response = await openAI.threads.runs.createThreadAndRun(request: request);
 
-      final request = CreateRun(assistantId: assistantId);
-
-      final CreateRunResponse responseRun = await openAI.threads.runs.createRun(
-        threadId: thread.id,
-        request: request,
-      );
-
-      String status = '';
-      while (status != 'completed') {
-        await Future.delayed(const Duration(seconds: 5));
-        final mRunSteps = await openAI.threads.runs.retrieveRun(
-          threadId: thread.id,
-          runId: responseRun.id,
+      while (response.status != 'completed') {
+        await Future.delayed(const Duration(seconds: 1));
+        final updatedResponse = await openAI.threads.runs.retrieveRun(
+          threadId: response.threadId,
+          runId: response.id,
         );
-        status = mRunSteps.status;
+        response.status = updatedResponse.status;
       }
 
-      final mmRunSteps = await openAI.threads.messages.listMessage(threadId: thread.id);
-      final responseData = mmRunSteps.data[0].content[0].text?.value;
+      final listaMensagens = await openAI.threads.messages.listMessage(threadId: response.threadId);
+      final responseData = listaMensagens.data[0].content[0].text?.value;
 
       setState(() {
-        _messages.add({'role': 'bot', 'content': responseData ?? 'No response', 'type': 'text'});
+        _messages.add({'role': 'bot', 'content': responseData ?? 'Erro ao buscar resposta. Tente novamente ou volte mais tarde!', 'type': 'text'});
         _isLoading = false;
       });
-    } catch (e) {
+    } catch (error) {
       setState(() {
         _messages.add({
           'role': 'bot',
-          'content': 'Erro ao se comunicar com o Speaker. Tente mais tarde novamente',
+          'content': 'Erro ao se comunicar com o Speaker. Tente novamente mais tarde.',
           'type': 'text'
         });
         _isLoading = false;
@@ -107,40 +135,65 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
     }
   }
 
-  /*Future<void> _pickImage() async {
+  Future<void> _pickImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
     if (pickedFile != null) {
-      String extension = path.extension(pickedFile.path).toLowerCase();
-      if (['.jpeg', '.jpg', '.gif', '.png'].contains(extension)) {
-      }
+      _uploadImage(File(pickedFile.path));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Erro inesperado ao selecionar foto da galeria")),
+      );
     }
-  }*/
+  }
+
+  Future<void> _uploadImage(File selectedImage) async {
+    setState(() {
+      _isUploadingImage = true;
+    });
+    
+    String fileName = path.basename(selectedImage.path);
+    String? nome = widget.nome;
+    String? cpf = widget.cpf;
+    String folderPath = "$nome-$cpf";
+    Reference ref = FirebaseStorage.instance.ref().child('$folderPath/speaker/$fileName');
+
+    UploadTask uploadTask = ref.putFile(selectedImage);
+    TaskSnapshot taskSnapshot = await uploadTask.whenComplete(() => {});
+    String urlImage = await taskSnapshot.ref.getDownloadURL();
+
+    setState(() {
+      tempImageUrl = urlImage;
+      _isUploadingImage = false;
+    });
+  }
+
+  void _removeImage() {
+    setState(() {
+      tempImageUrl = null;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-    appBar: AppBar(
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ProfileScreen(username: widget.username),
-            ),
-          );
-        },
-      ),
-        title: const Text('Speaker InjectGO'),actions: [
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        title: const Text('Speaker InjectGO'),
+        actions: [
           IconButton(
             icon: const Icon(Icons.info_outline),
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => TutorialCarousel(username: widget.username), 
+                  builder: (context) => TutorialCarousel(username: widget.username),
                 ),
               );
             },
@@ -180,8 +233,6 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (message['type'] == 'image')
-                            Image.file(File(message['path']!)),
                           if (message['type'] == 'text')
                             Text(
                               message['content']!,
@@ -189,6 +240,8 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
                                 color: isUserMessage ? Colors.black : Colors.white,
                               ),
                             ),
+                          if (message['type'] == 'image')
+                            Image.network(message['content']!),
                           Text(
                             isUserMessage ? 'Você' : 'Speaker InjectGO',
                             style: TextStyle(
@@ -204,14 +257,35 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
               },
             ),
           ),
+          if (_isUploadingImage)
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: CircularProgressIndicator(color:Color.fromARGB(255, 236, 63, 121)),
+            ),
+          if (tempImageUrl != null)
+            Container(
+              margin: const EdgeInsets.all(8.0),
+              width: 150,
+              height: 150,
+              child: Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  Image.network(tempImageUrl!, fit: BoxFit.cover), 
+                  IconButton(
+                    icon: const Icon(Icons.cancel, color: Colors.red),
+                    onPressed: _removeImage,
+                  ),
+                ],
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
               children: [
-                // IconButton(
-                //   icon: const Icon(Icons.photo),
-                //   onPressed: _pickImage,
-                // ),
+                IconButton(
+                  icon: const Icon(Icons.photo),
+                  onPressed: _pickImage,
+                ),
                 Expanded(
                   child: TextField(
                     controller: _controller,
@@ -225,12 +299,7 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
                   icon: const Icon(Icons.send),
                   onPressed: _isLoading
                       ? null
-                      : () {
-                          if (_controller.text.isNotEmpty) {
-                            _sendMessage(_controller.text);
-                            _controller.clear();
-                          }
-                        },
+                      : _sendMessage,
                 ),
               ],
             ),

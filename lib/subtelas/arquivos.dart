@@ -98,7 +98,7 @@ Widget build(BuildContext context) {
 
         if (isLoading)
           const Center(
-            child: CircularProgressIndicator(),
+            child: CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121)),
           ),
 
         if (!isLoading && documents.isNotEmpty)

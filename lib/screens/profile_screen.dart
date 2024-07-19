@@ -51,7 +51,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         centerTitle: true,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121)))
           : buildUserProfile(),
     );
   }
@@ -164,7 +164,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => ChatPage(username: widget.username),
+                              builder: (context) => ChatPage(username: widget.username, nome: fullName.split(' ')[0],cpf: cpf),
                             ),
                           );
                         } else {
@@ -652,7 +652,7 @@ Widget buildSecondPage() {
       padding: const EdgeInsets.all(8.0),
     child: _chewieController != null && _chewieController!.videoPlayerController.value.isInitialized ? Chewie(
       controller: _chewieController!,
-    ) : const Center(child: CircularProgressIndicator()),
+    ) : const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121))),
   );
 }
 
