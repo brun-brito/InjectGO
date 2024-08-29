@@ -5,17 +5,18 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:inject_go/subtelas/speaker.dart';
-import 'package:inject_go/subtelas/arquivos.dart';
-import 'package:inject_go/subtelas/editar_dados.dart';
+import 'package:inject_go/subtelas/profissionais/mercado/produtos.dart';
+import 'package:inject_go/subtelas/profissionais/speaker.dart';
+import 'package:inject_go/subtelas/profissionais/arquivos.dart';
+import 'package:inject_go/subtelas/profissionais/editar_dados.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:inject_go/screens/login_screen.dart';
 import 'package:inject_go/google-maps/mapa.dart';
-import 'package:inject_go/subtelas/tutorial_speaker.dart';
+import 'package:inject_go/subtelas/profissionais/tutorial_speaker.dart';
 import 'package:intl/intl.dart'; 
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
-import 'package:inject_go/subtelas/leitor_qrcode.dart';
+import 'package:inject_go/subtelas/profissionais/leitor_qrcode.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String username;
@@ -110,108 +111,149 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.pink),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: TextButton.icon(
-                      icon: const Icon(Icons.edit, color: Colors.pink),
-                      label: const FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          'Editar perfil',
-                          style: TextStyle(color: Colors.black, fontSize: 13),
+          ExpansionTile(
+            title: const Text('Menu', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.right,),
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Expanded(
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.pink),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: TextButton.icon(
+                          icon: const Icon(Icons.edit, color: Colors.pink),
+                          label: const FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Editar perfil',
+                              style: TextStyle(color: Colors.black, fontSize: 13),
+                            ),
+                          ),
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => EditUserProfileScreen(username: widget.username)),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.all(5),
+                          ),
                         ),
                       ),
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => EditUserProfileScreen(username: widget.username)),
-                      ),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.all(5),
-                      ),
                     ),
-                  ),
-                ),
-                Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      border: Border.all(color: Colors.black),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: TextButton.icon(
-                      icon: const Icon(Icons.mic, color: Colors.white),
-                      label: const FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          'Speaker',
-                          style: TextStyle(color: Colors.white, fontSize: 13),
+                    Expanded(
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          border: Border.all(color: Colors.black),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: TextButton.icon(
+                          icon: const Icon(Icons.mic, color: Colors.white),
+                          label: const FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Speaker',
+                              style: TextStyle(color: Colors.white, fontSize: 13),
+                            ),
+                          ),
+                          onPressed: () async {
+                            await getTutorial();
+                            if (viuTutorial != null && viuTutorial!) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ChatPage(username: widget.username, nome: fullName.split(' ')[0], cpf: cpf),
+                                ),
+                              );
+                            } else {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => TutorialCarousel(username: widget.username),
+                                ),
+                              );
+                            }
+                          },
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.all(8),
+                          ),
                         ),
                       ),
-                      onPressed: () async {
-                        await getTutorial();
-                        if (viuTutorial != null && viuTutorial!) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ChatPage(username: widget.username, nome: fullName.split(' ')[0],cpf: cpf),
+                    ),
+                    Expanded(
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 236, 63, 121),
+                          border: Border.all(color: Colors.pink),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: TextButton.icon(
+                          icon: const Icon(Icons.shopify_outlined, color: Colors.white),
+                          label: const FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'InjectBank',
+                              style: TextStyle(color: Colors.white, fontSize: 13),
                             ),
-                          );
-                        } else {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => TutorialCarousel(username: widget.username),
-                            ),
-                          );
-                        }
-                      },
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.all(8),
+                          ),
+                          onPressed: () {
+                            mensagemEmBreve('InjectBank');
+                          },
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.all(8),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              Expanded(
-                child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 8),
-                decoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 236, 63, 121),
-                  border: Border.all(color: Colors.pink),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                  child: TextButton.icon(
-                    icon: const Icon(Icons.shopify_outlined, color: Colors.white),
-                    label: const FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        'InjectBank',
-                        style: TextStyle(color: Colors.white, fontSize: 13),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Expanded(
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.blue,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: TextButton.icon(
+                          icon: const Icon(Icons.shopping_cart, color: Colors.white),
+                          label: const FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Mercado',
+                              style: TextStyle(color: Colors.white, fontSize: 13),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const MarketplaceScreen()),
+                            );
+                          },
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.all(8),
+                          ),
+                        ),
                       ),
                     ),
-                    onPressed: () {
-                      mensagemEmBreve('InjectBank');
-                    },
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.all(8),
-                    ),
-                  ),
+                  ],
                 ),
               ),
             ],
           ),
-        ),
-
+          
           // const Divider(),
           Center(
             child: Container(
@@ -421,28 +463,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     try {
       String nome = fullName.split(' ')[0];
-      String filePath = 'foto-perfil-$nome.jpg';
+      String filePath = 'profissionais/$nome-$cpf/foto-perfil-$nome.jpg';
       String imageUrl = await FirebaseStorage.instance
-        .ref('$nome-$cpf/$filePath')
-          .getDownloadURL();
+        .ref(filePath)
+        .getDownloadURL();
 
       setState(() {
         _imageUrl = imageUrl;
       });
-    }on FirebaseException catch (e) {
-    if (e.code == 'object-not-found') {
-    } else {
+    } on FirebaseException catch (e) {
+      if (e.code == 'object-not-found') {
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erro ao carregar a imagem de perfil: $e"))
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Erro ao carregar a imagem de perfil: $e"))
+        SnackBar(content: Text("Ocorreu um erro inesperado: $e"))
       );
     }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Ocorreu um erro inesperado: $e"))
-    );
+    setLoading(false);
   }
-  setLoading(false);
-}
 
   Future<void> _pickImage() async {
     showModalBottomSheet<void>(
@@ -511,13 +553,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     try {
       String nome = fullName.split(' ')[0];
-      String filePath = 'foto-perfil-$nome.jpg';
+      String filePath = 'profissionais/$nome-$cpf/foto-perfil-$nome.jpg';
       await FirebaseStorage.instance
-        .ref('$nome-$cpf/$filePath')
+        .ref(filePath)
         .putFile(imageFile);
 
       String imageUrl = await FirebaseStorage.instance
-        .ref('$nome-$cpf/$filePath')
+        .ref(filePath)
         .getDownloadURL();
       setState(() {
         _imageUrl = imageUrl;
@@ -542,10 +584,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     try {
       String nome = fullName.split(' ')[0];
-      String fileName = 'foto-perfil-$nome.jpg';
+      String fileName = 'profissionais/$nome-$cpf/foto-perfil-$nome.jpg';
 
       await FirebaseStorage.instance
-        .ref('$nome-$cpf/$fileName')
+        .ref(fileName)
         .delete(); 
       setState(() {
         _imageUrl = null;
@@ -560,6 +602,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     setLoading(false);
   }
+
 
   Future<void> logout(BuildContext context) async {
     await FirebaseAuth.instance.signOut();

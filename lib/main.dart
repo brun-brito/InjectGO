@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/material.dart';
 import 'package:inject_go/screens/profile_screen.dart';
+import 'package:inject_go/screens/profile_screen_distribuidores.dart';
 import 'screens/welcome_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -32,9 +34,39 @@ class MyApp extends StatelessWidget {
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             final user = snapshot.data!;
-            return ProfileScreen(username: user.email!); //se tiver logado, entra logado
+            return FutureBuilder<QuerySnapshot>(
+              future: FirebaseFirestore.instance
+                  .collection('distribuidores')
+                  .where('email', isEqualTo: user.email)
+                  .limit(1)
+                  .get(),
+              builder: (context, distribuidorSnapshot) {
+                if (distribuidorSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121)));
+                } else if (distribuidorSnapshot.hasData && distribuidorSnapshot.data!.docs.isNotEmpty) {
+                  return ProfileScreenDistribuidor(username: user.email!); // Se for distribuidor
+                } else {
+                  return FutureBuilder<QuerySnapshot>(
+                    future: FirebaseFirestore.instance
+                        .collection('users')
+                        .where('email', isEqualTo: user.email)
+                        .limit(1)
+                        .get(),
+                    builder: (context, userSnapshot) {
+                      if (userSnapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121)));
+                      } else if (userSnapshot.hasData && userSnapshot.data!.docs.isNotEmpty) {
+                        return ProfileScreen(username: user.email!); // Se for profissional
+                      } else {
+                        return const Home(); // Se o usuário não for encontrado em nenhuma das coleções
+                      }
+                    },
+                  );
+                }
+              },
+            );
           } else {
-            return const Home(); 
+            return const Home(); // Tela inicial se não estiver logado
           }
         },
       ),

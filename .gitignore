@@ -54,6 +54,7 @@ lib/firebase_options.dart
 
 # tela de teste
 lib/screens/teste.dart
+lib/subtelas/token.dart
 lib/chat_teste
 
 inject_go.iml

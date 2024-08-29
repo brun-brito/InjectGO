@@ -3,7 +3,7 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:inject_go/subtelas/speaker.dart';
+import 'package:inject_go/subtelas/profissionais/speaker.dart';
 
 class TutorialCarousel extends StatefulWidget {
   final String username;
@@ -130,27 +130,6 @@ class _TutorialCarouselState extends State<TutorialCarousel> {
             padding: EdgeInsets.all(8.0),
             child: Text(
               'O Speaker está aqui para te apoiar com questões técnicas, desde métodos de aplicação até técnicas avançadas, para que você trabalhe com confiança.',
-              textAlign: TextAlign.center, style: TextStyle(fontSize: 15),
-            ),
-          ),
-        ],
-      ),
-      Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          GestureDetector(
-            child: Image.asset('assets/images/logoInject.jpeg', fit: BoxFit.cover),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Novidade chegando...',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 236, 63, 121)),
-          ),
-          const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Text(
-              'Em breve, envie fotos de seus pacientes e receba conselhos personalizados para alcançar a harmonização facial perfeita!',
               textAlign: TextAlign.center, style: TextStyle(fontSize: 15),
             ),
           ),

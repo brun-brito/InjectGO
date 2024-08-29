@@ -1,4 +1,5 @@
 // ignore_for_file: library_private_types_in_public_api, curly_braces_in_flow_control_structures, use_build_context_synchronously, prefer_typing_uninitialized_variables
+import 'dart:async';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
@@ -13,9 +14,7 @@ import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-
 void main() => runApp(const MyApp());
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -26,14 +25,12 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
   @override
   _SignUpScreenState createState() => _SignUpScreenState();
 }
-
 class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
@@ -45,6 +42,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _imageController = TextEditingController();
   final TextEditingController _certidaoController = TextEditingController();
+  final TextEditingController _cnpjController = TextEditingController();
+  final TextEditingController _razaoSocialController = TextEditingController();
+  final TextEditingController _cnaeController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final picker = ImagePicker();
   final ImagePicker _picker = ImagePicker(); 
@@ -58,11 +58,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
   XFile? _image;
   bool _isLoading = false;
   bool _isLoadingVerify = false;
+  bool _isLoadingCnpj = false;
+  bool _isCnpjDisabled = false;
   bool _isObscure = true;
   bool _isObscure2 = true;
   Color _statusColor = Colors.black;
   FirebaseFirestore firestore = FirebaseFirestore.instance;
-  var funcao;
+  var funcao;  
+  String? _userType;
+  // ignore: unused_field
+  bool _formSubmitted = false;
   
   @override
   Widget build(BuildContext context) {
@@ -71,14 +76,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () =>  Navigator.push(
+          onPressed: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) =>  const WelcomePage()),
+            MaterialPageRoute(builder: (context) => const WelcomePage()),
           ),
         ),
         title: const Text('Cadastro'),
       ),
-            body: Form(
+      body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
@@ -90,8 +95,61 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 fontStyle: FontStyle.italic,
               ),
             ),
-            
-            Container(
+            _buildUserTypeDropdown(),
+            const SizedBox(height: 16),
+
+            if (_userType == 'Profissional') _buildProfessionalFields(),
+            if (_userType == 'Distribuidor') _buildDistributorFields(),
+
+            if (_userType != null) _buildSubmitButton(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUserTypeDropdown() {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: DropdownButtonFormField<String>(
+        decoration: const InputDecoration(
+          labelText: 'Selecione o tipo de usuário*',
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(horizontal: 10),
+        ),
+        value: _userType,
+        items: <String>['Profissional', 'Distribuidor']
+            .map<DropdownMenuItem<String>>((String value) {
+          return DropdownMenuItem<String>(
+            value: value,
+            child: Text(value),
+          );
+        }).toList(),
+        onChanged: (String? newValue) {
+          setState(() {
+            _userType = newValue;
+            _resetFields();
+            _formSubmitted = false;
+          });
+        },
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Por favor, selecione o tipo de usuário';
+          }
+          return null;
+        },
+      ),
+    );
+  }
+
+   Widget _buildProfessionalFields() {
+    return Column(
+      children: [
+        // Adicione aqui todos os campos específicos de Profissional
+        Container(
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey), 
                 borderRadius: BorderRadius.circular(5), 
@@ -567,7 +625,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 keyboardType: TextInputType.emailAddress,
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(
-                      RegExp(r'[a-zA-Z0-9\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\;\:\",<>\.\/\?\|\\_`~]')),
+                      RegExp(r'[a-zA-Z0-9\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\;\:\",<>\.\/\?\|\\_~]')),
                   FilteringTextInputFormatter.singleLineFormatter,
                 ],
                 validator: (value) {
@@ -596,7 +654,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 inputFormatters: [
                   FilteringTextInputFormatter.singleLineFormatter,
                   FilteringTextInputFormatter.allow(
-                      RegExp(r'[a-zA-Z0-9\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\;\:\",<>\.\?\|\\_`~]')),
+                      RegExp(r'[a-zA-Z0-9\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\;\:\",<>\.\?\|\\_~]')),
                   LengthLimitingTextInputFormatter(15),
                 ],
                 validator: (value) {
@@ -676,101 +734,443 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
             ),
             const SizedBox(height: 8),
+      ],
+    );
+  }
 
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const /*Color(0xFFf6cbc2*/ Color.fromARGB(255, 236, 63, 121),
-                foregroundColor: Colors.white,
+  // Método para construir os campos de distribuidor
+  Widget _buildDistributorFields() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: TextFormField(
+                  controller: _cnpjController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'CNPJ (apenas números)*',
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(14),
+                  ],
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor, preencha o CNPJ';
+                    }
+                    return null;
+                  },
+                  enabled: !_isCnpjDisabled,  // Controla habilitação do campo CNPJ
+                ),
               ),
-              onPressed: () async {
-                if (_formKey.currentState!.validate() && _statusColor == Colors.green && _selfie != null) {
+            ),
+            IconButton(
+              icon: _isLoadingCnpj
+                  ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Color.fromARGB(255, 236, 63, 121)))
+                  : const Icon(Icons.search),
+              onPressed: _isLoadingCnpj  // Verifica também se o botão já foi desabilitado
+                  ? null
+                  : () async {
+                      setState(() {
+                        _isLoadingCnpj = true;
+                      });
+                      try {
+                        await _buscaCnpj(_cnpjController.text);
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text(
+                                  "Erro ao buscar CNPJ. Tente novamente mais tarde.")),
+                        );
+                        setState(() {
+                        });
+                      } finally {
+                        setState(() {
+                          _isLoadingCnpj = false;  // Finaliza o carregamento
+                        });
+                      }
+                    },
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        
+        Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey),
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: TextFormField(
+          controller: _razaoSocialController,
+          decoration: const InputDecoration(
+            labelText: 'Razão Social*',
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.symmetric(horizontal: 10),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Por favor, clique no ícone ao lado do campo CNPJ';
+            }
+            return null;
+          },
+          enabled: false, 
+        ),
+      ),
+      const SizedBox(height: 8),
+
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey),
+            borderRadius: BorderRadius.circular(5),
+          ),
+          child: TextFormField(
+            controller: _cnaeController,
+            decoration: const InputDecoration(
+              labelText: 'Número CNAE Principal*',
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 10),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Por favor, clique no ícone ao lado do campo CNPJ';
+              }
+              return null;
+            },
+            enabled: false, 
+        ),
+        ),        
+        const SizedBox(height: 8),
+
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(5),
+            border: Border.all(color: Colors.grey),
+          ),
+          child: TextFormField(
+            controller: _phoneController,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(
+              labelText: 'Telefone (apenas números)*',
+              hintText: '85999999999',
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 10),
+            ),
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(11),
+            ],
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Por favor, preencha seu telefone';
+              } else if (value.length != 11) {
+                return 'Por favor, preencha um telefone válido';
+              }
+              return null;
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(5),
+            border: Border.all(color: Colors.grey),
+          ),
+          child: TextFormField(
+            controller: _emailController,
+            decoration: InputDecoration(
+              labelText: 'E-mail*',
+              hintText: 'email@exemplo.com',
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+              prefixIcon: IconButton(
+                icon: const Icon(Icons.info_outline),
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Informação'),
+                      content: const Text(
+                        'Esse campo pode ser preenchido com o mesmo e-mail informado na última tela, ou outro que você preferir.',
+                        style: TextStyle(fontSize: 17),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('OK'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            keyboardType: TextInputType.emailAddress,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(
+                  RegExp(r'[a-zA-Z0-9\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\;\:\",<>\.\/\?\|\\_~]')),
+              FilteringTextInputFormatter.singleLineFormatter,
+            ],
+            validator: (value) {
+              if (value == null || value.isEmpty || !value.contains('@') || !value.contains('.')) {
+                return 'Por favor, preencha seu e-mail corretamente';
+              }
+
+              return null;
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(5),
+            border: Border.all(color: Colors.grey),
+          ),
+          child: TextFormField(
+            controller: _usernameController,
+            decoration: const InputDecoration(
+              labelText: 'Crie um usuário*',
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 10),
+            ),
+            inputFormatters: [
+              FilteringTextInputFormatter.singleLineFormatter,
+              FilteringTextInputFormatter.allow(
+                  RegExp(r'[a-zA-Z0-9\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\;\:\",<>\.\?\|\\_~]')),
+              LengthLimitingTextInputFormatter(15),
+            ],
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Por favor, preencha seu usuário';
+              }
+
+              return null;
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(5),
+            border: Border.all(color: Colors.grey),
+          ),
+          child: TextFormField(
+            controller: _passwordController,
+            decoration: InputDecoration(
+              labelText: 'Senha*',
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.visibility),
+                onPressed: () {
                   setState(() {
-                    _isLoading = true; 
+                    _isObscure = !_isObscure;
                   });
-                  try {
+                },
+              ),
+            ),
+            obscureText: _isObscure,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Por favor, preencha sua senha';
+              } else if (value.length < 6) {
+                return 'A senha deve ter ao menos 6 caracteres';
+              }
+              _senha = value;
+              return null;
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(5),
+            border: Border.all(color: Colors.grey),
+          ),
+          child: TextFormField(
+            decoration: InputDecoration(
+              labelText: 'Repetir senha*',
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.visibility),
+                onPressed: () {
+                  setState(() {
+                    _isObscure2 = !_isObscure2;
+                  });
+                },
+              ),
+            ),
+            obscureText: _isObscure2,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Por favor, repita sua senha';
+              }
+              if (value != _senha) {
+                return 'As senhas não coincidem';
+              }
+              return null;
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  // Método para construir o botão de submissão
+ Widget _buildSubmitButton() {
+  return Column(
+    children: [
+      const SizedBox(height: 16),
+      ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color.fromARGB(255, 236, 63, 121),
+          foregroundColor: Colors.white,
+        ),
+        onPressed: () async {
+          if (!_isLoading) {  // Evita múltiplos cliques enquanto carregando
+            setState(() {
+              _isLoading = true;
+              _formSubmitted = true; // Marca o formulário como submetido
+            });
+
+            if (_formKey.currentState!.validate()) {
+              try {
+                if (_userType == 'Profissional') {
+                  if (_statusColor == Colors.green && _selfie != null) {
+                    // Lógica para profissionais
                     await addUserWithFirebase({});
                     await cadastrarAuth(_emailController.text, _passwordController.text);
-                 
                     await uploadCertidao();
                     await uploadSelfie();
-                    
+
                     mensagemSucesso();
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Falha ao registrar profissional: ${e.toString()}"))
-                    );
-                  } finally {
-                    setState(() {
-                      _isLoading = false; 
-                    });
+                  } else {
+                    if (_statusColor == Colors.red || _statusColor == Colors.black) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Insira um número de conselho válido e clique no ícone ao lado do campo para verificar!"),
+                        ),
+                      );
+                    } else if (_selfie == null || _image == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Carregue a(s) foto(s) antes de concluir o cadastro."),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Campos obrigatórios não foram preenchidos!"),
+                        ),
+                      );
+                    }
                   }
+                } else if (_userType == 'Distribuidor') {
+                  // Lógica para distribuidores
+                  await addDistribuidorWithFirebase({});
+                  await cadastrarAuth(_emailController.text, _passwordController.text);
+
+                  mensagemSucesso();
                 }
-                else if (_statusColor == Colors.red || _statusColor == Colors.black){
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Insira um número de conselho válido e clique no ícone ao lado do campo para verificar!"))
-                    );
-                }
-                else if (_selfie == null || _image == null){
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Carregue a(s) foto(s) antes de concluir o cadastro."))
-                    );
-                }
-                else{
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Campos obrigatórios não foram preenchidos!"))
-                  );  
-                }
-              },
-              child: _isLoading
-                  ? const CircularProgressIndicator(color: Colors.white) 
-                  : const Text('Cadastrar'),
-            ),
-            Center(
-            child: TextButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const WelcomePage()),
-                ),
-              child: const Text('Cancelar', style: TextStyle(color: Colors.red)),
-            ),
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Falha ao registrar ${_userType?.toLowerCase()}: ${e.toString()}")),
+                );
+              } finally {
+                setState(() {
+                  _isLoading = false;  // Desativa o loading no final de tudo
+                });
+              }
+            } else {
+              setState(() {
+                _isLoading = false;  // Desativa o loading se a validação falhar
+              });
+            }
+          }
+        },
+        child: _isLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : const Text('Cadastrar'),
+      ),
+      Center(
+        child: TextButton(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const WelcomePage()),
           ),
-          SelectableText.rich(    
+          child: const Text('Cancelar', style: TextStyle(color: Colors.red)),
+        ),
+      ),
+      SelectableText.rich(
+        TextSpan(
+          text: 'Se estiver enfrentando alguma dificuldade em se cadastrar, envie um e-mail para ',
+          style: const TextStyle(
+            fontStyle: FontStyle.normal,
+            fontSize: 14.5,
+          ),
+          children: [
             TextSpan(
-              text: 'Se estiver enfrentando alguma dificuldade em se cadastrar, envie um e-mail para ',
+              text: 'suporte@injectgo.com.br',
               style: const TextStyle(
+                color: Colors.blue,
+                decoration: TextDecoration.underline,
+              ),
+              recognizer: TapGestureRecognizer()
+                ..onTap = () {
+                  Clipboard.setData(const ClipboardData(text: 'suporte@injectgo.com.br'));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('E-mail copiado para a área de transferência')),
+                  );
+                },
+            ),
+            const TextSpan(
+              text: ', que iremos lhe ajudar!',
+              style: TextStyle(
                 fontStyle: FontStyle.normal,
                 fontSize: 14.5,
               ),
-              children: [
-                TextSpan(
-                  text: 'suporte@injectgo.com.br',
-                  style: const TextStyle(
-                    color: Colors.blue,
-                    decoration: TextDecoration.underline,
-                  ),
-                  recognizer: TapGestureRecognizer()
-                    ..onTap = () {
-                      Clipboard.setData(const ClipboardData(text: 'suporte@injectgo.com.br'));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('E-mail copiado para a área de transferência')),
-                      );
-                    },
-                ),
-                const TextSpan(
-                  text: ', que iremos lhe ajudar!',
-                  style: TextStyle(
-                    fontStyle: FontStyle.normal,
-                    fontSize: 14.5,
-                  ),
-                ),
-              ],
             ),
-          ),
-        ],
-      ),
-    ),
+          ],
+        ),
+      )
+    ],
   );
 }
+
+  void _resetFields() {
+    _nameController.clear();
+    _lastNameController.clear();
+    _councilNumberController.clear();
+    _cpfController.clear();
+    _phoneController.clear();
+    _emailController.clear();
+    _usernameController.clear();
+    _passwordController.clear();
+    _imageController.clear();
+    _certidaoController.clear();
+    _cnpjController.clear();
+    _razaoSocialController.clear();
+    _cnaeController.clear();
+    _selectedProfession = null;
+    _selectedState = null;
+    _isCnpjDisabled = false;
+  }
+
 
   Future<void> addUserWithFirebase(Map<String, dynamic> userData) async {
     String nome = _nameController.text;
@@ -802,6 +1202,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
       .where('email', isEqualTo: email)
       .limit(1)
       .get();
+    var emailQuery2 = await firestore
+      .collection('distribuidores')
+      .where('email', isEqualTo: email)
+      .limit(1)
+      .get();
     var conselhoQuery = await firestore
       .collection('users')
       .where('conselho', isEqualTo: conselho).where('nome', isEqualTo: nome)
@@ -818,7 +1223,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (telQuery.docs.isNotEmpty) {
       throw Exception("Cliente com este telefone já cadastrado.");
     }
-    if (emailQuery.docs.isNotEmpty) {
+    if (emailQuery.docs.isNotEmpty || emailQuery2.docs.isNotEmpty) {
       throw Exception("Cliente com este e-mail já cadastrado.");
     }
     if (conselhoQuery.docs.isNotEmpty) {
@@ -850,6 +1255,78 @@ class _SignUpScreenState extends State<SignUpScreen> {
     // Insere os dados no Firestore
     await firestore
       .collection('users')
+      .doc(cliente)
+      .set(fullUserData, SetOptions(merge: false));
+  }
+
+  Future<void> addDistribuidorWithFirebase(Map<String, dynamic> userData) async {
+    String razao = _razaoSocialController.text;
+    String cnpj = _cnpjController.text;
+    String telefone = _phoneController.text;
+    String email = _emailController.text;
+    String usuario = _usernameController.text;
+    String cnae = _cnaeController.text;
+
+    // Primeiro, verifica se já existe algum usuário com os mesmos dados.
+    var cnpjQuery = await firestore
+      .collection('distribuidores')
+      .where('cnpj', isEqualTo: cnpj)
+      .limit(1)
+      .get();
+    var usernameQuery = await firestore
+      .collection('distribuidores')
+      .where('usuario', isEqualTo: usuario)
+      .limit(1)
+      .get();
+    var telQuery = await firestore
+      .collection('distribuidores')
+      .where('telefone', isEqualTo: telefone)
+      .limit(1)
+      .get();
+    var emailQuery = await firestore
+      .collection('distribuidores')
+      .where('email', isEqualTo: email)
+      .limit(1)
+      .get();
+    var emailQuery2 = await firestore
+      .collection('users')
+      .where('email', isEqualTo: email)
+      .limit(1)
+      .get();
+
+    // Verifica se os documentos retornaram algum resultado
+    if (cnpjQuery.docs.isNotEmpty) {
+      throw Exception("Distribuidor com este CNPJ já cadastrado.");
+    }
+    if (usernameQuery.docs.isNotEmpty) {
+      throw Exception("Distribuidor com este usuário já cadastrado.");
+    }
+    if (telQuery.docs.isNotEmpty) {
+      throw Exception("Distribuidor com este telefone já cadastrado.");
+    }
+    if (emailQuery.docs.isNotEmpty || emailQuery2.docs.isNotEmpty) {
+      throw Exception("Usuário com este e-mail já cadastrado.");
+    }
+
+    // razão social + cnpj vai ser chave
+    String cliente = '$razao - $cnpj';
+    String randomId = firestore.collection('distribuidores').doc().id;
+
+    // Define os dados que serão inseridos
+    Map<String, dynamic> fullUserData = {
+      'idUser': randomId,
+      'razao_social': razao,
+      'cnpj': cnpj,
+      'telefone': telefone,
+      'email': email,
+      'usuario': usuario,
+      'senha': _passwordController.text,
+      'cnae': cnae,
+    };
+
+    // Insere os dados no Firestore
+    await firestore
+      .collection('distribuidores')
       .doc(cliente)
       .set(fullUserData, SetOptions(merge: false));
   }
@@ -886,10 +1363,30 @@ class _SignUpScreenState extends State<SignUpScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Cadastro realizado com sucesso! Você será direcionado para a página de login"),
+          title: const Row(
+            children: [
+              Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 40,
+              ),
+              SizedBox(width: 10),
+              Expanded(  
+                child: Text(
+                  "Cadastro realizado\n com sucesso!",
+                  style: TextStyle(fontSize: 18),
+                  overflow: TextOverflow.ellipsis, 
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            "Você será direcionado para a página de login.",
+            style: TextStyle(fontSize: 16),
+          ),
           actions: <Widget>[
             TextButton(
-              child: const Text("Ok"),
+              child: const Text("Ok", style: TextStyle(fontSize: 16)),
               onPressed: () {
                 Navigator.pushAndRemoveUntil(
                   context,
@@ -902,6 +1399,71 @@ class _SignUpScreenState extends State<SignUpScreen> {
         );
       },
     );
+  }
+
+  Future<void> _buscaCnpj(String cnpj) async {
+    if (cnpj.length != 14) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('O CNPJ deve conter 14 números.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoadingCnpj = true;
+    });
+
+    final url = 'https://open.cnpja.com/office/$cnpj';
+    final headers = {
+      'Authorization': '0cdf6d17-8007-4769-a2fd-7e374d40f198-d718a448-1ce5-44a1-949a-201730bee40c',
+    };
+
+    try {
+      final response = await http.get(Uri.parse(url), headers: headers);
+
+      if (response.statusCode != 200) {
+        throw Exception('CNPJ não encontrado. Tente novamente!');
+      }
+
+      final data = jsonDecode(response.body);
+
+      final companyName = data['company']?['name'];
+      final mainActivity = data['mainActivity'] != null
+          ? '${data['mainActivity']['id']} - ${data['mainActivity']['text']}'
+          : null;
+
+      // Atualiza os campos do formulário com os dados recebidos
+      setState(() {
+        _razaoSocialController.text = companyName!;
+        _cnaeController.text = mainActivity!;
+        _isCnpjDisabled = true;  // Desabilita o campo CNPJ após a busca bem-sucedida
+      });
+
+    } catch (error) {
+      String errorMessage;
+
+      if (error is SocketException) {
+        errorMessage = 'Não foi possível conectar ao servidor. Verifique sua conexão com a internet.';
+      } else if (error is TimeoutException) {
+        errorMessage = 'A solicitação demorou muito para responder. Tente novamente mais tarde.';
+      } else {
+        errorMessage = 'CNPJ não encontrado. Tente novamente!';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+
+      setState(() {
+        _razaoSocialController.clear();
+        _cnaeController.clear();
+        _isCnpjDisabled = false;  // Reabilita o campo CNPJ em caso de erro
+      });
+    } finally {
+      setState(() {
+        _isLoadingCnpj = false;
+      });
+    }
   }
 
   bool isValidCPF(String cpf) {
@@ -934,7 +1496,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() => _selfie = photo);
   }
 
-  Future uploadSelfie() async {
+  Future<void> uploadSelfie() async {
     if (_selfie == null) return;
     final file = File(_selfie!.path);
     String nome = _nameController.text;
@@ -946,12 +1508,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     try {
       await FirebaseStorage.instance
-        .ref('$nome-$cpf/$fileName') 
+        .ref('profissionais/$nome-$cpf/$fileName') 
         .putFile(file);
     } catch (e) {
-        throw('Erro ao salvar selfie: $e');
+      throw('Erro ao salvar selfie: $e');
     }
   }
+
 
 void _pickCertidaoImage() async {
   final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
@@ -969,7 +1532,7 @@ void _removeCertidaoImage() {
   });
 }
 
-  Future uploadCertidao() async {
+  Future<void> uploadCertidao() async {
     if (_image == null) return;
     final file = File(_image!.path);
     String nome = _nameController.text;
@@ -979,10 +1542,10 @@ void _removeCertidaoImage() {
     String fileName = 'certidao-$nome-$primSobrenome.jpg'; 
     try {
       await FirebaseStorage.instance
-        .ref('$nome-$cpf/$fileName') 
+        .ref('profissionais/$nome-$cpf/$fileName') 
         .putFile(file);
     } catch (e) {
-        throw('Erro ao salvar certidao: $e');
+      throw('Erro ao salvar certidão: $e');
     }
   }
 

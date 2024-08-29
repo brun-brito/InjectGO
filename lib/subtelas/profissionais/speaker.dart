@@ -3,15 +3,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:inject_go/subtelas/tutorial_speaker.dart';
+import 'package:inject_go/subtelas/profissionais/tutorial_speaker.dart';
 import 'package:bubble/bubble.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-// import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
-// import 'package:openai_dart/openai_dart.dart' hide Image;
 
 class ChatPage extends StatefulWidget {
   final String username;
@@ -36,9 +34,6 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
   String? tempImageUrl;   
   bool _isUploadingImage = false;
   String? _threadId;
-  // late OpenAI openAI;
-  // late OpenAIClient client;
-
 
   @override
   void initState() {
@@ -47,16 +42,6 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
       token = dotenv.get('API_GPT');
       orgId = dotenv.get('ORG_ID');
       assistantId = dotenv.get('ASSISTANT_ID');
-      // client = OpenAIClient(
-      //   apiKey: token,
-      //   organization: orgId,
-      // );
-      // openAI = OpenAI.instance.build(
-      //   token: token,
-      //   orgId: orgId,
-      //   baseOption: HttpSetup(receiveTimeout: const Duration(seconds: 5)),
-      //   enableLog: true,
-      // );
     });
 
     _animationController = AnimationController(
@@ -73,75 +58,6 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
     super.dispose();
   }
 
-/*  Future<void> _sendMessage2() async {
-    String message = _controller.text;
-    String? imageUrl = tempImageUrl;
-    _controller.clear(); 
-
-    setState(() {
-      if (message.isNotEmpty) {
-        _messages.add({'role': 'user', 'content': message, 'type': 'text'});
-      }
-      if (imageUrl != null) {
-        _messages.add({'role': 'user', 'content': imageUrl, 'type': 'image'});
-        tempImageUrl = null; 
-      }
-      _isLoading = true;
-    });
-
-    final List<Map<String, dynamic>> content = [];
-
-    if (message.isNotEmpty) {
-      content.add({"type": "text", "text": message});
-    }
-    if (imageUrl != null) {
-      content.add({
-        "type": "image_url",
-        "image_url": {"url": imageUrl}
-      });
-    }
-
-    final request = CreateThreadAndRun(assistantId: assistantId, thread: {
-      "messages": [
-        {
-          "role": "user",
-          "content": content
-        }
-      ],
-    });
-
-    try {
-      final response = await openAI.threads.runs.createThreadAndRun(request: request);
-
-      while (response.status != 'completed') {
-        await Future.delayed(const Duration(seconds: 1));
-        final updatedResponse = await openAI.threads.runs.retrieveRun(
-          threadId: response.threadId,
-          runId: response.id,
-        );
-        response.status = updatedResponse.status;
-      }
-
-      final listaMensagens = await openAI.threads.messages.listMessage(threadId: response.threadId);
-      final responseData = listaMensagens.data[0].content[0].text?.value;
-
-      setState(() {
-        _messages.add({'role': 'bot', 'content': responseData ?? 'Erro ao buscar resposta. Tente novamente ou volte mais tarde!', 'type': 'text'});
-        _isLoading = false;
-      });
-    } catch (error) {
-      setState(() {
-        _messages.add({
-          'role': 'bot',
-          'content': 'Erro ao se comunicar com o Speaker. Tente novamente mais tarde.',
-          'type': 'text'
-        });
-        _isLoading = false;
-      });
-    }
-  }
-*/
-  
   Future<void> _sendMessage() async {
     String message = _controller.text;
     String? imageUrl = tempImageUrl;
@@ -295,7 +211,7 @@ class _ChatPageState extends State<ChatPage> with SingleTickerProviderStateMixin
     String fileName = path.basename(selectedImage.path);
     String? nome = widget.nome;
     String? cpf = widget.cpf;
-    String folderPath = "$nome-$cpf";
+    String folderPath = "profissionais/$nome-$cpf";
     Reference ref = FirebaseStorage.instance.ref().child('$folderPath/speaker/$fileName');
 
     UploadTask uploadTask = ref.putFile(selectedImage);

@@ -41,12 +41,10 @@ Future<void> fetchImageUrls() async {
     if (userProfileQuery.docs.isNotEmpty) {
       var userProfile = userProfileQuery.docs.first;
       nome = userProfile['nome'];
-      // var sobrenome = userProfile['sobrenome'];
       var cpf = userProfile['cpf'];
-      // var priSobr = sobrenome.split(' ')[0];
       var fullName = "$nome-$cpf";
 
-      var storageRef = FirebaseStorage.instance.ref().child(fullName);
+      var storageRef = FirebaseStorage.instance.ref().child('profissionais/$fullName');
       var listResult = await storageRef.listAll();
 
       var urls = await Future.wait(listResult.items.where((item) => !item.name.startsWith('foto')).map((item) async {

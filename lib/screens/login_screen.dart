@@ -1,5 +1,6 @@
 // ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously
 import 'package:inject_go/screens/profile_screen.dart';
+import 'package:inject_go/screens/profile_screen_distribuidores.dart';
 import 'package:inject_go/screens/welcome_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -30,12 +31,12 @@ class LoginForm extends StatefulWidget {
 class _LoginFormState extends State<LoginForm> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  // final _formKey = GlobalKey<FormState>();
   // ignore: unused_field
   bool _isButtonEnabled = false; 
   bool _isLoading = false; 
   bool _isObscure = true;
   FirebaseFirestore firestore = FirebaseFirestore.instance;
+  String? userType;
 
     @override
   void initState() {
@@ -162,7 +163,7 @@ class _LoginFormState extends State<LoginForm> {
               child: const Text(
                 "Esqueci a senha",
                 style: TextStyle(
-                  decoration: TextDecoration.underline, // Adiciona sublinhado ao texto
+                  decoration: TextDecoration.underline,
                 ),
               ),
             ),
@@ -186,19 +187,56 @@ class _LoginFormState extends State<LoginForm> {
     final user = querySnapshot.docs.first;
     return user['senha'] == password; 
   }
-  
+
+  Future<void> buscaProfissional(String email) async {
+    // Acessando a coleção de distribuidores e verificando se o email existe
+    var distribuidoresSnapshot = await FirebaseFirestore.instance
+        .collection('distribuidores')
+        .where('email', isEqualTo: email)
+        .get();
+
+    // Se o email for encontrado na coleção de distribuidores, definir userType como 'distribuidor'
+    if (distribuidoresSnapshot.docs.isNotEmpty) {
+      userType = 'distribuidor';
+      return;
+    }
+
+    // Acessando a coleção de users e verificando se o email existe
+    var usersSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .where('email', isEqualTo: email)
+        .get();
+
+    // Se o email for encontrado na coleção de users, definir userType como 'profissional'
+    if (usersSnapshot.docs.isNotEmpty) {
+      userType = 'profissional';
+    }
+  }
+
   Future<void> confirmaLogin() async {
     String email = _emailController.text.trim();
-    if (/*(await validateUser(_emailController.text, _passwordController.text)) &&*/ (await signInAuth(email, _passwordController.text))) {
+    
+    await buscaProfissional(email);
+    
+    if ((await signInAuth(email, _passwordController.text))) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Sucesso!"))
       );
       
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => ProfileScreen(username: email)),
-        (Route<dynamic> route) => false,
-      );
+      if(userType == 'profissional'){
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => ProfileScreen(username: email)),
+          (Route<dynamic> route) => false,
+        );
+      }
+      else if(userType == 'distribuidor'){
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => ProfileScreenDistribuidor(username: email)),
+          (Route<dynamic> route) => false,
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("E-mail e/ou senha incorreto(s)"))
@@ -208,22 +246,16 @@ class _LoginFormState extends State<LoginForm> {
 
   Future<bool> signInAuth(String email, String password) async {
     try {
-      /*UserCredential userCredential = */await FirebaseAuth.instance.signInWithEmailAndPassword(
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,password: password,
       );
-      // print("Usuário logado com sucesso: ${userCredential.user?.email}");
       return true;
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        // print('Nenhum usuário encontrado para esse email.');
-      } else if (e.code == 'wrong-password') {
-        // print('Senha incorreta fornecida para esse usuário.');
-      } else {
-        // print('Erro de login: ${e.message}');
-      }
+      if (e.code == 'user-not-found') {}
+      else if (e.code == 'wrong-password') {}
+      else {}
       return false;
     } catch (e) {
-      // print('Erro: ${e.toString()}');
       return false;
     }
   }
