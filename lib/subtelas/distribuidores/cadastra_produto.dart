@@ -1,7 +1,5 @@
 // ignore_for_file: library_private_types_in_public_api, prefer_typing_uninitialized_variables, prefer_const_constructors, use_build_context_synchronously
-
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +19,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
   String _productName = '';
   String _productDescription = '';
+  String _productBrand = '';
   double _productPrice = 0.0;
   File? _productImage;
   bool _isLoading = false; 
@@ -55,6 +54,18 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
                     },
                   ),
                   TextFormField(
+                    decoration: const InputDecoration(labelText: 'Marca do Produto'),
+                    onSaved: (value) {
+                      _productBrand = value ?? '';
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Por favor, insira a marca do produto';
+                      }
+                      return null;
+                    },
+                  ),
+                  TextFormField(
                     decoration: const InputDecoration(labelText: 'Descrição do Produto'),
                     onSaved: (value) {
                       _productDescription = value ?? '';
@@ -67,7 +78,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
                     },
                   ),
                   TextFormField(
-                    controller: _priceController, // Adicione o controller para gerenciar o valor
+                    controller: _priceController,
                     decoration: const InputDecoration(
                       labelText: 'Preço do Produto',
                       prefixText: 'R\$ ',
@@ -77,13 +88,15 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
                       CurrencyInputFormatter(),
                     ],
                     onSaved: (value) {
-                      _productPrice = double.tryParse(value?.replaceAll('R\$ ', '').replaceAll(',', '.') ?? '0.0') ?? 0.0;
+                      // Remove pontos de milhares e substitui a vírgula por ponto
+                      String sanitizedValue = value?.replaceAll('.', '').replaceAll(',', '.') ?? '0.0';
+                      _productPrice = double.tryParse(sanitizedValue) ?? 0.0;
                     },
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Por favor, insira o preço do produto';
-                      }
-                      if (double.tryParse(value.replaceAll('R\$ ', '').replaceAll(',', '.')) == null) {
+                      // Remove pontos de milhares e substitui a vírgula por ponto
+                      String sanitizedValue = value?.replaceAll('.', '').replaceAll(',', '.') ?? '';
+                      
+                      if (sanitizedValue.isEmpty || double.tryParse(sanitizedValue) == null) {
                         return 'Por favor, insira um preço válido';
                       }
                       return null;
@@ -194,6 +207,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
             'name': _productName,
             'normalized_name': _productName.toLowerCase(),
             'description': _productDescription,
+            'marca': _productBrand, 
             'price': _productPrice,
             'imageUrl': imageUrl,
             'username': widget.username,

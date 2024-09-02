@@ -1,7 +1,5 @@
 // ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously, prefer_const_constructors
-
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -27,12 +25,12 @@ class _EditProductScreenState extends State<EditProductScreen> {
   final _formKey = GlobalKey<FormState>();
   String _productName = '';
   String _productDescription = '';
+  String _productBrand = '';
   double _productPrice = 0.0;
   File? _productImage;
   String? _existingImageUrl;
   bool _isLoading = false;
   final TextEditingController _priceController = TextEditingController();
-
 
   final ImagePicker _picker = ImagePicker();
 
@@ -58,6 +56,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
         var productData = productSnapshot.data()!;
         setState(() {
           _productName = productData['name'];
+          _productBrand = productData['marca'] ?? '';
           _productDescription = productData['description'];
           _productPrice = productData['price'];
           _existingImageUrl = productData['imageUrl'];
@@ -130,6 +129,11 @@ class _EditProductScreenState extends State<EditProductScreen> {
         if (_productName.isNotEmpty) {
           updateData['name'] = _productName;
           updateData['normalized_name'] = _productName.toLowerCase();
+        }
+
+        // Verificar se a marca foi alterada
+        if (_productBrand.isNotEmpty) {
+          updateData['marca'] = _productBrand;
         }
 
         // Verificar se a descrição foi alterada
@@ -212,6 +216,19 @@ class _EditProductScreenState extends State<EditProductScreen> {
                       },
                     ),
                     TextFormField(
+                      initialValue: _productBrand,
+                      decoration: const InputDecoration(labelText: 'Marca do Produto'),
+                      onSaved: (value) {
+                        _productBrand = value ?? '';
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Por favor, insira a marca do produto';
+                        }
+                        return null;
+                      },
+                    ),
+                    TextFormField(
                       initialValue: _productDescription,
                       decoration: const InputDecoration(labelText: 'Descrição do Produto'),
                       onSaved: (value) {
@@ -225,7 +242,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                       },
                     ),
                     TextFormField(
-                      controller: _priceController, // Adicione o controller para gerenciar o valor
+                      controller: _priceController,
                       decoration: const InputDecoration(
                         labelText: 'Preço do Produto',
                         prefixText: 'R\$ ',
@@ -235,13 +252,15 @@ class _EditProductScreenState extends State<EditProductScreen> {
                         CurrencyInputFormatter(),
                       ],
                       onSaved: (value) {
-                        _productPrice = double.tryParse(value?.replaceAll('R\$ ', '').replaceAll(',', '.') ?? '0.0') ?? 0.0;
+                        // Remove pontos de milhares e substitui a vírgula por ponto
+                        String sanitizedValue = value?.replaceAll('.', '').replaceAll(',', '.') ?? '0.0';
+                        _productPrice = double.tryParse(sanitizedValue) ?? 0.0;
                       },
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor, insira o preço do produto';
-                        }
-                        if (double.tryParse(value.replaceAll('R\$ ', '').replaceAll(',', '.')) == null) {
+                        // Remove pontos de milhares e substitui a vírgula por ponto
+                        String sanitizedValue = value?.replaceAll('.', '').replaceAll(',', '.') ?? '';
+                        
+                        if (sanitizedValue.isEmpty || double.tryParse(sanitizedValue) == null) {
                           return 'Por favor, insira um preço válido';
                         }
                         return null;

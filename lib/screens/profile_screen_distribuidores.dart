@@ -1,9 +1,5 @@
-
-
 // ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously
-
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -27,6 +23,7 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
   String companyName = "";
   String? _imageUrl;
   bool _isLoading = false;
+  bool _isPaymentUpToDate = false;
 
   @override
   void initState() {
@@ -37,7 +34,6 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
   Future<void> fetchDistributorProfile() async {
     setLoading(true);
     try {
-      // Buscar a 'razao_social' e 'cnpj' do distribuidor pelo email
       var distribuidorSnapshot = await FirebaseFirestore.instance
           .collection('distribuidores')
           .where('email', isEqualTo: widget.username)
@@ -49,13 +45,23 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
         String razaoSocialCnpj = '${distribuidorData['razao_social']} - ${distribuidorData['cnpj']}';
         companyName = distribuidorData['razao_social'];
 
-        // Carregar a foto do perfil
-        String fileName = 'distribuidores/$razaoSocialCnpj/foto-perfil.jpg';
-        String imageUrl = await FirebaseStorage.instance.ref(fileName).getDownloadURL();
-
+        // Verificar se o pagamento está em dia
         setState(() {
-          _imageUrl = imageUrl;
+          _isPaymentUpToDate = distribuidorData['pagamento_em_dia'] ?? false;
         });
+
+        // Tentar carregar a foto do perfil
+        String fileName = 'distribuidores/$razaoSocialCnpj/foto-perfil.jpg';
+        try {
+          String imageUrl = await FirebaseStorage.instance.ref(fileName).getDownloadURL();
+          setState(() {
+            _imageUrl = imageUrl;
+          });
+        } catch (e) {
+          setState(() {
+            _imageUrl = null;
+          });
+        }
       } else {
         throw 'Distribuidor não encontrado';
       }
@@ -66,7 +72,6 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
     }
     setLoading(false);
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -84,6 +89,7 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
   Widget buildUserProfile() {
     return ListView(
       children: <Widget>[
+        // ... outros widgets ...
         Padding(
           padding: const EdgeInsets.all(20),
           child: GestureDetector(
@@ -120,64 +126,104 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
         Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(
-              companyName,
+            child: Text('Seja bem vindo(a), $companyName',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
+              style: const TextStyle(fontSize: 16),
             ),
           ),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Column(
             children: <Widget>[
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.blue),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: TextButton.icon(
-                    icon: const Icon(Icons.add_business, color: Colors.blue),
-                    label: const FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        'Cadastrar Produto',
-                        style: TextStyle(color: Colors.black, fontSize: 13),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: _isPaymentUpToDate ? Colors.blue : Colors.grey),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: TextButton.icon(
+                        icon: Icon(Icons.add_business, color: _isPaymentUpToDate ? Colors.blue : Colors.grey),
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Cadastrar Produto',
+                            style: TextStyle(
+                              color: _isPaymentUpToDate ? Colors.black : Colors.grey, 
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        onPressed: _isPaymentUpToDate ? () => _navigateToProductRegistration(context) : null,
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.all(5),
+                        ),
                       ),
                     ),
-                    onPressed: () => _navigateToProductRegistration(context),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.all(5),
+                  ),
+                  Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: _isPaymentUpToDate ? Colors.blue : Colors.grey),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: TextButton.icon(
+                        icon: Icon(Icons.add_business, color: _isPaymentUpToDate ? Colors.blue : Colors.grey),
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Meus Produtos',
+                            style: TextStyle(
+                              color: _isPaymentUpToDate ? Colors.black : Colors.grey, 
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        onPressed: _isPaymentUpToDate ? () => _navigateToMyProducts(context) : null,
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.all(5),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (!_isPaymentUpToDate) ...[
+                const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text(
+                    'Para utilizar as funcionalidades do sistema, é necessário realizar o pagamento do plano mensal.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, color: Colors.red), 
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      // Navegar para a tela de pagamento (não implementado)
+                    },
+                    icon: const Icon(
+                      Icons.payment,
+                      color: Colors.white, // Ícone branco
+                    ),
+                    label: const Text(
+                      'Realizar Pagamento',
+                      style: TextStyle(color: Colors.white), // Legenda branca
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      textStyle: const TextStyle(fontSize: 16),
                     ),
                   ),
                 ),
-              ),
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.blue),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: TextButton.icon(
-                    icon: const Icon(Icons.list, color: Colors.blue),
-                    label: const FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        'Meus Produtos',
-                        style: TextStyle(color: Colors.black, fontSize: 13),
-                      ),
-                    ),
-                    onPressed: () => _navigateToMyProducts(context),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.all(5),
-                    ),
-                  ),
-                ),
-              ),
+              ],
             ],
           ),
         ),

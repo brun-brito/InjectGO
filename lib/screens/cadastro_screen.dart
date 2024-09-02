@@ -1322,6 +1322,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       'usuario': usuario,
       'senha': _passwordController.text,
       'cnae': cnae,
+      'pagamentoEmDia': false,
     };
 
     // Insere os dados no Firestore

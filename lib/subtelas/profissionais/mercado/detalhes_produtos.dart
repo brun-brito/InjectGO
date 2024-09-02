@@ -12,6 +12,7 @@ class ProductDetailScreen extends StatefulWidget {
   @override
   _ProductDetailScreenState createState() => _ProductDetailScreenState();
 }
+
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   String? razaoSocial;
   String? cnpj;
@@ -20,13 +21,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   void initState() {
     super.initState();
-    extractRazaoSocialAndCnpj(); // Extrai a razão social e CNPJ ao iniciar a tela
+    extractRazaoSocialAndCnpj();
   }
 
   void extractRazaoSocialAndCnpj() {
-    String razaoCnpj = widget.distributorPath.split('/')[1]; // Extrai a parte da razão social e CNPJ
+    String razaoCnpj = widget.distributorPath.split('/')[1];
     List<String> razaoCnpjParts = razaoCnpj.split(' - ');
-    
+
     if (razaoCnpjParts.length == 2) {
       razaoSocial = razaoCnpjParts[0];
       cnpj = razaoCnpjParts[1];
@@ -41,7 +42,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detalhes do Produto'),
-        backgroundColor: Colors.pink,
       ),
       body: FutureBuilder<DocumentSnapshot>(
         future: fetchProductDetails(),
@@ -60,24 +60,76 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           }
 
           var product = snapshot.data!;
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Nome: ${product['name']}', style: const TextStyle(fontSize: 24)),
-                const SizedBox(height: 16),
-                Text('Descrição: ${product['description']}', style: const TextStyle(fontSize: 18)),
-                const SizedBox(height: 16),
-                Text('Preço: R\$ ${product['price'].toStringAsFixed(2)}', style: const TextStyle(fontSize: 18)),
-                const SizedBox(height: 16),
-                Text('Distribuidor: $razaoSocial', style: const TextStyle(fontSize: 18)),
-                const SizedBox(height: 16),
-                Text('CNPJ: $cnpj', style: const TextStyle(fontSize: 18)),
-                const SizedBox(height: 16),
-                Image.network(product['imageUrl']),
-              ],
-            ),
+          return Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(15),
+                            child: Image.network(
+                              product['imageUrl'],
+                              height: 250,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Nome: ${product['name']}',
+                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Preço: R\$ ${product['price'].toStringAsFixed(2)}',
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Marca: ${product['marca']}',
+                          style: const TextStyle(fontSize: 18),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Descrição: ${product['description']}',
+                          style: const TextStyle(fontSize: 18),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Distribuidor: $razaoSocial',
+                          style: const TextStyle(fontSize: 18),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'CNPJ: $cnpj',
+                          style: const TextStyle(fontSize: 18),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(16.0),
+                child: const Center(
+                  child: Text(
+                    '© InjectGO',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black54,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),

@@ -111,9 +111,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
-          ExpansionTile(
-            title: const Text('Menu', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.right,),
-            children: <Widget>[
+          Column(
+            children: [
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Row(
@@ -186,12 +185,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
                     Expanded(
                       child: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 8),
                         decoration: BoxDecoration(
-                          color: const Color.fromARGB(255, 236, 63, 121),
-                          border: Border.all(color: Colors.pink),
+                          color: Colors.grey,
+                          border: Border.all(color: Colors.grey),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: TextButton.icon(
@@ -212,19 +219,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
                     Expanded(
                       child: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 8),
                         decoration: BoxDecoration(
-                          color: Colors.blue,
+                          color: const Color.fromARGB(255, 236, 63, 121),
+                          border: Border.all(color: Colors.pink),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: TextButton.icon(
@@ -281,8 +281,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onPressed: () {
                         mensagemEmBreve('ID facial');
                       },
-                      icon: Image.asset('assets/images/faceId.png', width: 24, height: 24,),
-                      label: const Text('ID facial', style: TextStyle(color: Colors.black)),
+                      icon: Image.asset('assets/images/faceId.png', width: 24, height: 24),
+                      label: const Text('ID facial', style: TextStyle(color: Colors.grey)),
                     ),
                     const VerticalDivider(),
                     TextButton.icon(
@@ -293,7 +293,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         );
                       },
                       icon: const Icon(Icons.location_on, color: Colors.grey), 
-                      label: const Text('Mercado', style: TextStyle(color: Colors.black)),
+                      label: const Text('Localização', style: TextStyle(color: Colors.black)),
                     ),
                   ],
                 ),
@@ -348,7 +348,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: () => Navigator.push(
                 context,
                   MaterialPageRoute(builder: (context) => QRCodePage(username: widget.username))
-                // se for usar o TOKEN use essa classe: 'TOTPDisplay(username: widget.username))'
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,

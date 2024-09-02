@@ -1,5 +1,4 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +16,7 @@ class MyProductsScreen extends StatefulWidget {
 
 class _MyProductsScreenState extends State<MyProductsScreen> {
   String _selectedFilter = 'name_asc';
+  String _selectedBrand = 'Todos'; // Default para 'Todos'
   final Map<String, bool> _isDeleteIconClicked = {};
 
   @override
@@ -52,160 +52,208 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
 
         String razaoSocialCnpj = snapshot.data!;
 
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: DropdownButton<String>(
-                value: _selectedFilter,
-                isExpanded: true,
-                items: const [
-                  DropdownMenuItem(
-                    value: 'name_asc',
-                    child: Row(
-                      children: [
-                        Icon(Icons.filter_alt_outlined),
-                        SizedBox(width: 8),
-                        Text('Nome (A-Z)'),
-                      ],
-                    ),
-                  ),
-                  DropdownMenuItem(
-                    value: 'name_desc',
-                    child: Row(
-                      children: [
-                        Icon(Icons.filter_alt_outlined),
-                        SizedBox(width: 8),
-                        Text('Nome (Z-A)'),
-                      ],
-                    ),
-                  ),
-                  DropdownMenuItem(
-                    value: 'price_asc',
-                    child: Row(
-                      children: [
-                        Icon(Icons.filter_alt_outlined),
-                        SizedBox(width: 8),
-                        Text('Preço (Menor-Maior)'),
-                      ],
-                    ),
-                  ),
-                  DropdownMenuItem(
-                    value: 'price_desc',
-                    child: Row(
-                      children: [
-                        Icon(Icons.filter_alt_outlined),
-                        SizedBox(width: 8),
-                        Text('Preço (Maior-Menor)'),
-                      ],
-                    ),
-                  ),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedFilter = value!;
-                  });
-                },
-              ),
-            ),
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: _getProductStream(razaoSocialCnpj),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121)));
-                  }
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Center(child: Text('Nenhum produto cadastrado.'));
-                  }
-                  return ListView.builder(
-                    itemCount: snapshot.data!.docs.length,
-                    itemBuilder: (context, index) {
-                      var product = snapshot.data!.docs[index];
-                      return ListTile(
-                        leading: Image.network(product['imageUrl'], width: 50, height: 50, fit: BoxFit.cover),
-                        title: Text(product['name']),
-                        subtitle: Text('R\$ ${product['price'].toStringAsFixed(2)}'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
+        return FutureBuilder<List<String>>(
+          future: _fetchAvailableBrands(razaoSocialCnpj),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121)));
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('Erro ao carregar marcas: ${snapshot.error}'));
+            }
+
+            List<String> brands = snapshot.data!;
+
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: DropdownButton<String>(
+                    value: _selectedFilter,
+                    isExpanded: true,
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'name_asc',
+                        child: Row(
                           children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => EditProductScreen(
-                                      productId: product['id'],
-                                      razaoSocialCnpj: razaoSocialCnpj,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                            StatefulBuilder(
-                              builder: (context, setState) {
-                                return IconButton(
-                                  icon: Icon(
-                                    Icons.delete,
-                                    color: _isDeleteIconClicked[product['id']] == true ? Colors.red : null,
-                                  ),
-                                  onPressed: () async {
-                                    setState(() {
-                                      _isDeleteIconClicked[product['id']] = true; // Muda o ícone para vermelho
-                                    });
-
-                                    await _deleteProduct(context, product['id'], product['imageUrl'], razaoSocialCnpj);
-
-                                    setState(() {
-                                      _isDeleteIconClicked.remove(product['id']); // Restaura a cor original
-                                    });
-                                  },
-                                );
-                              },
-                            ),
+                            Icon(Icons.filter_alt_outlined),
+                            SizedBox(width: 8),
+                            Text('Nome (A-Z)'),
                           ],
                         ),
-                        onTap: () {},
+                      ),
+                      DropdownMenuItem(
+                        value: 'name_desc',
+                        child: Row(
+                          children: [
+                            Icon(Icons.filter_alt_outlined),
+                            SizedBox(width: 8),
+                            Text('Nome (Z-A)'),
+                          ],
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'price_asc',
+                        child: Row(
+                          children: [
+                            Icon(Icons.filter_alt_outlined),
+                            SizedBox(width: 8),
+                            Text('Preço (Menor-Maior)'),
+                          ],
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'price_desc',
+                        child: Row(
+                          children: [
+                            Icon(Icons.filter_alt_outlined),
+                            SizedBox(width: 8),
+                            Text('Preço (Maior-Menor)'),
+                          ],
+                        ),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedFilter = value!;
+                      });
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: DropdownButton<String>(
+                    value: _selectedBrand,
+                    isExpanded: true,
+                    items: brands.map((brand) {
+                      return DropdownMenuItem<String>(
+                        value: brand,
+                        child: Text(brand),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedBrand = value!;
+                      });
+                    },
+                    underline: Container(
+                      height: 1,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: _getProductStream(razaoSocialCnpj),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121)));
+                      }
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(child: Text('Nenhum produto cadastrado.'));
+                      }
+                      return ListView.builder(
+                        itemCount: snapshot.data!.docs.length,
+                        itemBuilder: (context, index) {
+                          var product = snapshot.data!.docs[index];
+                          return ListTile(
+                            leading: Image.network(product['imageUrl'], width: 50, height: 50, fit: BoxFit.cover),
+                            title: Text(product['name']),
+                            subtitle: Text('R\$ ${product['price'].toStringAsFixed(2)}'),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => EditProductScreen(
+                                          productId: product['id'],
+                                          razaoSocialCnpj: razaoSocialCnpj,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                StatefulBuilder(
+                                  builder: (context, setState) {
+                                    return IconButton(
+                                      icon: Icon(
+                                        Icons.delete,
+                                        color: _isDeleteIconClicked[product['id']] == true ? Colors.red : null,
+                                      ),
+                                      onPressed: () async {
+                                        setState(() {
+                                          _isDeleteIconClicked[product['id']] = true; // Muda o ícone para vermelho
+                                        });
+
+                                        await _deleteProduct(context, product['id'], product['imageUrl'], razaoSocialCnpj);
+
+                                        setState(() {
+                                          _isDeleteIconClicked.remove(product['id']); // Restaura a cor original
+                                        });
+                                      },
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                            onTap: () {},
+                          );
+                        },
                       );
                     },
-                  );
-                },
-              ),
-            ),
-          ],
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
   }
 
   Stream<QuerySnapshot> _getProductStream(String razaoSocialCnpj) {
+    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+        .collection('distribuidores/$razaoSocialCnpj/produtos');
+
+    if (_selectedBrand != 'Todos') {
+      query = query.where('marca', isEqualTo: _selectedBrand);
+    }
+
     switch (_selectedFilter) {
       case 'name_asc':
-        return FirebaseFirestore.instance
-            .collection('distribuidores/$razaoSocialCnpj/produtos')
-            .orderBy('normalized_name', descending: false)
-            .snapshots();
+        query = query.orderBy('normalized_name', descending: false);
+        break;
       case 'name_desc':
-        return FirebaseFirestore.instance
-            .collection('distribuidores/$razaoSocialCnpj/produtos')
-            .orderBy('normalized_name', descending: true)
-            .snapshots();
+        query = query.orderBy('normalized_name', descending: true);
+        break;
       case 'price_asc':
-        return FirebaseFirestore.instance
-            .collection('distribuidores/$razaoSocialCnpj/produtos')
-            .orderBy('price', descending: false)
-            .snapshots();
+        query = query.orderBy('price', descending: false);
+        break;
       case 'price_desc':
-        return FirebaseFirestore.instance
-            .collection('distribuidores/$razaoSocialCnpj/produtos')
-            .orderBy('price', descending: true)
-            .snapshots();
-      default:
-        return FirebaseFirestore.instance
-            .collection('distribuidores/$razaoSocialCnpj/produtos')
-            .snapshots();
+        query = query.orderBy('price', descending: true);
+        break;
     }
+
+    return query.snapshots();
+  }
+
+  Future<List<String>> _fetchAvailableBrands(String razaoSocialCnpj) async {
+    var querySnapshot = await FirebaseFirestore.instance
+        .collection('distribuidores/$razaoSocialCnpj/produtos')
+        .get();
+
+    List<String> brands = querySnapshot.docs
+        .map((doc) => doc['marca'] as String)
+        .toSet() // Para garantir que as marcas sejam únicas
+        .toList();
+
+    brands.insert(0, 'Todos'); // Adiciona a opção 'Todos' no início da lista
+
+    return brands;
   }
 
   Future<String> _getRazaoSocialCnpj() async {
@@ -273,4 +321,3 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
     }
   }
 }
-
