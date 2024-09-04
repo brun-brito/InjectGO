@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:inject_go/mercado_pago/mercado_pago.dart';
 import 'package:inject_go/screens/login_screen.dart';
 import 'package:inject_go/subtelas/distribuidores/cadastra_produto.dart';
 import 'package:inject_go/subtelas/distribuidores/meus_produtos.dart';
@@ -22,6 +23,8 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
   final ImagePicker _picker = ImagePicker();
   String companyName = "";
   String? _imageUrl;
+  String razaoSocialCnpj = '';
+  String email = '';
   bool _isLoading = false;
   bool _isPaymentUpToDate = false;
 
@@ -42,7 +45,8 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
 
       if (distribuidorSnapshot.docs.isNotEmpty) {
         var distribuidorData = distribuidorSnapshot.docs.first.data();
-        String razaoSocialCnpj = '${distribuidorData['razao_social']} - ${distribuidorData['cnpj']}';
+        razaoSocialCnpj = '${distribuidorData['razao_social']} - ${distribuidorData['cnpj']}';
+        email = distribuidorData['email'];
         companyName = distribuidorData['razao_social'];
 
         // Verificar se o pagamento está em dia
@@ -89,7 +93,6 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
   Widget buildUserProfile() {
     return ListView(
       children: <Widget>[
-        // ... outros widgets ...
         Padding(
           padding: const EdgeInsets.all(20),
           child: GestureDetector(
@@ -206,15 +209,18 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      // Navegar para a tela de pagamento (não implementado)
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SubscriptionScreen(userId: razaoSocialCnpj, userEmail: email,)),
+                      );
                     },
                     icon: const Icon(
                       Icons.payment,
-                      color: Colors.white, // Ícone branco
+                      color: Colors.white,
                     ),
                     label: const Text(
                       'Realizar Pagamento',
-                      style: TextStyle(color: Colors.white), // Legenda branca
+                      style: TextStyle(color: Colors.white),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
