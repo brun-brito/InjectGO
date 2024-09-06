@@ -1,9 +1,12 @@
+// ignore_for_file: library_private_types_in_public_api, prefer_const_constructors_in_immutables, use_key_in_widget_constructors, use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:inject_go/screens/profile_screen_distribuidores.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   final String userId;
@@ -16,8 +19,8 @@ class SubscriptionScreen extends StatefulWidget {
 }
 
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
-  final String planId = '2c93808491b45c770191b85b34d90162';
-  final String accessToken = 'APP_USR-1709159904607332-072416-43222ee5707268796c8829b5f03d1dae-1914238007';
+  final String planId = dotenv.env['MERCADO_PAGO_PLAN_ID'] ?? '';
+  final String accessToken = dotenv.env['MERCADO_PAGO_ACCESS_TOKEN'] ?? '';
   InAppWebViewController? webViewController;
 
   bool _isLoading = true;
@@ -44,9 +47,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 setState(() {
                   _isLoading = false;
                 });
-
+                // se contem a palavra congrats na url, significa que foi aprovado o pagamento. QUALQUER outro cenário será relevado
                 if (url != null && url.toString().contains('congrats')) {
-                  // Faça a requisição para obter o último pagamento aprovado
                   await _verificarUltimoPagamento();
 
                   setState(() {
@@ -96,19 +98,19 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color.fromARGB(255, 236, 63, 121), // Cor de fundo
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12), // Padding do botão
+                      backgroundColor: const Color.fromARGB(255, 236, 63, 121),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8), // Bordas arredondadas
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       textStyle: const TextStyle(
-                        fontSize: 16, // Tamanho da fonte
-                        fontWeight: FontWeight.bold, // Peso da fonte
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     child: const Text(
                       'Acessar Recursos',
-                      style: TextStyle(color: Colors.white), // Cor do texto
+                      style: TextStyle(color: Colors.white),
                     ),
                   )
                 ],
@@ -125,7 +127,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     try {
       final response = await http.get(
         Uri.parse(
-            'https://api.mercadopago.com/preapproval/search?preapproval_plan_id=$planId&status=authorized'),
+            'https://api.mercadopago.com/preapproval/search?preapproval_plan_id=$planId&status=authorized&sort=last_modified:desc'),
         headers: {
           'Authorization': 'Bearer $accessToken',
         },
@@ -136,13 +138,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         final List<dynamic> results = data['results'];
 
         if (results.isNotEmpty) {
-          final lastTransaction = results.last; // Última transação aprovada
+          final lastTransaction = results.first;
           final String transactionId = lastTransaction['id'];
 
           // Obtenha detalhes da transação usando o transactionId
           await _liberarAcesso(widget.userId, transactionId);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Nenhuma transação aprovada encontrada.'),
           ));
         }
@@ -168,18 +170,33 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     if (response.statusCode == 200) {
       final transactionDetails = json.decode(response.body);
 
-      // Atualize o campo 'pagamento_em_dia' no Firestore
-      await FirebaseFirestore.instance
-          .collection('distribuidores')
-          .doc(userId)
-          .update({
-        'pagamento_em_dia': true,
-        'subscription_id': transactionDetails['subscription_id'],
-        'payer_id': transactionDetails['payer_id'].toString(),
-        'payer_email': transactionDetails['payer_email'],
-      });
+      // Verifica se o status do pagamento é "authorized"
+      if (transactionDetails['status'] == 'authorized') {
+        // Cria o mapa com os dados de pagamento
+        Map<String, dynamic> dadosPagamento = {
+          'id': transactionDetails['subscription_id'],
+          'payer_id': transactionDetails['payer_id'].toString(),
+          'payer_email': transactionDetails['payer_email'],
+          'proximo_pagamento': Timestamp.fromDate(DateTime.parse(transactionDetails['next_payment_date'])),
+          'data_inicio': Timestamp.fromDate(DateTime.parse(transactionDetails['auto_recurring']['start_date'])),
+          'data_fim': Timestamp.fromDate(DateTime.parse(transactionDetails['auto_recurring']['end_date'])),
+        };
 
-      print('Acesso liberado para o distribuidor: $userId');
+        // Atualiza o Firestore com os dados do pagamento
+        await FirebaseFirestore.instance
+            .collection('distribuidores')
+            .doc(userId)
+            .update({
+          'pagamento_em_dia': true,
+          'dados_pagamento': dadosPagamento,
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Acesso liberado para o distribuidor: $userId'),
+        ));
+      } else {
+        throw Exception('Pagamento não autorizado.');
+      }
     } else {
       throw Exception('Erro ao obter detalhes do pagamento: ${response.body}');
     }

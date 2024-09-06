@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:inject_go/formatadores/formata_moeda.dart';
+import 'package:inject_go/formatadores/formata_string.dart';
 
 class ProductRegistrationScreen extends StatefulWidget {
   final String username;
@@ -20,6 +21,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
   String _productName = '';
   String _productDescription = '';
   String _productBrand = '';
+  String _productCategory = '';
   double _productPrice = 0.0;
   File? _productImage;
   bool _isLoading = false; 
@@ -32,6 +34,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cadastrar Produto'),
+        centerTitle: true,
       ),
       body: Stack(
         children: [
@@ -42,7 +45,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
               child: ListView(
                 children: [
                   TextFormField(
-                    decoration: const InputDecoration(labelText: 'Nome do Produto'),
+                    decoration: const InputDecoration(labelText: 'Nome'),
                     onSaved: (value) {
                       _productName = value ?? '';
                     },
@@ -54,7 +57,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
                     },
                   ),
                   TextFormField(
-                    decoration: const InputDecoration(labelText: 'Marca do Produto'),
+                    decoration: const InputDecoration(labelText: 'Marca'),
                     onSaved: (value) {
                       _productBrand = value ?? '';
                     },
@@ -66,7 +69,19 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
                     },
                   ),
                   TextFormField(
-                    decoration: const InputDecoration(labelText: 'Descrição do Produto'),
+                    decoration: const InputDecoration(labelText: 'Categoria (Toxina, Fios, Bioestimuladores...)'),
+                    onSaved: (value) {
+                      _productCategory = value ?? '';
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Por favor, insira a categoria do produto';
+                      }
+                      return null;
+                    },
+                  ),
+                  TextFormField(
+                    decoration: const InputDecoration(labelText: 'Descrição'),
                     onSaved: (value) {
                       _productDescription = value ?? '';
                     },
@@ -80,7 +95,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
                   TextFormField(
                     controller: _priceController,
                     decoration: const InputDecoration(
-                      labelText: 'Preço do Produto',
+                      labelText: 'Preço',
                       prefixText: 'R\$ ',
                     ),
                     keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -102,7 +117,6 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
                       return null;
                     },
                   ),
-
                   const SizedBox(height: 20),
                   GestureDetector(
                     onTap: _isLoading ? null : () => _pickProductImage(),
@@ -169,7 +183,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Por favor, insira uma imagem do produto')),
         );
-        return; // Evita o salvamento se a imagem não estiver presente
+        return;
       }
 
       _formKey.currentState!.save();
@@ -190,7 +204,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
           var distribuidorData = distribuidorSnapshot.docs.first.data();
           String razaoSocialCnpj = '${distribuidorData['razao_social']} - ${distribuidorData['cnpj']}';
 
-          // Gerando um ID único para o produto
+          // Gera um ID único para o produto
           String productId = FirebaseFirestore.instance.collection('distribuidores/$razaoSocialCnpj/produtos').doc().id;
 
           String imageUrl = '';
@@ -204,10 +218,13 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
           // Salvando o produto na coleção correta
           await FirebaseFirestore.instance.collection('distribuidores/$razaoSocialCnpj/produtos').doc(productId).set({
             'id': productId,
-            'name': _productName,
-            'normalized_name': _productName.toLowerCase(),
+            'name': _productName.trim(),
+            'normalized_name': _productName.toLowerCase().trim(),
             'description': _productDescription,
-            'marca': _productBrand, 
+            'marca': _productBrand.trim(),
+            'normalized_marca': primeiraMaiuscula(_productBrand.toLowerCase().trim()), // Marca normalizada
+            'categoria': _productCategory.trim(),
+            'normalized_category': primeiraMaiuscula(_productCategory.toLowerCase().trim()), // Categoria normalizada
             'price': _productPrice,
             'imageUrl': imageUrl,
             'username': widget.username,

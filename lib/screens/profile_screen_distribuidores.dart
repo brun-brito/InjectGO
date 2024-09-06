@@ -27,6 +27,7 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
   String email = '';
   bool _isLoading = false;
   bool _isPaymentUpToDate = false;
+  bool _hasPaymentData = false;
 
   @override
   void initState() {
@@ -52,6 +53,7 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
         // Verificar se o pagamento está em dia
         setState(() {
           _isPaymentUpToDate = distribuidorData['pagamento_em_dia'] ?? false;
+          _hasPaymentData = distribuidorData.containsKey('dados_pagamento');
         });
 
         // Tentar carregar a foto do perfil
@@ -76,6 +78,7 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
     }
     setLoading(false);
   }
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -146,22 +149,22 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
                     child: Container(
                       margin: const EdgeInsets.symmetric(horizontal: 8),
                       decoration: BoxDecoration(
-                        border: Border.all(color: _isPaymentUpToDate ? Colors.blue : Colors.grey),
+                        border: Border.all(color: (_isPaymentUpToDate && _hasPaymentData)  ? Colors.blue : Colors.grey),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: TextButton.icon(
-                        icon: Icon(Icons.add_business, color: _isPaymentUpToDate ? Colors.blue : Colors.grey),
+                        icon: Icon(Icons.add_business, color: (_isPaymentUpToDate && _hasPaymentData) ? Colors.blue : Colors.grey),
                         label: FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
                             'Cadastrar Produto',
                             style: TextStyle(
-                              color: _isPaymentUpToDate ? Colors.black : Colors.grey, 
+                              color: (_isPaymentUpToDate && _hasPaymentData) ? Colors.black : Colors.grey, 
                               fontSize: 13,
                             ),
                           ),
                         ),
-                        onPressed: _isPaymentUpToDate ? () => _navigateToProductRegistration(context) : null,
+                        onPressed: (_isPaymentUpToDate && _hasPaymentData) ? () => _navigateToProductRegistration(context) : null,
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.all(5),
                         ),
@@ -172,22 +175,22 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
                     child: Container(
                       margin: const EdgeInsets.symmetric(horizontal: 8),
                       decoration: BoxDecoration(
-                        border: Border.all(color: _isPaymentUpToDate ? Colors.blue : Colors.grey),
+                        border: Border.all(color: (_isPaymentUpToDate && _hasPaymentData) ? Colors.blue : Colors.grey),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: TextButton.icon(
-                        icon: Icon(Icons.add_business, color: _isPaymentUpToDate ? Colors.blue : Colors.grey),
+                        icon: Icon(Icons.add_business, color: (_isPaymentUpToDate && _hasPaymentData) ? Colors.blue : Colors.grey),
                         label: FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
                             'Meus Produtos',
                             style: TextStyle(
-                              color: _isPaymentUpToDate ? Colors.black : Colors.grey, 
+                              color: (_isPaymentUpToDate && _hasPaymentData) ? Colors.black : Colors.grey, 
                               fontSize: 13,
                             ),
                           ),
                         ),
-                        onPressed: _isPaymentUpToDate ? () => _navigateToMyProducts(context) : null,
+                        onPressed: (_isPaymentUpToDate && _hasPaymentData) ? () => _navigateToMyProducts(context) : null,
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.all(5),
                         ),
@@ -196,7 +199,7 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
                   ),
                 ],
               ),
-              if (!_isPaymentUpToDate) ...[
+              if (!(_isPaymentUpToDate && _hasPaymentData)) ...[
                 const Padding(
                   padding: EdgeInsets.all(8.0),
                   child: Text(

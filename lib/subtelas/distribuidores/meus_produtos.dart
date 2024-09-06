@@ -1,7 +1,8 @@
-// ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
+// ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api, prefer_const_constructors
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:inject_go/formatadores/formata_string.dart';
 import 'package:inject_go/subtelas/distribuidores/edita_produto.dart';
 import 'package:inject_go/subtelas/distribuidores/cadastra_produto.dart';
 
@@ -16,7 +17,8 @@ class MyProductsScreen extends StatefulWidget {
 
 class _MyProductsScreenState extends State<MyProductsScreen> {
   String _selectedFilter = 'name_asc';
-  String _selectedBrand = 'Todos'; // Default para 'Todos'
+  String _selectedBrand = 'Todos';
+  String _selectedCategory = 'Todas'; // Novo filtro para categoria
   final Map<String, bool> _isDeleteIconClicked = {};
 
   @override
@@ -24,17 +26,32 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Meus Produtos'),
+        centerTitle: true,
       ),
-      body: _buildProductList(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => ProductRegistrationScreen(username: widget.username)),
-          );
-        },
-        backgroundColor: Colors.pink,
-        child: const Icon(Icons.add),
+      body: Column(
+        children: [
+          Expanded(
+            child: _buildProductList(), // Lista de produtos
+          ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(8.0),
+            child: 
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.pink, 
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ProductRegistrationScreen(username: widget.username)),
+                );
+              },
+              child:Text('Adiconar Produto'),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -52,94 +69,155 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
 
         String razaoSocialCnpj = snapshot.data!;
 
-        return FutureBuilder<List<String>>(
-          future: _fetchAvailableBrands(razaoSocialCnpj),
+        return FutureBuilder<Map<String, List<String>>>(
+          future: _fetchAvailableFilters(razaoSocialCnpj), // Atualizado para buscar marca e categoria
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121)));
             }
             if (snapshot.hasError) {
-              return Center(child: Text('Erro ao carregar marcas: ${snapshot.error}'));
+              return Center(child: Text('Erro ao carregar filtros: ${snapshot.error}'));
             }
 
-            List<String> brands = snapshot.data!;
+            Map<String, List<String>> filters = snapshot.data!;
+            List<String> brands = filters['brands']!;
+            List<String> categories = filters['categories']!;
 
             return Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: DropdownButton<String>(
-                    value: _selectedFilter,
-                    isExpanded: true,
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'name_asc',
-                        child: Row(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.filter_alt_outlined),
-                            SizedBox(width: 8),
-                            Text('Nome (A-Z)'),
+                            const Text(
+                              'Filtrar por Marca:',
+                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                            ),
+                            DropdownButton<String>(
+                              value: _selectedBrand,
+                              isExpanded: true,
+                              items: brands.map((brand) {
+                                return DropdownMenuItem<String>(
+                                  value: brand,
+                                  child: Text(brand),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedBrand = value!;
+                                });
+                              },
+                              underline: Container(
+                                height: 1,
+                                color: Colors.grey,
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                      DropdownMenuItem(
-                        value: 'name_desc',
-                        child: Row(
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.filter_alt_outlined),
-                            SizedBox(width: 8),
-                            Text('Nome (Z-A)'),
-                          ],
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: 'price_asc',
-                        child: Row(
-                          children: [
-                            Icon(Icons.filter_alt_outlined),
-                            SizedBox(width: 8),
-                            Text('Preço (Menor-Maior)'),
-                          ],
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: 'price_desc',
-                        child: Row(
-                          children: [
-                            Icon(Icons.filter_alt_outlined),
-                            SizedBox(width: 8),
-                            Text('Preço (Maior-Menor)'),
+                            const Text(
+                              'Filtrar por Categoria:',
+                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                            ),
+                            DropdownButton<String>(
+                              value: _selectedCategory,
+                              isExpanded: true,
+                              items: categories.map((category) {
+                                return DropdownMenuItem<String>(
+                                  value: category,
+                                  child: Text(category),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedCategory = value!;
+                                });
+                              },
+                              underline: Container(
+                                height: 1,
+                                color: Colors.grey,
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     ],
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedFilter = value!;
-                      });
-                    },
                   ),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: DropdownButton<String>(
-                    value: _selectedBrand,
-                    isExpanded: true,
-                    items: brands.map((brand) {
-                      return DropdownMenuItem<String>(
-                        value: brand,
-                        child: Text(brand),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedBrand = value!;
-                      });
-                    },
-                    underline: Container(
-                      height: 1,
-                      color: Colors.grey,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Ordenar por:',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                      ),
+                      DropdownButton<String>(
+                        value: _selectedFilter,
+                        isExpanded: true,
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'name_asc',
+                            child: Row(
+                              children: [
+                                Icon(Icons.filter_alt_outlined),
+                                SizedBox(width: 8),
+                                Text('Nome (A-Z)'),
+                              ],
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: 'name_desc',
+                            child: Row(
+                              children: [
+                                Icon(Icons.filter_alt_outlined),
+                                SizedBox(width: 8),
+                                Text('Nome (Z-A)'),
+                              ],
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: 'price_asc',
+                            child: Row(
+                              children: [
+                                Icon(Icons.filter_alt_outlined),
+                                SizedBox(width: 8),
+                                Text('Preço (Menor-Maior)'),
+                              ],
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: 'price_desc',
+                            child: Row(
+                              children: [
+                                Icon(Icons.filter_alt_outlined),
+                                SizedBox(width: 8),
+                                Text('Preço (Maior-Menor)'),
+                              ],
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedFilter = value!;
+                          });
+                        },
+                        underline: Container(
+                          height: 1,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 Expanded(
@@ -219,10 +297,17 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
     Query<Map<String, dynamic>> query = FirebaseFirestore.instance
         .collection('distribuidores/$razaoSocialCnpj/produtos');
 
+    // Filtro de marca
     if (_selectedBrand != 'Todos') {
-      query = query.where('marca', isEqualTo: _selectedBrand);
+      query = query.where('normalized_marca', isEqualTo: primeiraMaiuscula(_selectedBrand.toLowerCase()));
     }
 
+    // Filtro de categoria
+    if (_selectedCategory != 'Todas') {
+      query = query.where('normalized_category', isEqualTo: primeiraMaiuscula(_selectedCategory.toLowerCase()));
+    }
+
+    // Filtro de ordenação (nome ou preço)
     switch (_selectedFilter) {
       case 'name_asc':
         query = query.orderBy('normalized_name', descending: false);
@@ -241,19 +326,28 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
     return query.snapshots();
   }
 
-  Future<List<String>> _fetchAvailableBrands(String razaoSocialCnpj) async {
+  Future<Map<String, List<String>>> _fetchAvailableFilters(String razaoSocialCnpj) async {
     var querySnapshot = await FirebaseFirestore.instance
         .collection('distribuidores/$razaoSocialCnpj/produtos')
         .get();
 
+    // Obter e normalizar marcas
     List<String> brands = querySnapshot.docs
-        .map((doc) => doc['marca'] as String)
-        .toSet() // Para garantir que as marcas sejam únicas
+        .map((doc) => primeiraMaiuscula(doc['normalized_marca'])) // Usa a normalização para exibir
+        .toSet()
         .toList();
 
-    brands.insert(0, 'Todos'); // Adiciona a opção 'Todos' no início da lista
+    // Obter e normalizar categorias
+    List<String> categories = querySnapshot.docs
+        .map((doc) => primeiraMaiuscula(doc['normalized_category'])) // Usa a normalização para exibir
+        .toSet()
+        .toList();
 
-    return brands;
+    // Adicionar 'Todos' e 'Todas' no início das listas para permitir filtro global
+    brands.insert(0, 'Todos');
+    categories.insert(0, 'Todas');
+
+    return {'brands': brands, 'categories': categories};
   }
 
   Future<String> _getRazaoSocialCnpj() async {
@@ -273,12 +367,13 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
 
   Future<void> _deleteProduct(BuildContext context, String productId, String imageUrl, String razaoSocialCnpj) async {
     final shouldDelete = await showDialog<bool>(
-      context: context, // Aqui o context é passado como argumento
+      context: context, 
       builder: (context) => AlertDialog(
         title: const Row(
           children: [
             Icon(Icons.cancel, color: Colors.red, size: 30),
-            SizedBox(width: 10),Text('Confirmar Exclusão?'),
+            SizedBox(width: 10),
+            Text('Confirmar Exclusão?'),
           ],
         ),
         content: const Text('Tem certeza de que deseja excluir este produto? Esta ação não poderá ser desfeita.'),
@@ -296,27 +391,20 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
     );
 
     if (shouldDelete != true) {
-      return; // Se o usuário cancelar, simplesmente retorna sem excluir
+      return;
     }
 
     try {
-      // Exclui a imagem do produto no Firebase Storage
       final storageRef = FirebaseStorage.instance.refFromURL(imageUrl);
       await storageRef.delete();
-
-      // Exclui o documento do produto no Firestore
       await FirebaseFirestore.instance.collection('distribuidores/$razaoSocialCnpj/produtos').doc(productId).delete();
       
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Produto excluído com sucesso!')
-        )
+        const SnackBar(content: Text('Produto excluído com sucesso!')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Erro ao excluir produto')
-        )
+        const SnackBar(content: Text('Erro ao excluir produto')),
       );
     }
   }

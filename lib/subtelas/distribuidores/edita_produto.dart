@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:inject_go/formatadores/formata_moeda.dart';
+import 'package:inject_go/formatadores/formata_string.dart';
 import 'package:intl/intl.dart';
 
 class EditProductScreen extends StatefulWidget {
@@ -26,6 +27,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
   String _productName = '';
   String _productDescription = '';
   String _productBrand = '';
+  String _productCategory = '';
   double _productPrice = 0.0;
   File? _productImage;
   String? _existingImageUrl;
@@ -57,6 +59,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
         setState(() {
           _productName = productData['name'];
           _productBrand = productData['marca'] ?? '';
+          _productCategory = productData['categoria'] ?? '';
           _productDescription = productData['description'];
           _productPrice = productData['price'];
           _existingImageUrl = productData['imageUrl'];
@@ -128,12 +131,18 @@ class _EditProductScreenState extends State<EditProductScreen> {
         // Verificar se o nome foi alterado
         if (_productName.isNotEmpty) {
           updateData['name'] = _productName;
-          updateData['normalized_name'] = _productName.toLowerCase();
+          updateData['normalized_name'] = _productName.toLowerCase().trim();
         }
 
         // Verificar se a marca foi alterada
         if (_productBrand.isNotEmpty) {
           updateData['marca'] = _productBrand;
+          updateData['normalized_marca'] = primeiraMaiuscula(_productBrand.toLowerCase().trim());
+        }
+
+        if (_productCategory.isNotEmpty) {
+          updateData['categoria'] = _productCategory;
+          updateData['normalized_category'] = primeiraMaiuscula(_productCategory.toLowerCase().trim());
         }
 
         // Verificar se a descrição foi alterada
@@ -204,7 +213,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   children: [
                     TextFormField(
                       initialValue: _productName,
-                      decoration: const InputDecoration(labelText: 'Nome do Produto'),
+                      decoration: const InputDecoration(labelText: 'Nome'),
                       onSaved: (value) {
                         _productName = value ?? '';
                       },
@@ -217,7 +226,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                     ),
                     TextFormField(
                       initialValue: _productBrand,
-                      decoration: const InputDecoration(labelText: 'Marca do Produto'),
+                      decoration: const InputDecoration(labelText: 'Marca'),
                       onSaved: (value) {
                         _productBrand = value ?? '';
                       },
@@ -229,8 +238,21 @@ class _EditProductScreenState extends State<EditProductScreen> {
                       },
                     ),
                     TextFormField(
+                      initialValue: _productCategory, // Campo de categoria
+                      decoration: const InputDecoration(labelText: 'Categoria (Toxina, Fios, Bioestimuladores...)'),
+                      onSaved: (value) {
+                        _productCategory = value ?? '';
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Por favor, insira a categoria do produto';
+                        }
+                        return null;
+                      },
+                    ),
+                    TextFormField(
                       initialValue: _productDescription,
-                      decoration: const InputDecoration(labelText: 'Descrição do Produto'),
+                      decoration: const InputDecoration(labelText: 'Descrição'),
                       onSaved: (value) {
                         _productDescription = value ?? '';
                       },
@@ -244,7 +266,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                     TextFormField(
                       controller: _priceController,
                       decoration: const InputDecoration(
-                        labelText: 'Preço do Produto',
+                        labelText: 'Preço',
                         prefixText: 'R\$ ',
                       ),
                       keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -334,4 +356,3 @@ class _EditProductScreenState extends State<EditProductScreen> {
     );
   }
 }
-
