@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:inject_go/formatadores/formata_moeda.dart';
 import 'package:inject_go/formatadores/formata_string.dart';
+import 'package:inject_go/mercado_pago/produto_distribuidor.dart';
 
 class ProductRegistrationScreen extends StatefulWidget {
   final String username;
@@ -229,7 +231,26 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
             'imageUrl': imageUrl,
             'username': widget.username,
             'createdAt': Timestamp.now(),
+            'disponivel': true,
           });
+
+          final String accessTokenVendedor = distribuidorData['credenciais_mp']['access_token'];
+          final String marketplace = dotenv.env['MERCADO_PAGO_ACCESS_TOKEN'] ?? '';
+
+          final mercadoPagoService = MercadoPagoService(
+            marketplace: marketplace,
+          );
+
+          await mercadoPagoService.criarPreferenciaProduto(
+            productId: productId,
+            name: _productName,
+            description: _productDescription,
+            imageUrl: imageUrl,
+            normalizedCategory: primeiraMaiuscula(_productCategory.toLowerCase().trim()),
+            price: _productPrice,
+            username: razaoSocialCnpj,
+            accessTokenVendedor: accessTokenVendedor,  // Token do vendedor no Header
+          );
 
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Produto cadastrado com sucesso!')),

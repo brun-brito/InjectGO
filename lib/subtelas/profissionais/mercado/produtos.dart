@@ -139,7 +139,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                   );
                 }
                 if (snapshot.hasError) {
-                  return Center(child: Text('Erro ao carregar produtos: ${snapshot.error}'));
+                  return const Center(child: Text('Erro ao carregar produtos. Por favor, tente novamente mais tarde.'));
                 }
 
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -283,8 +283,11 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     // Obter os IDs dos distribuidores com pagamento em dia
     final distribuidoresIds = distribuidoresSnapshot.docs.map((doc) => doc.id).toList();
 
-    // Passo 2: Buscar todos os produtos
-    final produtosSnapshot = await FirebaseFirestore.instance.collectionGroup('produtos').get();
+    // Passo 2: Buscar todos os produtos que estão disponíveis (disponivel == true)
+    final produtosSnapshot = await FirebaseFirestore.instance
+        .collectionGroup('produtos')
+        .where('disponivel', isEqualTo: true)  // Filtro para pegar apenas produtos disponíveis
+        .get();
 
     // Filtrar produtos que pertencem a distribuidores com pagamento em dia
     final produtosValidos = produtosSnapshot.docs.where((produtoDoc) {

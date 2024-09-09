@@ -32,6 +32,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
   File? _productImage;
   String? _existingImageUrl;
   bool _isLoading = false;
+  bool _disponivel = true; 
   final TextEditingController _priceController = TextEditingController();
 
   final ImagePicker _picker = ImagePicker();
@@ -63,6 +64,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
           _productDescription = productData['description'];
           _productPrice = productData['price'];
           _existingImageUrl = productData['imageUrl'];
+          _disponivel = productData['disponivel'] ?? true;
 
           // Formatar o preço para exibição correta no campo
           _priceController.text = NumberFormat.currency(
@@ -114,7 +116,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
     );
 
     if (shouldEdit != true) {
-      return; // Se o usuário cancelar, simplesmente retorna sem editar
+      return;
     }
 
     if (_formKey.currentState!.validate()) {
@@ -125,16 +127,13 @@ class _EditProductScreenState extends State<EditProductScreen> {
       });
 
       try {
-        // Inicializar um mapa para as atualizações
         Map<String, dynamic> updateData = {};
 
-        // Verificar se o nome foi alterado
         if (_productName.isNotEmpty) {
           updateData['name'] = _productName;
           updateData['normalized_name'] = _productName.toLowerCase().trim();
         }
 
-        // Verificar se a marca foi alterada
         if (_productBrand.isNotEmpty) {
           updateData['marca'] = _productBrand;
           updateData['normalized_marca'] = primeiraMaiuscula(_productBrand.toLowerCase().trim());
@@ -145,20 +144,18 @@ class _EditProductScreenState extends State<EditProductScreen> {
           updateData['normalized_category'] = primeiraMaiuscula(_productCategory.toLowerCase().trim());
         }
 
-        // Verificar se a descrição foi alterada
         if (_productDescription.isNotEmpty) {
           updateData['description'] = _productDescription;
         }
 
-        // Verificar se o preço foi alterado
         if (_productPrice > 0.0) {
           updateData['price'] = _productPrice;
         }
 
-        // Atualizar a imagem no Firebase Storage se uma nova imagem foi escolhida
+        updateData['disponivel'] = _disponivel;
+
         if (_productImage != null) {
           if (_existingImageUrl != null) {
-            // Excluir a imagem antiga do Firebase Storage
             await FirebaseStorage.instance.refFromURL(_existingImageUrl!).delete();
           }
           final fileName = 'distribuidores/${widget.razaoSocialCnpj}/produtos/${widget.productId}.jpg';
@@ -168,7 +165,6 @@ class _EditProductScreenState extends State<EditProductScreen> {
           updateData['imageUrl'] = imageUrl;
         }
 
-        // Atualizar o produto no Firestore se houver alguma alteração
         if (updateData.isNotEmpty) {
           await FirebaseFirestore.instance
               .collection('distribuidores/${widget.razaoSocialCnpj}/produtos')
@@ -289,6 +285,17 @@ class _EditProductScreenState extends State<EditProductScreen> {
                       },
                     ),
                     const SizedBox(height: 20),
+                    SwitchListTile(
+                      title: const Text('Produto disponível'),
+                      value: _disponivel,
+                      onChanged: (bool value) {
+                        setState(() {
+                          _disponivel = value;
+                        });
+                      },
+                      activeColor: const Color.fromARGB(255, 236, 63, 121),  // Cor alterada
+                      controlAffinity: ListTileControlAffinity.leading,  // Botão à esquerda
+                    ),
                     GestureDetector(
                       onTap: _isLoading ? null : () => _pickProductImage(),
                       child: _productImage == null

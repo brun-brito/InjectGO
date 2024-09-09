@@ -5,7 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:inject_go/mercado_pago/mercado_pago.dart';
+import 'package:inject_go/mercado_pago/mensalidade_distribuidor.dart';
+import 'package:inject_go/mercado_pago/oauth_mp.dart';
 import 'package:inject_go/screens/login_screen.dart';
 import 'package:inject_go/subtelas/distribuidores/cadastra_produto.dart';
 import 'package:inject_go/subtelas/distribuidores/meus_produtos.dart';
@@ -28,7 +29,9 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
   bool _isLoading = false;
   bool _isPaymentUpToDate = false;
   bool _hasPaymentData = false;
-
+  bool _isAuthorized = false;
+  Map<String, dynamic>? _credenciaisMp;
+  
   @override
   void initState() {
     super.initState();
@@ -54,6 +57,8 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
         setState(() {
           _isPaymentUpToDate = distribuidorData['pagamento_em_dia'] ?? false;
           _hasPaymentData = distribuidorData.containsKey('dados_pagamento');
+          _credenciaisMp = distribuidorData['credenciais_mp'];  // Verifica se as credenciais do MP estão salvas
+          _isAuthorized = _credenciaisMp != null;
         });
 
         // Tentar carregar a foto do perfil
@@ -138,6 +143,41 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
             ),
           ),
         ),
+        if (_isPaymentUpToDate && !_isAuthorized)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MercadoPagoOAuthScreen(username: razaoSocialCnpj, userEmail: email),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.lock, color: Colors.white),
+                  label: const Text('Vincular Mercado Pago', style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    minimumSize: const Size(200, 50), // Define o tamanho menor do botão
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'Para criar e postar produtos, você precisa vincular sua conta do Mercado Pago. '
+                    'As vendas dos produtos serão processadas através dessa conta.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, color: Colors.red),
+                  ),
+                ),
+              ],
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 20),
           child: Column(
@@ -149,22 +189,22 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
                     child: Container(
                       margin: const EdgeInsets.symmetric(horizontal: 8),
                       decoration: BoxDecoration(
-                        border: Border.all(color: (_isPaymentUpToDate && _hasPaymentData)  ? Colors.blue : Colors.grey),
+                        border: Border.all(color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.blue : Colors.grey),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: TextButton.icon(
-                        icon: Icon(Icons.add_business, color: (_isPaymentUpToDate && _hasPaymentData) ? Colors.blue : Colors.grey),
+                        icon: Icon(Icons.add_business, color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.blue : Colors.grey),
                         label: FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
                             'Cadastrar Produto',
                             style: TextStyle(
-                              color: (_isPaymentUpToDate && _hasPaymentData) ? Colors.black : Colors.grey, 
+                              color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.black : Colors.grey, 
                               fontSize: 13,
                             ),
                           ),
                         ),
-                        onPressed: (_isPaymentUpToDate && _hasPaymentData) ? () => _navigateToProductRegistration(context) : null,
+                        onPressed: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? () => _navigateToProductRegistration(context) : null,
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.all(5),
                         ),
@@ -175,22 +215,79 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
                     child: Container(
                       margin: const EdgeInsets.symmetric(horizontal: 8),
                       decoration: BoxDecoration(
-                        border: Border.all(color: (_isPaymentUpToDate && _hasPaymentData) ? Colors.blue : Colors.grey),
+                        border: Border.all(color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.blue : Colors.grey),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: TextButton.icon(
-                        icon: Icon(Icons.add_business, color: (_isPaymentUpToDate && _hasPaymentData) ? Colors.blue : Colors.grey),
+                        icon: Icon(Icons.list, color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.blue : Colors.grey),
                         label: FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
                             'Meus Produtos',
                             style: TextStyle(
-                              color: (_isPaymentUpToDate && _hasPaymentData) ? Colors.black : Colors.grey, 
+                              color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.black : Colors.grey, 
                               fontSize: 13,
                             ),
                           ),
                         ),
-                        onPressed: (_isPaymentUpToDate && _hasPaymentData) ? () => _navigateToMyProducts(context) : null,
+                        onPressed: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? () => _navigateToMyProducts(context) : null,
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.all(5),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.blue : Colors.grey),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: TextButton.icon(
+                        icon: Icon(Icons.shopping_bag, color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.blue : Colors.grey),
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Vendas',
+                            style: TextStyle(
+                              color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.black : Colors.grey, 
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        onPressed: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? () => _navigateToMyProducts(context) : null,
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.all(5),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.blue : Colors.grey),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: TextButton.icon(
+                        icon: Icon(Icons.analytics, color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.blue : Colors.grey),
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Métricas',
+                            style: TextStyle(
+                              color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.black : Colors.grey, 
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        onPressed: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? () => _navigateToMyProducts(context) : null,
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.all(5),
                         ),
@@ -214,7 +311,7 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => SubscriptionScreen(userId: razaoSocialCnpj, userEmail: email,)),
+                        MaterialPageRoute(builder: (context) => SubscriptionScreen(userId: razaoSocialCnpj, userEmail: email)),
                       );
                     },
                     icon: const Icon(
