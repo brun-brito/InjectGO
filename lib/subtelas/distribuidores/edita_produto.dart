@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:inject_go/formatadores/formata_moeda.dart';
 import 'package:inject_go/formatadores/formata_string.dart';
+import 'package:inject_go/mercado_pago/edita_produto_mp.dart';
 import 'package:intl/intl.dart';
 
 class EditProductScreen extends StatefulWidget {
@@ -34,8 +36,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
   bool _isLoading = false;
   bool _disponivel = true; 
   final TextEditingController _priceController = TextEditingController();
-
   final ImagePicker _picker = ImagePicker();
+  var firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
@@ -50,7 +52,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
     try {
       // Carregar os dados do produto do Firestore
-      var productSnapshot = await FirebaseFirestore.instance
+      var productSnapshot = await firestore
           .collection('distribuidores/${widget.razaoSocialCnpj}/produtos')
           .doc(widget.productId)
           .get();
@@ -153,6 +155,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
         }
 
         updateData['disponivel'] = _disponivel;
+        updateData['ultima_edicao'] = Timestamp.now();
 
         if (_productImage != null) {
           if (_existingImageUrl != null) {
@@ -165,18 +168,69 @@ class _EditProductScreenState extends State<EditProductScreen> {
           updateData['imageUrl'] = imageUrl;
         }
 
-        if (updateData.isNotEmpty) {
-          await FirebaseFirestore.instance
-              .collection('distribuidores/${widget.razaoSocialCnpj}/produtos')
-              .doc(widget.productId)
-              .update(updateData);
+        // Buscar as credenciais e dados do distribuidor
+        final distributorDoc = await firestore
+            .collection('distribuidores')
+            .doc(widget.razaoSocialCnpj)
+            .collection('produtos') 
+            .doc(widget.productId)
+            .get();
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Produto atualizado com sucesso!')),
-          );
+        final distributorInfoDoc = await firestore
+            .collection('distribuidores')
+            .doc(widget.razaoSocialCnpj)
+            .get();
+
+        final distributorAccessToken = distributorInfoDoc.data()!['credenciais_mp']['access_token'];
+        final produtoMpId = distributorDoc.data()!['produto_mp']['id'];
+        final marketplace = dotenv.env['MERCADO_PAGO_ACCESS_TOKEN'];
+        final String? taxaStr = dotenv.env['TAXA_MERCADO_PAGO'];
+        final double? taxa = double.tryParse(taxaStr ?? '0');
+        final fee = _productPrice * taxa!;
+
+        // Criar a instância de edição no Mercado Pago
+        final mpEditProduct = EditProductMpScreen(
+          mpProductId: produtoMpId,    // id do Mercado Pago
+          productId: widget.productId, // id do Firestore
+          updatedName: _productName,
+          updatedDescription: _productDescription,
+          updatedImageUrl: _productImage != null ? updateData['imageUrl'] : _existingImageUrl!,
+          updatedNormalizedCategory: _productCategory,
+          updatedPrice: _productPrice,
+          updatedMarketplaceFee: fee,
+          distributorAccessToken: distributorAccessToken,
+          marketplace: marketplace,
+        );
+
+        // Verificar se a edição no Mercado Pago foi bem-sucedida
+        bool successInMp = await mpEditProduct.editProductInMp();
+        if (successInMp) {
+          // Se a edição no Mercado Pago funcionar, atualizar também no Firestore
+          if (updateData.isNotEmpty) {
+            await firestore
+                .collection('distribuidores/${widget.razaoSocialCnpj}/produtos')
+                .doc(widget.productId)
+                .update(updateData);
+
+            // Atualizar apenas o campo marketplace_fee em produto_mp
+            await firestore
+                .collection('distribuidores/${widget.razaoSocialCnpj}/produtos')
+                .doc(widget.productId)
+                .update({
+              'produto_mp.marketplace_fee': fee,
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Produto atualizado com sucesso!')),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Nenhuma alteração detectada.')),
+            );
+          }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Nenhuma alteração detectada.')),
+            const SnackBar(content: Text('Erro ao atualizar produto no Mercado Pago.')),
           );
         }
 

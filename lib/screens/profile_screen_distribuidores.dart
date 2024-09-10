@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:inject_go/mercado_pago/mensalidade_distribuidor.dart';
+import 'package:inject_go/mercado_pago/mensalidade_distribuidor_mp.dart';
 import 'package:inject_go/mercado_pago/oauth_mp.dart';
 import 'package:inject_go/screens/login_screen.dart';
 import 'package:inject_go/subtelas/distribuidores/cadastra_produto.dart';

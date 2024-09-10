@@ -2,13 +2,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:inject_go/mercado_pago/comprar_produto.dart';
+import 'package:inject_go/mercado_pago/comprar_produto_mp.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
   final String distributorPath;
+  final String email;
 
-  const ProductDetailScreen({super.key, required this.productId, required this.distributorPath});
+  const ProductDetailScreen({super.key, required this.productId, required this.distributorPath, required this.email});
 
   @override
   _ProductDetailScreenState createState() => _ProductDetailScreenState();
@@ -123,7 +124,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ProductPurchaseScreen(initPoint: product['produto_mp']['init_point']),
+                        builder: (context) => ProductPurchaseScreen(initPoint: product['produto_mp']['init_point'], productId: widget.productId, userEmail: widget.email,),
                       ),
                     );
                   },

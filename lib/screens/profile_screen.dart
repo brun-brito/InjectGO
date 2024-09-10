@@ -5,7 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:inject_go/subtelas/profissionais/mercado/produtos.dart';
+import 'package:inject_go/subtelas/profissionais/mercado/exibe_produtos.dart';
+import 'package:inject_go/subtelas/profissionais/minhas_compras.dart';
 import 'package:inject_go/subtelas/profissionais/speaker.dart';
 import 'package:inject_go/subtelas/profissionais/arquivos.dart';
 import 'package:inject_go/subtelas/profissionais/editar_dados.dart';
@@ -239,7 +240,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const MarketplaceScreen()),
+                              MaterialPageRoute(builder: (context) => MarketplaceScreen(email: widget.username)),
                             );
                           },
                           style: TextButton.styleFrom(
@@ -249,6 +250,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MinhasComprasScreen(userEmail: widget.username),
+                      ),
+                    );
+                  },
+                  icon: const Icon(
+                    Icons.shopping_bag,
+                    color: Colors.white,
+                  ),
+                  label: const Text(
+                    'Minhas Compras',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    textStyle: const TextStyle(fontSize: 16),
+                  ),
                 ),
               ),
             ],

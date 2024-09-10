@@ -2,9 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:inject_go/subtelas/profissionais/mercado/detalhes_produtos.dart';
+import 'package:inject_go/formatadores/formata_string.dart';
 
 class MarketplaceScreen extends StatefulWidget {
-  const MarketplaceScreen({super.key});
+  final String email;
+
+  const MarketplaceScreen({super.key, required this.email});
 
   @override
   _MarketplaceScreenState createState() => _MarketplaceScreenState();
@@ -13,22 +16,55 @@ class MarketplaceScreen extends StatefulWidget {
 class _MarketplaceScreenState extends State<MarketplaceScreen> {
   String searchQuery = '';
   String _selectedFilter = 'name_asc';
-  String? _selectedBrand = 'Todos';
+  String _selectedBrand = 'Todos';
+  String _selectedCategory = 'Todas';
   List<String> _availableBrands = ['Todos'];
+  List<String> _availableCategories = ['Todas'];
   final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    fetchBrands();
+    fetchFilters();
   }
 
-  Future<void> fetchBrands() async {
-    final querySnapshot = await FirebaseFirestore.instance.collectionGroup('produtos').get();
-    final brands = querySnapshot.docs.map((doc) => doc['marca'] as String).toSet().toList();
+  Future<void> fetchFilters() async {
+    // Passo 1: Buscar todos os distribuidores com pagamento em dia
+    final distribuidoresSnapshot = await FirebaseFirestore.instance
+        .collection('distribuidores')
+        .where('pagamento_em_dia', isEqualTo: true)
+        .get();
+
+    // Obter os IDs dos distribuidores com pagamento em dia
+    final distribuidoresIds = distribuidoresSnapshot.docs.map((doc) => doc.id).toList();
+
+    // Passo 2: Buscar todos os produtos disponíveis (disponivel == true) que pertencem a esses distribuidores
+    final produtosSnapshot = await FirebaseFirestore.instance
+        .collectionGroup('produtos')
+        .where('disponivel', isEqualTo: true)
+        .get();
+
+    // Filtrar produtos que pertencem a distribuidores com pagamento em dia
+    final produtosValidos = produtosSnapshot.docs.where((produtoDoc) {
+      final parentDistribuidorId = produtoDoc.reference.parent.parent?.id;
+      return distribuidoresIds.contains(parentDistribuidorId);
+    }).toList();
+
+    // Obter e normalizar as marcas
+    final brands = produtosValidos
+        .map((doc) => primeiraMaiuscula(doc['marca'].toString().toLowerCase().trim()))  // Normaliza as marcas
+        .toSet()
+        .toList();
+
+    // Obter e normalizar as categorias
+    final categories = produtosValidos
+        .map((doc) => primeiraMaiuscula(doc['categoria'].toString().toLowerCase().trim()))  // Normaliza as categorias
+        .toSet()
+        .toList();
 
     setState(() {
       _availableBrands = ['Todos', ...brands];
+      _availableCategories = ['Todas', ...categories];
     });
   }
 
@@ -75,55 +111,135 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
             child: Row(
               children: [
                 Expanded(
-                  child: DropdownButton<String>(
-                    value: _selectedFilter,
-                    isExpanded: true,
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'name_asc',
-                        child: Text('Nome (A-Z)'),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Filtrar por Marca:',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
                       ),
-                      DropdownMenuItem(
-                        value: 'name_desc',
-                        child: Text('Nome (Z-A)'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'price_asc',
-                        child: Text('Preço (Menor-Maior)'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'price_desc',
-                        child: Text('Preço (Maior-Menor)'),
+                      DropdownButton<String>(
+                        value: _selectedBrand,
+                        isExpanded: true,
+                        items: _availableBrands.map((brand) {
+                          return DropdownMenuItem<String>(
+                            value: brand,
+                            child: Text(brand),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedBrand = value!;
+                          });
+                        },
+                        underline: Container(
+                          height: 1,
+                          color: Colors.grey,
+                        ),
                       ),
                     ],
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedFilter = value!;
-                      });
-                    },
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 16),
                 Expanded(
-                  child: DropdownButton<String>(
-                    value: _selectedBrand,
-                    isExpanded: true,
-                    hint: const Text('Filtre por marca'),
-                    items: _availableBrands.map((brand) {
-                      return DropdownMenuItem<String>(
-                        value: brand,
-                        child: Text(brand),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedBrand = value;
-                      });
-                    },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Filtrar por Categoria:',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                      ),
+                      DropdownButton<String>(
+                        value: _selectedCategory,
+                        isExpanded: true,
+                        items: _availableCategories.map((category) {
+                          return DropdownMenuItem<String>(
+                            value: category,
+                            child: Text(category),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedCategory = value!;
+                          });
+                        },
+                        underline: Container(
+                          height: 1,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Ordenar por:',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                ),
+                DropdownButton<String>(
+                  value: _selectedFilter,
+                  isExpanded: true,
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'name_asc',
+                      child: Row(
+                        children: [
+                          Icon(Icons.filter_alt_outlined),
+                          SizedBox(width: 8),
+                          Text('Nome (A-Z)'),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'name_desc',
+                      child: Row(
+                        children: [
+                          Icon(Icons.filter_alt_outlined),
+                          SizedBox(width: 8),
+                          Text('Nome (Z-A)'),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'price_asc',
+                      child: Row(
+                        children: [
+                          Icon(Icons.filter_alt_outlined),
+                          SizedBox(width: 8),
+                          Text('Preço (Menor-Maior)'),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'price_desc',
+                      child: Row(
+                        children: [
+                          Icon(Icons.filter_alt_outlined),
+                          SizedBox(width: 8),
+                          Text('Preço (Maior-Menor)'),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedFilter = value!;
+                    });
+                  },
+                  underline: Container(
+                    height: 1,
+                    color: Colors.grey,
                   ),
                 ),
               ],
@@ -146,15 +262,17 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                   return const Center(child: Text('Nenhum produto disponível.'));
                 }
 
-                // Filtrar produtos com base no searchQuery e _selectedBrand
+                // Filtrar produtos com base no searchQuery, _selectedBrand e _selectedCategory
                 var products = snapshot.data!.where((doc) {
                   final productName = doc['name'].toString().toLowerCase();
                   final productBrand = doc['marca'].toString().toLowerCase();
+                  final productCategory = doc['categoria'].toString().toLowerCase();
 
                   final matchesSearchQuery = productName.contains(searchQuery);
-                  final matchesBrand = _selectedBrand == 'Todos' || productBrand == _selectedBrand!.toLowerCase();
+                  final matchesBrand = _selectedBrand == 'Todos' || productBrand == _selectedBrand.toLowerCase();
+                  final matchesCategory = _selectedCategory == 'Todas' || productCategory == _selectedCategory.toLowerCase();
 
-                  return matchesSearchQuery && matchesBrand;
+                  return matchesSearchQuery && matchesBrand && matchesCategory;
                 }).toList();
 
                 // Aplicar ordenação com base no _selectedFilter
@@ -196,6 +314,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                             builder: (context) => ProductDetailScreen(
                               productId: product['id'],
                               distributorPath: product.reference.parent.parent!.path,
+                              email: widget.email,
                             ),
                           ),
                         );
@@ -212,7 +331,8 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                               child: ClipRRect(
                                 borderRadius: const BorderRadius.only(
                                   topLeft: Radius.circular(15),
-                                  topRight: Radius.circular(15),
+                                  topRight: Radius.circular
+(15),
                                 ),
                                 child: Image.network(
                                   product['imageUrl'],
@@ -274,7 +394,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   }
 
   Future<List<QueryDocumentSnapshot>> fetchProducts() async {
-    // Passo 1: Buscar todos os distribuidores com pagamento em dia
     final distribuidoresSnapshot = await FirebaseFirestore.instance
         .collection('distribuidores')
         .where('pagamento_em_dia', isEqualTo: true)

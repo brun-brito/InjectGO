@@ -7,7 +7,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:inject_go/formatadores/formata_moeda.dart';
 import 'package:inject_go/formatadores/formata_string.dart';
-import 'package:inject_go/mercado_pago/produto_distribuidor.dart';
+import 'package:inject_go/mercado_pago/cadastra_produto_mp.dart';
+import 'package:inject_go/subtelas/distribuidores/meus_produtos.dart';
 
 class ProductRegistrationScreen extends StatefulWidget {
   final String username;
@@ -195,7 +196,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
       });
 
       try {
-        // Buscar a 'razao_social' e 'cnpj' do distribuidor pelo email
+        // 1. Buscar a 'razao_social' e 'cnpj' do distribuidor pelo email
         var distribuidorSnapshot = await FirebaseFirestore.instance
             .collection('distribuidores')
             .where('email', isEqualTo: widget.username)
@@ -205,10 +206,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
         if (distribuidorSnapshot.docs.isNotEmpty) {
           var distribuidorData = distribuidorSnapshot.docs.first.data();
           String razaoSocialCnpj = '${distribuidorData['razao_social']} - ${distribuidorData['cnpj']}';
-
-          // Gera um ID único para o produto
           String productId = FirebaseFirestore.instance.collection('distribuidores/$razaoSocialCnpj/produtos').doc().id;
-
           String imageUrl = '';
           if (_productImage != null) {
             final fileName = 'distribuidores/$razaoSocialCnpj/produtos/$productId.jpg';
@@ -216,32 +214,14 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
             await storageRef.putFile(_productImage!);
             imageUrl = await storageRef.getDownloadURL();
           }
-
-          // Salvando o produto na coleção correta
-          await FirebaseFirestore.instance.collection('distribuidores/$razaoSocialCnpj/produtos').doc(productId).set({
-            'id': productId,
-            'name': _productName.trim(),
-            'normalized_name': _productName.toLowerCase().trim(),
-            'description': _productDescription,
-            'marca': _productBrand.trim(),
-            'normalized_marca': primeiraMaiuscula(_productBrand.toLowerCase().trim()), // Marca normalizada
-            'categoria': _productCategory.trim(),
-            'normalized_category': primeiraMaiuscula(_productCategory.toLowerCase().trim()), // Categoria normalizada
-            'price': _productPrice,
-            'imageUrl': imageUrl,
-            'username': widget.username,
-            'createdAt': Timestamp.now(),
-            'disponivel': true,
-          });
-
           final String accessTokenVendedor = distribuidorData['credenciais_mp']['access_token'];
           final String marketplace = dotenv.env['MERCADO_PAGO_ACCESS_TOKEN'] ?? '';
-
           final mercadoPagoService = MercadoPagoService(
             marketplace: marketplace,
           );
 
-          await mercadoPagoService.criarPreferenciaProduto(
+          // Primeiro tenta criar a preferência no Mercado Pago
+          final Map<String, dynamic> mercadoPagoData = await mercadoPagoService.criarPreferenciaProduto(
             productId: productId,
             name: _productName,
             description: _productDescription,
@@ -249,21 +229,41 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
             normalizedCategory: primeiraMaiuscula(_productCategory.toLowerCase().trim()),
             price: _productPrice,
             username: razaoSocialCnpj,
-            accessTokenVendedor: accessTokenVendedor,  // Token do vendedor no Header
+            accessTokenVendedor: accessTokenVendedor,
           );
+
+          // 3. Se a criação no Mercado Pago for bem-sucedida, salvar o produto no Firebase
+          await FirebaseFirestore.instance.collection('distribuidores/$razaoSocialCnpj/produtos').doc(productId).set({
+            'id': productId,
+            'name': _productName.trim(),
+            'normalized_name': _productName.toLowerCase().trim(),
+            'description': _productDescription,
+            'marca': _productBrand.trim(),
+            'normalized_marca': primeiraMaiuscula(_productBrand.toLowerCase().trim()),
+            'categoria': _productCategory.trim(),
+            'normalized_category': primeiraMaiuscula(_productCategory.toLowerCase().trim()),
+            'price': _productPrice,
+            'imageUrl': imageUrl,
+            'username': widget.username,
+            'createdAt': Timestamp.now(),
+            'disponivel': true,
+            'produto_mp': mercadoPagoData, // Salvar os dados retornados do Mercado Pago
+          });
 
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Produto cadastrado com sucesso!')),
           );
 
-          Navigator.pop(context);
+          Navigator.push(context,MaterialPageRoute(builder: (context) => MyProductsScreen(username: widget.username)));
         } else {
           throw 'Distribuidor não encontrado';
         }
       } catch (e) {
+        // 4. Se ocorrer algum erro no processo, nada será salvo no Firebase e o erro será exibido
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro ao cadastrar produto: $e')),
         );
+
       }
 
       setState(() {
