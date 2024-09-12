@@ -363,7 +363,7 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
   Future<void> _navigateToProductRegistration(BuildContext context) async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => ProductRegistrationScreen(username: widget.username)),
+      MaterialPageRoute(builder: (context) => ProductRegistrationScreen(username: widget.username, doc: razaoSocialCnpj)),
     );
   }
 

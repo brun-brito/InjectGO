@@ -34,10 +34,12 @@ class _EditProductScreenState extends State<EditProductScreen> {
   File? _productImage;
   String? _existingImageUrl;
   bool _isLoading = false;
-  bool _disponivel = true; 
+  bool _disponivel = true;
   final TextEditingController _priceController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   var firestore = FirebaseFirestore.instance;
+  var storage = FirebaseStorage.instance;
+  final String defaultImageUrl = dotenv.env['PATH_IMAGE_DEFAULT'] ?? '';
 
   @override
   void initState() {
@@ -51,7 +53,6 @@ class _EditProductScreenState extends State<EditProductScreen> {
     });
 
     try {
-      // Carregar os dados do produto do Firestore
       var productSnapshot = await firestore
           .collection('distribuidores/${widget.razaoSocialCnpj}/produtos')
           .doc(widget.productId)
@@ -68,7 +69,6 @@ class _EditProductScreenState extends State<EditProductScreen> {
           _existingImageUrl = productData['imageUrl'];
           _disponivel = productData['disponivel'] ?? true;
 
-          // Formatar o preço para exibição correta no campo
           _priceController.text = NumberFormat.currency(
             locale: 'pt_BR',
             symbol: '',
@@ -157,22 +157,28 @@ class _EditProductScreenState extends State<EditProductScreen> {
         updateData['disponivel'] = _disponivel;
         updateData['ultima_edicao'] = Timestamp.now();
 
+        // Lógica de atualização da imagem
         if (_productImage != null) {
-          if (_existingImageUrl != null) {
-            await FirebaseStorage.instance.refFromURL(_existingImageUrl!).delete();
-          }
           final fileName = 'distribuidores/${widget.razaoSocialCnpj}/produtos/${widget.productId}.jpg';
-          final storageRef = FirebaseStorage.instance.ref().child(fileName);
+          final storageRef = storage.ref().child(fileName);
+
+          // Faça o upload da nova imagem
           await storageRef.putFile(_productImage!);
           String imageUrl = await storageRef.getDownloadURL();
           updateData['imageUrl'] = imageUrl;
+
+          // Excluir a imagem anterior apenas se ela não for a imagem padrão
+          if (_existingImageUrl != null &&
+              _existingImageUrl != defaultImageUrl && 
+              _existingImageUrl!.isNotEmpty) {
+            await storage.refFromURL(_existingImageUrl!).delete();
+          }
         }
 
-        // Buscar as credenciais e dados do distribuidor
         final distributorDoc = await firestore
             .collection('distribuidores')
             .doc(widget.razaoSocialCnpj)
-            .collection('produtos') 
+            .collection('produtos')
             .doc(widget.productId)
             .get();
 
@@ -188,7 +194,6 @@ class _EditProductScreenState extends State<EditProductScreen> {
         final double? taxa = double.tryParse(taxaStr ?? '0');
         final fee = _productPrice * taxa!;
 
-        // Criar a instância de edição no Mercado Pago
         final mpEditProduct = EditProductMpScreen(
           mpProductId: produtoMpId,    // id do Mercado Pago
           productId: widget.productId, // id do Firestore
@@ -202,17 +207,14 @@ class _EditProductScreenState extends State<EditProductScreen> {
           marketplace: marketplace,
         );
 
-        // Verificar se a edição no Mercado Pago foi bem-sucedida
         bool successInMp = await mpEditProduct.editProductInMp();
         if (successInMp) {
-          // Se a edição no Mercado Pago funcionar, atualizar também no Firestore
           if (updateData.isNotEmpty) {
             await firestore
                 .collection('distribuidores/${widget.razaoSocialCnpj}/produtos')
                 .doc(widget.productId)
                 .update(updateData);
 
-            // Atualizar apenas o campo marketplace_fee em produto_mp
             await firestore
                 .collection('distribuidores/${widget.razaoSocialCnpj}/produtos')
                 .doc(widget.productId)

@@ -2,7 +2,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:inject_go/formatadores/formata_string.dart';
+import 'package:inject_go/screens/profile_screen_distribuidores.dart';
 import 'package:inject_go/subtelas/distribuidores/edita_produto.dart';
 import 'package:inject_go/subtelas/distribuidores/cadastra_produto.dart';
 
@@ -18,15 +20,28 @@ class MyProductsScreen extends StatefulWidget {
 class _MyProductsScreenState extends State<MyProductsScreen> {
   String _selectedFilter = 'name_asc';
   String _selectedBrand = 'Todos';
-  String _selectedCategory = 'Todas'; // Novo filtro para categoria
+  String _selectedCategory = 'Todas';
+  String razaoSocialCnpj = '';
   final Map<String, bool> _isDeleteIconClicked = {};
+  final String defaultImageUrl = dotenv.env['PATH_IMAGE_DEFAULT'] ?? '';
 
   @override
-  Widget build(BuildContext context) {
+    Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Meus Produtos'),
         centerTitle: true,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ProfileScreenDistribuidor(username: widget.username),
+              ),
+            );
+          },
+        ),
       ),
       body: Column(
         children: [
@@ -45,10 +60,10 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => ProductRegistrationScreen(username: widget.username)),
+                  MaterialPageRoute(builder: (context) => ProductRegistrationScreen(username: widget.username, doc: razaoSocialCnpj)),
                 );
               },
-              child:Text('Adiconar Produto'),
+              child:Text('Adicionar Produto'),
             ),
           ),
         ],
@@ -67,7 +82,7 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
           return Center(child: Text('Erro: ${snapshot.error}'));
         }
 
-        String razaoSocialCnpj = snapshot.data!;
+        razaoSocialCnpj = snapshot.data!;
 
         return FutureBuilder<Map<String, List<String>>>(
           future: _fetchAvailableFilters(razaoSocialCnpj), // Atualizado para buscar marca e categoria
@@ -395,8 +410,10 @@ class _MyProductsScreenState extends State<MyProductsScreen> {
     }
 
     try {
-      final storageRef = FirebaseStorage.instance.refFromURL(imageUrl);
-      await storageRef.delete();
+      if (imageUrl != defaultImageUrl) {
+        final storageRef = FirebaseStorage.instance.refFromURL(imageUrl);
+        await storageRef.delete();
+      }
       await FirebaseFirestore.instance.collection('distribuidores/$razaoSocialCnpj/produtos').doc(productId).delete();
       
       ScaffoldMessenger.of(context).showSnackBar(

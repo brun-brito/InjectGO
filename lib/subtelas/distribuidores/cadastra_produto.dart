@@ -8,12 +8,14 @@ import 'package:image_picker/image_picker.dart';
 import 'package:inject_go/formatadores/formata_moeda.dart';
 import 'package:inject_go/formatadores/formata_string.dart';
 import 'package:inject_go/mercado_pago/cadastra_produto_mp.dart';
+import 'package:inject_go/subtelas/distribuidores/importa_csv.dart';
 import 'package:inject_go/subtelas/distribuidores/meus_produtos.dart';
 
 class ProductRegistrationScreen extends StatefulWidget {
   final String username;
+  final String doc;
 
-  const ProductRegistrationScreen({super.key, required this.username});
+  const ProductRegistrationScreen({super.key, required this.username, required this.doc});
 
   @override
   _ProductRegistrationScreenState createState() => _ProductRegistrationScreenState();
@@ -161,6 +163,22 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
                         : const Text('Cadastrar'),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.pink,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ImportCSVScreen(username: widget.username, doc: widget.doc,), // Navegar para a tela de importação CSV
+                        ),
+                      );
+                    },
+                    child: const Text('Importar Produtos via CSV'),
                   ),
                 ],
               ),
