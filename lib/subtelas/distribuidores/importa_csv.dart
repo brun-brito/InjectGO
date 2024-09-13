@@ -1,3 +1,5 @@
+// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -49,7 +51,6 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
         );
       }
     } catch (e) {
-      print(e);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao selecionar arquivo: $e')),
       );
@@ -79,7 +80,6 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
           // Tentar ler o arquivo como UTF-8
           content = await file.readAsString(encoding: utf8);
         } catch (e) {
-          print('Erro com UTF-8, tentando com latin1...');
           // Se falhar, tenta com latin1
           content = await file.readAsString(encoding: latin1);
         }
@@ -96,7 +96,6 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
 
         await _cadastrarProdutos();
       } catch (e) {
-        print('Erro ao importar arquivo: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro ao importar arquivo: $e')),
         );
@@ -137,10 +136,10 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text('Produtos cadastrados: $produtosCadastrados / $totalProdutos'),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   LinearProgressIndicator(
                     value: progress,
-                    color: Color.fromARGB(255, 236, 63, 121),
+                    color: const Color.fromARGB(255, 236, 63, 121),
                     backgroundColor: Colors.grey[300],
                   ),
                 ],
@@ -248,7 +247,7 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
             progressStream.add(progress);
 
             // Delay para permitir que a UI seja atualizada entre as iterações
-            await Future.delayed(Duration(milliseconds: 100));
+            await Future.delayed(const Duration(milliseconds: 100));
           } catch (e) {
             temErro = true;
             produtosComErro.add("Erro ao cadastrar o produto na posição $i: $e");
@@ -356,7 +355,7 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
                   text: TextSpan(
                     children: [
                       TextSpan(
-                        text: erroParts[0] + ': ', // Exibe a mensagem de erro
+                        text: '${erroParts[0]}: ', // Exibe a mensagem de erro
                         style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                       ),
                       TextSpan(
@@ -412,7 +411,7 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
                   onPressed: () {
                     Navigator.push(context, MaterialPageRoute(builder: (context) => MyProductsScreen(username: widget.username)));
                   },
-                  child: Text('OK'),
+                  child: const Text('OK'),
                 ),
               ],
             );
@@ -440,7 +439,7 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
                 onPressed: () {
                   Navigator.of(context).pop(); // Fecha o aviso de cancelamento
                 },
-                child: Text('OK'),
+                child: const Text('OK'),
               ),
             ],
           );

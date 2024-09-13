@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:inject_go/mercado_pago/comprar_produto_mp.dart';
+import 'package:inject_go/subtelas/profissionais/mercado/formulario_endereco.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -124,7 +124,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ProductPurchaseScreen(initPoint: product['produto_mp']['init_point'], productId: widget.productId, userEmail: widget.email,),
+                        builder: (context) => AddressFormScreen(
+                          initPoint: product['produto_mp']['init_point'],
+                          productId: widget.productId,
+                          userEmail: widget.email,
+                        ),
                       ),
                     );
                   },

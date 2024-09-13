@@ -10,6 +10,8 @@ import 'package:inject_go/mercado_pago/oauth_mp.dart';
 import 'package:inject_go/screens/login_screen.dart';
 import 'package:inject_go/subtelas/distribuidores/cadastra_produto.dart';
 import 'package:inject_go/subtelas/distribuidores/meus_produtos.dart';
+import 'package:inject_go/subtelas/distribuidores/minhas_vendas.dart';
+import 'package:badges/badges.dart' as badges;
 
 class ProfileScreenDistribuidor extends StatefulWidget {
   final String username;
@@ -204,7 +206,7 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
                             ),
                           ),
                         ),
-                        onPressed: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? () => _navigateToProductRegistration(context) : null,
+                        onPressed: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? () => _navigateToProductRegistration() : null,
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.all(5),
                         ),
@@ -230,7 +232,7 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
                             ),
                           ),
                         ),
-                        onPressed: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? () => _navigateToMyProducts(context) : null,
+                        onPressed: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? () => _navigateToMyProducts() : null,
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.all(5),
                         ),
@@ -246,54 +248,96 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
                     child: Container(
                       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                       decoration: BoxDecoration(
-                        border: Border.all(color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.blue : Colors.grey),
+                        border: Border.all(
+                          color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.blue : Colors.grey,
+                        ),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: TextButton.icon(
-                        icon: Icon(Icons.shopping_bag, color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.blue : Colors.grey),
-                        label: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            'Vendas',
-                            style: TextStyle(
-                              color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.black : Colors.grey, 
-                              fontSize: 13,
+                      child: StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('distribuidores')
+                            .doc(razaoSocialCnpj)
+                            .collection('vendas')
+                            .where('status', isEqualTo: 'solicitado')
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          int pedidosPendentes = snapshot.hasData ? snapshot.data!.docs.length : 0;
+
+                          return badges.Badge(
+                            showBadge: pedidosPendentes > 0,
+                            badgeContent: Text(
+                              pedidosPendentes.toString(),
+                              style: const TextStyle(color: Colors.white, fontSize: 12),
                             ),
-                          ),
-                        ),
-                        onPressed: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? () => _navigateToMyProducts(context) : null,
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.all(5),
-                        ),
+                            
+                              badgeColor: Colors.red,  // Cor do badge
+                              elevation: 0,
+                              padding: const EdgeInsets.all(6),
+                            
+                            position: badges.BadgePosition.topEnd(top: -10, end: -10),
+                            child: TextButton.icon(
+                              icon: Icon(
+                                Icons.shopping_bag_rounded,
+                                color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.blue : Colors.grey,
+                              ),
+                              label: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  'Pedidos',
+                                  style: TextStyle(
+                                    color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.black : Colors.grey,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                              onPressed: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized)
+                                  ? () => _navigateToMinhasVendas()
+                                  : null,
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.all(5),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ),
-                  Expanded(
+                Expanded(
+                  child: Opacity(
+                    opacity: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? 1.0 : 0.6, // Opacidade mais baixa se o botão estiver desativado
                     child: Container(
                       margin: const EdgeInsets.symmetric(horizontal: 8),
                       decoration: BoxDecoration(
-                        border: Border.all(color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.blue : Colors.grey),
+                        border: Border.all(
+                          color:  Colors.grey/*(_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.blue : Colors.grey*/,
+                        ),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: TextButton.icon(
-                        icon: Icon(Icons.analytics, color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.blue : Colors.grey),
-                        label: FittedBox(
+                        icon: const Icon(
+                          Icons.analytics,
+                          color:  Colors.grey/*(_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.blue : Colors.grey*/,
+                        ),
+                        label: const FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
                             'Métricas',
                             style: TextStyle(
-                              color: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.black : Colors.grey, 
+                              color:  Colors.grey/*(_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? Colors.black : Colors.grey*/,
                               fontSize: 13,
                             ),
                           ),
                         ),
-                        onPressed: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? () => _navigateToMyProducts(context) : null,
+                        onPressed: /*(_isPaymentUpToDate && _hasPaymentData && _isAuthorized)
+                            ? () => _navigateToMetricas(context)
+                            : */null, // Desativa o botão
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.all(5),
                         ),
                       ),
                     ),
                   ),
+                ),
                 ],
               ),
               if (!(_isPaymentUpToDate && _hasPaymentData)) ...[
@@ -344,13 +388,20 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
     );
   }
 
-  Future<void> _navigateToMyProducts(BuildContext context) async {
+  Future<void> _navigateToMyProducts() async {
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => MyProductsScreen(username: widget.username)),
     );
   }
 
+  Future<void> _navigateToMinhasVendas() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => MinhasVendasScreen(id: razaoSocialCnpj)),
+    );
+  }
+  
   Future<void> logout(BuildContext context) async {
     await FirebaseAuth.instance.signOut();
     Navigator.pushAndRemoveUntil(
@@ -360,7 +411,7 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
     );
   }
 
-  Future<void> _navigateToProductRegistration(BuildContext context) async {
+  Future<void> _navigateToProductRegistration() async {
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => ProductRegistrationScreen(username: widget.username, doc: razaoSocialCnpj)),
