@@ -31,8 +31,8 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
   File? _productImage;
   bool _isLoading = false; 
   var _priceController;
-
   final ImagePicker _picker = ImagePicker();
+  int _availableQuantity = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -118,6 +118,43 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
                       
                       if (sanitizedValue.isEmpty || double.tryParse(sanitizedValue) == null) {
                         return 'Por favor, insira um preço válido';
+                      }
+                      return null;
+                    },
+                  ),
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText: 'Quantidade Disponível',
+                      suffixIcon: IconButton(
+                        icon: Icon(Icons.info_outline),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: Text('Atenção!'),
+                                content: Text('A quantidade disponível será automaticamente descontada a cada compra. Quando chegar a zero, o produto será desativado. Para ativá-lo novamente, será necessário adicionar mais unidades.'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
+                                    child: Text('Ok'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    keyboardType: TextInputType.number,
+                    onSaved: (value) {
+                      _availableQuantity = int.tryParse(value ?? '0') ?? 0;
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty || int.tryParse(value) == null) {
+                        return 'Por favor, insira uma quantidade válida';
                       }
                       return null;
                     },
@@ -244,7 +281,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
             name: _productName,
             description: _productDescription,
             imageUrl: imageUrl,
-            normalizedCategory: primeiraMaiuscula(_productCategory.toLowerCase().trim()),
+            category: primeiraMaiuscula(_productCategory.trim()),
             price: _productPrice,
             username: razaoSocialCnpj,
             accessTokenVendedor: accessTokenVendedor,
@@ -253,18 +290,16 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
           // 3. Se a criação no Mercado Pago for bem-sucedida, salvar o produto no Firebase
           await FirebaseFirestore.instance.collection('distribuidores/$razaoSocialCnpj/produtos').doc(productId).set({
             'id': productId,
-            'name': _productName.trim(),
-            'normalized_name': _productName.toLowerCase().trim(),
+            'name': primeiraMaiuscula(_productName.trim()),
             'description': _productDescription,
-            'marca': _productBrand.trim(),
-            'normalized_marca': primeiraMaiuscula(_productBrand.toLowerCase().trim()),
-            'categoria': _productCategory.trim(),
-            'normalized_category': primeiraMaiuscula(_productCategory.toLowerCase().trim()),
+            'marca': primeiraMaiuscula(_productBrand.trim()),
+            'categoria': primeiraMaiuscula(_productCategory.trim()),
             'price': _productPrice,
             'imageUrl': imageUrl,
             'username': widget.username,
             'createdAt': Timestamp.now(),
-            'disponivel': true,
+            'disponivel': _availableQuantity > 0,  // Verifica se a quantidade disponível é maior que zero
+            'quantidade_disponivel': _availableQuantity,
             'produto_mp': mercadoPagoData, // Salvar os dados retornados do Mercado Pago
           });
 

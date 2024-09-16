@@ -73,6 +73,7 @@ dependencies:
   csv: ^6.0.0
   file_picker: ^8.0.5
   badges: ^2.0.3
+  correios_contrato: ^0.0.2
 
 dev_dependencies:
   flutter_test:

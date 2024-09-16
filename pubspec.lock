@@ -217,6 +217,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.1"
+  correios_contrato:
+    dependency: "direct main"
+    description:
+      name: correios_contrato
+      sha256: "09966726e7cab25f29422a14ff567dfbb8c3a45ebf9bd4eb9fbe616f0eb64dee"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.2"
   coverage:
     dependency: transitive
     description:

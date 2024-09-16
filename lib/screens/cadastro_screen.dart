@@ -45,6 +45,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _cnpjController = TextEditingController();
   final TextEditingController _razaoSocialController = TextEditingController();
   final TextEditingController _cnaeController = TextEditingController();
+  final TextEditingController _cepController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final picker = ImagePicker();
   final ImagePicker _picker = ImagePicker(); 
@@ -804,27 +805,27 @@ class _SignUpScreenState extends State<SignUpScreen> {
         const SizedBox(height: 8),
         
         Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey),
-          borderRadius: BorderRadius.circular(5),
-        ),
-        child: TextFormField(
-          controller: _razaoSocialController,
-          decoration: const InputDecoration(
-            labelText: 'Razão Social*',
-            border: InputBorder.none,
-            contentPadding: EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey),
+            borderRadius: BorderRadius.circular(5),
           ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Por favor, clique no ícone ao lado do campo CNPJ';
-            }
-            return null;
-          },
-          enabled: false, 
+          child: TextFormField(
+            controller: _razaoSocialController,
+            decoration: const InputDecoration(
+              labelText: 'Razão Social*',
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 10),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Por favor, clique no ícone ao lado do campo CNPJ';
+              }
+              return null;
+            },
+            enabled: false, 
+          ),
         ),
-      ),
-      const SizedBox(height: 8),
+        const SizedBox(height: 8),
 
         Container(
           decoration: BoxDecoration(
@@ -846,6 +847,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
             },
             enabled: false, 
         ),
+        ),        
+        const SizedBox(height: 8),
+
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey),
+            borderRadius: BorderRadius.circular(5),
+          ),
+          child: 
+            TextFormField(
+              controller: _cepController,
+              decoration: const InputDecoration(
+                labelText: 'CEP para entrega*',
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(horizontal: 10),
+              ),
+              inputFormatters: [
+                LengthLimitingTextInputFormatter(8),
+              ],
+              validator: (value) {
+                if (value == null || value.isEmpty || value.length < 8) {
+                  return 'Por favor, insira um CEP válido com apenas números';
+                }
+                return null;
+              },
+          ),
         ),        
         const SizedBox(height: 8),
 
@@ -1166,6 +1193,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _cnpjController.clear();
     _razaoSocialController.clear();
     _cnaeController.clear();
+    _cepController.clear();
     _selectedProfession = null;
     _selectedState = null;
     _isCnpjDisabled = false;
@@ -1266,6 +1294,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     String email = _emailController.text;
     String usuario = _usernameController.text;
     String cnae = _cnaeController.text;
+    String cep = _cepController.text;
 
     // Primeiro, verifica se já existe algum usuário com os mesmos dados.
     var cnpjQuery = await firestore
@@ -1322,6 +1351,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       'usuario': usuario,
       'senha': _passwordController.text,
       'cnae': cnae,
+      'cep': cep,
       'pagamento_em_dia': false,
     };
 

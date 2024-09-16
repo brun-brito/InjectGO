@@ -9,7 +9,7 @@ class EditProductMpScreen {
   final String updatedName;
   final String updatedDescription;
   final String updatedImageUrl;
-  final String updatedNormalizedCategory;
+  final String updatedCategory;
   final double updatedPrice;
   final double updatedMarketplaceFee;
   final String distributorAccessToken; // Token do distribuidor obtido do Firestore
@@ -21,7 +21,7 @@ class EditProductMpScreen {
     required this.updatedName,
     required this.updatedDescription,
     required this.updatedImageUrl,
-    required this.updatedNormalizedCategory,
+    required this.updatedCategory,
     required this.updatedPrice,
     required this.updatedMarketplaceFee,
     required this.distributorAccessToken,
@@ -38,7 +38,7 @@ class EditProductMpScreen {
             "title": updatedName,
             "description": updatedDescription,
             "picture_url": updatedImageUrl,
-            "category_id": updatedNormalizedCategory,
+            "category_id": updatedCategory,
             "quantity": 1,
             "currency_id": "BRL",
             "unit_price": updatedPrice

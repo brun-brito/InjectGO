@@ -1,4 +1,4 @@
-// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously, prefer_const_constructors
+// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously, prefer_const_constructors, curly_braces_in_flow_control_structures
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -40,11 +40,19 @@ class _EditProductScreenState extends State<EditProductScreen> {
   var firestore = FirebaseFirestore.instance;
   var storage = FirebaseStorage.instance;
   final String defaultImageUrl = dotenv.env['PATH_IMAGE_DEFAULT'] ?? '';
+  int _productQuantity = 1;
+  final TextEditingController _quantityController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadProductData();
+  }
+
+  @override
+  void dispose() {
+    _quantityController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadProductData() async {
@@ -68,6 +76,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
           _productPrice = productData['price'];
           _existingImageUrl = productData['imageUrl'];
           _disponivel = productData['disponivel'] ?? true;
+          _productQuantity = productData['quantidade_disponivel'];
+          _quantityController.text = _productQuantity.toString();
 
           _priceController.text = NumberFormat.currency(
             locale: 'pt_BR',
@@ -132,18 +142,15 @@ class _EditProductScreenState extends State<EditProductScreen> {
         Map<String, dynamic> updateData = {};
 
         if (_productName.isNotEmpty) {
-          updateData['name'] = _productName;
-          updateData['normalized_name'] = _productName.toLowerCase().trim();
+          updateData['name'] = primeiraMaiuscula(_productName.trim());
         }
 
         if (_productBrand.isNotEmpty) {
-          updateData['marca'] = _productBrand;
-          updateData['normalized_marca'] = primeiraMaiuscula(_productBrand.toLowerCase().trim());
+          updateData['marca'] = primeiraMaiuscula(_productBrand.trim());
         }
 
         if (_productCategory.isNotEmpty) {
-          updateData['categoria'] = _productCategory;
-          updateData['normalized_category'] = primeiraMaiuscula(_productCategory.toLowerCase().trim());
+          updateData['categoria'] = primeiraMaiuscula(_productCategory.trim());
         }
 
         if (_productDescription.isNotEmpty) {
@@ -154,8 +161,12 @@ class _EditProductScreenState extends State<EditProductScreen> {
           updateData['price'] = _productPrice;
         }
 
-        updateData['disponivel'] = _disponivel;
+        if(_productQuantity > 0)
+          updateData['disponivel'] = _disponivel;
+        
         updateData['ultima_edicao'] = Timestamp.now();
+
+        updateData['quantidade_disponivel'] = _productQuantity;
 
         // Lógica de atualização da imagem
         if (_productImage != null) {
@@ -200,7 +211,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
           updatedName: _productName,
           updatedDescription: _productDescription,
           updatedImageUrl: _productImage != null ? updateData['imageUrl'] : _existingImageUrl!,
-          updatedNormalizedCategory: _productCategory,
+          updatedCategory: _productCategory,
           updatedPrice: _productPrice,
           updatedMarketplaceFee: fee,
           distributorAccessToken: distributorAccessToken,
@@ -340,6 +351,62 @@ class _EditProductScreenState extends State<EditProductScreen> {
                         return null;
                       },
                     ),
+                    // Quantidade disponível
+                    // Quantidade disponível
+Row(
+  children: [
+    IconButton(
+      icon: Icon(Icons.remove),
+      onPressed: () {
+        setState(() {
+          if (_productQuantity > 0) {
+            _productQuantity--;
+            _quantityController.text = _productQuantity.toString();  // Atualiza o campo de texto
+          }
+          // Se a quantidade for 0, desativa o produto
+          if (_productQuantity == 0) {
+            _disponivel = false; // Desativa o produto
+          }
+        });
+      },
+    ),
+    Expanded(
+      child: TextFormField(
+        controller: _quantityController,  // Usa o controlador
+        decoration: const InputDecoration(
+          labelText: 'Quantidade disponível',
+        ),
+        keyboardType: TextInputType.number,
+        onSaved: (value) {
+          _productQuantity = int.tryParse(value ?? '0') ?? 0;
+          if (_productQuantity == 0) {
+            _disponivel = false;  // Desativa o produto automaticamente
+          }
+        },
+        validator: (value) {
+          if (value == null || value.isEmpty || int.tryParse(value) == null) {
+            return 'Por favor, insira uma quantidade válida';
+          }
+          return null;
+        },
+      ),
+    ),
+    IconButton(
+      icon: Icon(Icons.add),
+      onPressed: () {
+        setState(() {
+          _productQuantity++;
+          _quantityController.text = _productQuantity.toString();  // Atualiza o campo de texto
+          // Se a quantidade for maior que 0, o produto volta a estar disponível
+          if (_productQuantity > 0) {
+            _disponivel = true;  // Reativa o produto
+          }
+        });
+      },
+    ),
+  ],
+),
+
                     const SizedBox(height: 20),
                     SwitchListTile(
                       title: const Text('Produto disponível'),

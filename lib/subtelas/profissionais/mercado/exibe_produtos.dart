@@ -50,15 +50,15 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
       return distribuidoresIds.contains(parentDistribuidorId);
     }).toList();
 
-    // Obter e normalizar as marcas
+    // Obter marcas
     final brands = produtosValidos
-        .map((doc) => primeiraMaiuscula(doc['marca'].toString().toLowerCase().trim()))  // Normaliza as marcas
+        .map((doc) => primeiraMaiuscula(doc['marca'].toString().toLowerCase().trim()))
         .toSet()
         .toList();
 
-    // Obter e normalizar as categorias
+    // Obter categorias
     final categories = produtosValidos
-        .map((doc) => primeiraMaiuscula(doc['categoria'].toString().toLowerCase().trim()))  // Normaliza as categorias
+        .map((doc) => primeiraMaiuscula(doc['categoria'].toString().toLowerCase().trim()))
         .toSet()
         .toList();
 

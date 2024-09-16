@@ -12,7 +12,7 @@ class MercadoPagoService {
     required String name,
     required String description,
     required String imageUrl,
-    required String normalizedCategory,
+    required String category,
     required double price,
     required String username,
     required String accessTokenVendedor,
@@ -26,7 +26,7 @@ class MercadoPagoService {
     // Cálculo da comissão de 5% sobre o valor do produto
     final String? taxaStr = dotenv.env['TAXA_MERCADO_PAGO'];
     final double? taxa = double.tryParse(taxaStr ?? '0');
-    final double marketplaceFee = price * (taxa ?? 0.05);
+    final double marketplaceFee = double.parse((price * taxa!).toStringAsFixed(2));
 
     // Corpo da requisição JSON
     final body = jsonEncode({
@@ -36,7 +36,7 @@ class MercadoPagoService {
           "title": name,
           "description": description,
           "picture_url": imageUrl,
-          "category_id": normalizedCategory,
+          "category_id": category,
           "quantity": 1,
           "currency_id": "BRL",
           "unit_price": price

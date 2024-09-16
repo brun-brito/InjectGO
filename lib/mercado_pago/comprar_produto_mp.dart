@@ -130,6 +130,22 @@ class _ProductPurchaseScreenState extends State<ProductPurchaseScreen> {
       return;
     }
 
+    // Acessar o primeiro documento do snapshot
+    final productDoc = productSnapshot.docs.first;
+
+    // Verificar se a quantidade atual existe no produto
+    int quantidadeAtual = productDoc['quantidade_disponivel'];
+
+    if (quantidadeAtual > 0) {
+      int novaQuantidade = quantidadeAtual - 1;
+
+      // Atualiza a quantidade no banco de dados
+      await productDoc.reference.update({
+        'quantidade_disponivel': novaQuantidade,
+        'disponivel': novaQuantidade > 0,  // Desativa o produto quando a quantidade for zero
+      });
+    }
+
     final productData = productSnapshot.docs.first.data() as Map<String, dynamic>;
     final String distributorId = productSnapshot.docs.first.reference.parent.parent!.id;
 

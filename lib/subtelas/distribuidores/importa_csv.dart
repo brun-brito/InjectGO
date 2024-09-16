@@ -112,7 +112,6 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
   }
 
   Future<void> _cadastrarProdutos() async {
-    List<String> imagensDescartadas = [];
     List<String> produtosComErro = [];
     List<String> produtosCadastradosIds = [];
     int totalProdutos = _csvData.length - 1;
@@ -163,7 +162,7 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
         final row = _csvData[i];
 
         // Verificar se todos os campos necessários estão preenchidos
-        if (row.length < 6 || row.any((campo) => campo == null || campo.toString().trim().isEmpty)) {
+        if (row.length < 7 || row.any((campo) => campo == null || campo.toString().trim().isEmpty)) {
           temErro = true;
           produtosComErro.add("Linha com dados insuficientes na posição $i: $row");
           continue; // Pular para a próxima linha sem tentar cadastrar este produto
@@ -174,6 +173,8 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
         final productBrand = row[2].toString();
         final productCategory = row[3].toString();
         final productPrice = double.tryParse(row[4].toString().replaceAll(',', '.'));
+        final String imageUrl = row[5].toString();
+        final int quantidadeDisponivel = int.tryParse(row[6].toString()) ?? 1;  // Captura a quantidade disponível
 
         // Verifica se o preço é válido
         if (productPrice == null || productPrice <= 0) {
@@ -182,14 +183,9 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
           continue; // Pular esta linha se o preço for inválido
         }
 
-        String imageUrl = row[5].toString();
-
         // Verificar se a URL da imagem é válida
         bool imagemValida = await validarImagemUrl(imageUrl);
-        if (!imagemValida) {
-          imageUrl = defaultImageUrl; // Usar a URL padrão se a URL da imagem não for válida
-          imagensDescartadas.add(productName);
-        }
+        String finalImageUrl = imagemValida ? imageUrl : defaultImageUrl;
 
         // Pegar dados do distribuidor
         var distribuidorSnapshot = await FirebaseFirestore.instance
@@ -214,7 +210,7 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
               name: productName,
               description: productDescription,
               imageUrl: imageUrl,
-              normalizedCategory: primeiraMaiuscula(productCategory.toLowerCase().trim()),
+              category: primeiraMaiuscula(productCategory.trim()),
               price: productPrice,
               username: razaoSocialCnpj,
               accessTokenVendedor: accessTokenVendedor,
@@ -223,18 +219,16 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
             // Salvar produto no Firebase
             await FirebaseFirestore.instance.collection('distribuidores/$razaoSocialCnpj/produtos').doc(productId).set({
               'id': productId,
-              'name': productName.trim(),
-              'normalized_name': productName.toLowerCase().trim(),
+              'name': primeiraMaiuscula(productName.trim()),  // Formata o nome para começar com letra maiúscula
               'description': productDescription,
-              'marca': productBrand.trim(),
-              'normalized_marca': primeiraMaiuscula(productBrand.toLowerCase().trim()),
-              'categoria': productCategory.trim(),
-              'normalized_category': primeiraMaiuscula(productCategory.toLowerCase().trim()),
+              'marca': primeiraMaiuscula(productBrand.trim()),  // Formata a marca para começar com letra maiúscula
+              'categoria': primeiraMaiuscula(productCategory.trim()),  // Formata a categoria para começar com letra maiúscula
               'price': productPrice,
-              'imageUrl': imageUrl,
+              'imageUrl': finalImageUrl,
               'username': widget.username,
               'createdAt': Timestamp.now(),
-              'disponivel': true,
+              'quantidade_disponivel': quantidadeDisponivel,
+              'disponivel': quantidadeDisponivel > 0,  // Define se o produto está disponível baseado na quantidade
               'produto_mp': mercadoPagoData,
             });
 
