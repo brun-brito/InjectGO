@@ -1,19 +1,20 @@
+// ignore_for_file: library_private_types_in_public_api
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
 import 'package:inject_go/mercado_pago/comprar_produto_mp.dart';
 
 class AddressFormScreen extends StatefulWidget {
   final String initPoint;
-  final String productId;
+  final List<String> productIds;  // Agora você passa uma lista de IDs
   final String userEmail;
 
   const AddressFormScreen({
     super.key,
     required this.initPoint,
-    required this.productId,
+    required this.productIds,  // Recebe a lista de IDs de produtos
     required this.userEmail,
   });
 
@@ -194,9 +195,9 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => ProductPurchaseScreen(
-          initPoint: widget.initPoint,
-          productId: widget.productId,
-          userEmail: widget.userEmail,
+          initPoint: widget.initPoint,  // O link para o pagamento
+          productIds: widget.productIds,  // Passa a lista de IDs dos produtos
+          userEmail: widget.userEmail,  // Passa o email do usuário
           endereco: {
             'cep': _cepController.text,
             'rua': _ruaController.text,

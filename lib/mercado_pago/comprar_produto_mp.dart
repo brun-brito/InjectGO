@@ -7,14 +7,14 @@ import 'package:inject_go/subtelas/profissionais/minhas_compras.dart';
 
 class ProductPurchaseScreen extends StatefulWidget {
   final String initPoint;
-  final String productId;
+  final List<String> productIds;
   final String userEmail;
   final Map<String, String> endereco;  // Adicione o endereço como parâmetro
 
   const ProductPurchaseScreen({
     super.key, 
     required this.initPoint, 
-    required this.productId, 
+    required this.productIds,
     required this.userEmail, 
     required this.endereco
   });
@@ -71,7 +71,7 @@ class _ProductPurchaseScreenState extends State<ProductPurchaseScreen> {
                 } else if (url.toString().contains("failure")) {
                   _showError("O pagamento falhou. Tente novamente.");
                   Navigator.pop(context);
-                } else if (!url.toString().contains("approved")) {
+                } else if (/*!url.toString().contains("approved") &&*/ url.toString().contains("ajuda") || url.toString().contains("receipt")) {
                     if (await webViewController!.canGoBack()) {
                       webViewController!.goBack();
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -109,134 +109,131 @@ class _ProductPurchaseScreenState extends State<ProductPurchaseScreen> {
   }
 
   // Função para tratar pagamento com sucesso e salvar a compra no Firestore
-  Future<void> _handlePaymentSuccess(String? paymentId) async {
+Future<void> _handlePaymentSuccess(String? paymentId) async {
+  try {
     setState(() {
       _isProcessing = true;
     });
 
     final DateTime now = DateTime.now();
 
-    // Buscar o produto comprado
-    QuerySnapshot productSnapshot = await FirebaseFirestore.instance
-        .collectionGroup('produtos')
-        .where('id', isEqualTo: widget.productId)
-        .limit(1)
-        .get();
+    // Processar cada produto individualmente
+    for (String productId in widget.productIds) {
+      
+      // Buscar o produto no Firestore
+      QuerySnapshot productSnapshot = await FirebaseFirestore.instance
+          .collectionGroup('produtos')
+          .where('id', isEqualTo: productId)
+          .get();
 
-    if (productSnapshot.docs.isEmpty) {
-      setState(() {
-        _isProcessing = false;
-      });
-      return;
+      if (productSnapshot.docs.isNotEmpty) {
+        DocumentSnapshot productDoc = productSnapshot.docs.first;
+        
+        // Verificar quantidade disponível
+        int quantidadeAtual = productDoc['quantidade_disponivel'];
+
+        if (quantidadeAtual > 0) {
+          int novaQuantidade = quantidadeAtual - 1;
+
+          // Atualizar a quantidade no banco de dados
+          await productDoc.reference.update({
+            'quantidade_disponivel': novaQuantidade,
+            'disponivel': novaQuantidade > 0,  // Desativa o produto quando a quantidade for zero
+          });
+        } else {
+          continue;  // Se o produto estiver esgotado, pula para o próximo
+        }
+
+        // Processar os dados do comprador
+        QuerySnapshot buyerSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('email', isEqualTo: widget.userEmail)
+            .limit(1)
+            .get();
+
+        if (buyerSnapshot.docs.isEmpty) {
+          continue;
+        }
+
+        final buyerData = buyerSnapshot.docs.first.data() as Map<String, dynamic>;
+        final String buyerId = buyerSnapshot.docs.first.id;
+
+        Map<String, dynamic> buyerInfo = {
+          'nome': buyerData['nome'],
+          'email': buyerData['email'],
+          'telefone': buyerData['telefone'],
+        };
+        // Coletar as informações do produto
+        Map<String, dynamic> productInfo = {
+          'productId': productId,
+          'nome': productDoc['name'],
+          'preco': productDoc['price'],
+          'marca': productDoc['marca'],
+          'categoria': productDoc['categoria'],
+          'imageUrl': productDoc['imageUrl'],
+        };
+        // Buscar os dados do distribuidor
+        final String distributorId = productDoc.reference.parent.parent!.id;
+        DocumentSnapshot distributorSnapshot = await FirebaseFirestore.instance
+            .collection('distribuidores')
+            .doc(distributorId)
+            .get();
+
+        if (!distributorSnapshot.exists) {
+          continue;
+        }
+
+        Map<String, dynamic> distributorInfo = {
+          'razao_social': distributorSnapshot['razao_social'],
+          'cnpj': distributorSnapshot['cnpj'],
+          'email': distributorSnapshot['email'],
+          'telefone': distributorSnapshot['telefone'],
+        };
+
+        // Criar registro de compra no usuário
+        DocumentReference compraRef = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(buyerId)
+            .collection('compras')
+            .add({
+          'productInfo': productInfo,
+          'distributorInfo': distributorInfo,
+          'payment_id': paymentId,
+          'data_compra': now,
+          'status': 'solicitado',
+          'endereco_entrega': widget.endereco,
+        });
+
+        // Criar registro de venda no distribuidor
+        await FirebaseFirestore.instance
+            .collection('distribuidores')
+            .doc(distributorId)
+            .collection('vendas')
+            .add({
+          'buyerInfo': buyerInfo,
+          'productInfo': productInfo,
+          'payment_id': paymentId,
+          'data_pedido': now,
+          'status': 'solicitado',
+          'endereco_entrega': widget.endereco,
+          'compraId': compraRef.id,
+        });
+      } else {
+        continue;  // Pula para o próximo produto se não for encontrado
+      }
     }
-
-    // Acessar o primeiro documento do snapshot
-    final productDoc = productSnapshot.docs.first;
-
-    // Verificar se a quantidade atual existe no produto
-    int quantidadeAtual = productDoc['quantidade_disponivel'];
-
-    if (quantidadeAtual > 0) {
-      int novaQuantidade = quantidadeAtual - 1;
-
-      // Atualiza a quantidade no banco de dados
-      await productDoc.reference.update({
-        'quantidade_disponivel': novaQuantidade,
-        'disponivel': novaQuantidade > 0,  // Desativa o produto quando a quantidade for zero
-      });
-    }
-
-    final productData = productSnapshot.docs.first.data() as Map<String, dynamic>;
-    final String distributorId = productSnapshot.docs.first.reference.parent.parent!.id;
-
-    // Buscar o comprador (profissional que fez a compra)
-    QuerySnapshot buyerSnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .where('email', isEqualTo: widget.userEmail)
-        .limit(1)
-        .get();
-
-    if (buyerSnapshot.docs.isEmpty) {
-      setState(() {
-        _isProcessing = false;
-      });
-      return;
-    }
-
-    final buyerData = buyerSnapshot.docs.first.data() as Map<String, dynamic>;
-    final String buyerId = buyerSnapshot.docs.first.id;
-
-    // Criar mapa com os dados do comprador
-    Map<String, dynamic> buyerInfo = {
-      'nome': buyerData['nome'],
-      'email': buyerData['email'],
-      'telefone': buyerData['telefone'],
-    };
-
-    // Criar mapa com os dados do produto
-    Map<String, dynamic> productInfo = {
-      'productId': productData['id'],
-      'nome': productData['name'],
-      'preco': productData['price'],
-      'marca': productData['marca'],
-      'categoria': productData['categoria'],
-      'imageUrl': productData['imageUrl'],
-    };
-
-    // Buscar dados do distribuidor
-    DocumentSnapshot distributorSnapshot = await FirebaseFirestore.instance
-        .collection('distribuidores')
-        .doc(distributorId)
-        .get();
-
-    if (!distributorSnapshot.exists) {
-      setState(() {
-        _isProcessing = false;
-      });
-      return;
-    }
-
-    // Criar mapa com os dados do distribuidor
-    Map<String, dynamic> distributorInfo = {
-      'razao_social': distributorSnapshot['razao_social'],
-      'cnpj': distributorSnapshot['cnpj'],
-      'email': distributorSnapshot['email'],
-      'telefone': distributorSnapshot['telefone'],
-    };
-
-    // Atualizar a coleção 'compras' do profissional com dados do distribuidor e payment_id
-    DocumentReference compraRef = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(buyerId)
-        .collection('compras')
-        .add({
-      'productInfo': productInfo,
-      'distributorInfo': distributorInfo,  // Adiciona os dados do distribuidor
-      'payment_id': paymentId,  // Adiciona o payment_id
-      'data_compra': now,
-      'status': 'solicitado',
-      'endereco_entrega': widget.endereco, 
-    });
-
-    // Atualizar a coleção 'vendas' do distribuidor com dados do comprador e payment_id
-    await FirebaseFirestore.instance
-        .collection('distribuidores')
-        .doc(distributorId)
-        .collection('vendas')
-        .add({
-      'buyerInfo': buyerInfo,
-      'productInfo': productInfo,
-      'payment_id': paymentId,
-      'data_pedido': now,
-      'status': 'solicitado',
-      'endereco_entrega': widget.endereco, 
-      'compraId': compraRef.id, 
-    });
 
     setState(() {
       _isProcessing = false;
     });
+  } catch (e, stacktrace) {
+    debugPrint('Erro durante o processamento: $e');
+    debugPrint(stacktrace as String?);
+    setState(() {
+      _isProcessing = false;
+    });
   }
+}
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));

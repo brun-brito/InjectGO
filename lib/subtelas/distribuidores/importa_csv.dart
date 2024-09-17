@@ -9,7 +9,6 @@ import 'package:csv/csv.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:inject_go/formatadores/formata_string.dart';
-import 'package:inject_go/mercado_pago/cadastra_produto_mp.dart';
 import 'package:http/http.dart' as http;
 import 'package:inject_go/subtelas/distribuidores/meus_produtos.dart';
 
@@ -201,20 +200,20 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
 
           // Realizar cadastro do produto
           try {
-            final String accessTokenVendedor = distribuidorData['credenciais_mp']['access_token'];
-            final String marketplace = dotenv.env['MERCADO_PAGO_ACCESS_TOKEN'] ?? '';
-            final mercadoPagoService = MercadoPagoService(marketplace: marketplace);
+            // final String accessTokenVendedor = distribuidorData['credenciais_mp']['access_token'];
+            // final String marketplace = dotenv.env['MERCADO_PAGO_ACCESS_TOKEN'] ?? '';
+            // final mercadoPagoService = MercadoPagoService(marketplace: marketplace);
 
-            final Map<String, dynamic> mercadoPagoData = await mercadoPagoService.criarPreferenciaProduto(
-              productId: productId,
-              name: productName,
-              description: productDescription,
-              imageUrl: imageUrl,
-              category: primeiraMaiuscula(productCategory.trim()),
-              price: productPrice,
-              username: razaoSocialCnpj,
-              accessTokenVendedor: accessTokenVendedor,
-            );
+            // final Map<String, dynamic> mercadoPagoData = await mercadoPagoService.criarPreferenciaProduto(
+            //   productId: productId,
+            //   name: productName,
+            //   description: productDescription,
+            //   imageUrl: imageUrl,
+            //   category: primeiraMaiuscula(productCategory.trim()),
+            //   price: productPrice,
+            //   username: razaoSocialCnpj,
+            //   accessTokenVendedor: accessTokenVendedor,
+            // );
 
             // Salvar produto no Firebase
             await FirebaseFirestore.instance.collection('distribuidores/$razaoSocialCnpj/produtos').doc(productId).set({
@@ -229,7 +228,7 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
               'createdAt': Timestamp.now(),
               'quantidade_disponivel': quantidadeDisponivel,
               'disponivel': quantidadeDisponivel > 0,  // Define se o produto está disponível baseado na quantidade
-              'produto_mp': mercadoPagoData,
+              // 'produto_mp': mercadoPagoData,
             });
 
             // Adiciona o ID do produto para possível exclusão posterior

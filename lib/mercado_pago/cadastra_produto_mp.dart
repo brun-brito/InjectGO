@@ -3,18 +3,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 class MercadoPagoService {
-  final String marketplace;
 
-  MercadoPagoService({required this.marketplace});
+  MercadoPagoService();
 
-  Future<Map<String, dynamic>> criarPreferenciaProduto({
-    required String productId,
-    required String name,
-    required String description,
-    required String imageUrl,
-    required String category,
-    required double price,
-    required String username,
+  Future<Map<String, dynamic>> criarPreferenciaCarrinho({
+    required List<Map<String, dynamic>> cartProducts,
+    // required String username,
     required String accessTokenVendedor,
   }) async {
     const url = 'https://api.mercadopago.com/checkout/preferences';
@@ -23,32 +17,43 @@ class MercadoPagoService {
       'Content-Type': 'application/json',
     };
 
-    // Cálculo da comissão de 5% sobre o valor do produto
+    // Cálculo da comissão de 5% sobre o valor de cada produto
     final String? taxaStr = dotenv.env['TAXA_MERCADO_PAGO'];
     final double? taxa = double.tryParse(taxaStr ?? '0');
-    final double marketplaceFee = double.parse((price * taxa!).toStringAsFixed(2));
+    final String marketplace = dotenv.env['MERCADO_PAGO_ACCESS_TOKEN'] ?? '';
+    double totalMarketplaceFee = 0;
+
+    // Criar a lista de itens para a preferência no formato do Mercado Pago
+    final List<Map<String, dynamic>> items = cartProducts.map((product) {
+      final double price = product['price'] as double;
+      final int quantity = product['quantity'] as int;
+
+      // Calcular a comissão sobre o valor do produto
+      final double marketplaceFee = double.parse((price * taxa!).toStringAsFixed(2));
+      totalMarketplaceFee += marketplaceFee * quantity;
+
+      return {
+        "id": product['productId'],
+        "title": product['name'],
+        "description": product['description'],
+        "picture_url": product['imageUrl'],
+        "category_id": product['category'],
+        "quantity": quantity,
+        "currency_id": "BRL",
+        "unit_price": price,
+      };
+    }).toList();
 
     // Corpo da requisição JSON
     final body = jsonEncode({
-      "items": [
-        {
-          "id": productId,
-          "title": name,
-          "description": description,
-          "picture_url": imageUrl,
-          "category_id": category,
-          "quantity": 1,
-          "currency_id": "BRL",
-          "unit_price": price
-        }
-      ],
+      "items": items,
       "back_urls": {
         "success": "https://injectgo.com.br/product-success.html",
         "failure": "https://injectgo.com.br/product-failure.html",
       },
       "auto_return": "all",
       "marketplace": marketplace,
-      "marketplace_fee": marketplaceFee
+      "marketplace_fee": totalMarketplaceFee,
     });
 
     try {
@@ -70,7 +75,7 @@ class MercadoPagoService {
           'id': preferenceId,
           'init_point': initPoint,
           'date_created': dateCreated,
-          'marketplace_fee': marketplaceFee,
+          'marketplace_fee': totalMarketplaceFee,
         };
       } else {
         throw Exception('Erro ao criar preferência: ${response.statusCode} - ${response.body}');

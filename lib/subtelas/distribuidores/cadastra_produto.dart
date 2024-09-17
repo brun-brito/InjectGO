@@ -3,11 +3,9 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:inject_go/formatadores/formata_moeda.dart';
 import 'package:inject_go/formatadores/formata_string.dart';
-import 'package:inject_go/mercado_pago/cadastra_produto_mp.dart';
 import 'package:inject_go/subtelas/distribuidores/importa_csv.dart';
 import 'package:inject_go/subtelas/distribuidores/meus_produtos.dart';
 
@@ -269,23 +267,23 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
             await storageRef.putFile(_productImage!);
             imageUrl = await storageRef.getDownloadURL();
           }
-          final String accessTokenVendedor = distribuidorData['credenciais_mp']['access_token'];
-          final String marketplace = dotenv.env['MERCADO_PAGO_ACCESS_TOKEN'] ?? '';
-          final mercadoPagoService = MercadoPagoService(
-            marketplace: marketplace,
-          );
+          // final String accessTokenVendedor = distribuidorData['credenciais_mp']['access_token'];
+          // final String marketplace = dotenv.env['MERCADO_PAGO_ACCESS_TOKEN'] ?? '';
+          // final mercadoPagoService = MercadoPagoService(
+          //   marketplace: marketplace,
+          // );
 
           // Primeiro tenta criar a preferência no Mercado Pago
-          final Map<String, dynamic> mercadoPagoData = await mercadoPagoService.criarPreferenciaProduto(
-            productId: productId,
-            name: _productName,
-            description: _productDescription,
-            imageUrl: imageUrl,
-            category: primeiraMaiuscula(_productCategory.trim()),
-            price: _productPrice,
-            username: razaoSocialCnpj,
-            accessTokenVendedor: accessTokenVendedor,
-          );
+          // final Map<String, dynamic> mercadoPagoData = await mercadoPagoService.criarPreferenciaProduto(
+          //   productId: productId,
+          //   name: _productName,
+          //   description: _productDescription,
+          //   imageUrl: imageUrl,
+          //   category: primeiraMaiuscula(_productCategory.trim()),
+          //   price: _productPrice,
+          //   username: razaoSocialCnpj,
+          //   accessTokenVendedor: accessTokenVendedor,
+          // );
 
           // 3. Se a criação no Mercado Pago for bem-sucedida, salvar o produto no Firebase
           await FirebaseFirestore.instance.collection('distribuidores/$razaoSocialCnpj/produtos').doc(productId).set({
@@ -300,7 +298,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
             'createdAt': Timestamp.now(),
             'disponivel': _availableQuantity > 0,  // Verifica se a quantidade disponível é maior que zero
             'quantidade_disponivel': _availableQuantity,
-            'produto_mp': mercadoPagoData, // Salvar os dados retornados do Mercado Pago
+            // 'produto_mp': mercadoPagoData, // Salvar os dados retornados do Mercado Pago
           });
 
           ScaffoldMessenger.of(context).showSnackBar(
