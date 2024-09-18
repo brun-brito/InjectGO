@@ -3,20 +3,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:inject_go/subtelas/profissionais/minhas_compras.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:inject_go/subtelas/profissionais/mercado/main_screen.dart';
 
 class ProductPurchaseScreen extends StatefulWidget {
   final String initPoint;
   final List<String> productIds;
   final String userEmail;
-  final Map<String, String> endereco;  // Adicione o endereço como parâmetro
+  final Map<String, String> endereco;
+  final Position posicao;
 
   const ProductPurchaseScreen({
     super.key, 
     required this.initPoint, 
     required this.productIds,
     required this.userEmail, 
-    required this.endereco
+    required this.endereco,
+    required this.posicao,
   });
 
   @override
@@ -65,7 +68,7 @@ class _ProductPurchaseScreenState extends State<ProductPurchaseScreen> {
                   await _handlePaymentSuccess(paymentId);
                   await Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => MinhasComprasScreen(userEmail: widget.userEmail,)),
+                    MaterialPageRoute(builder: (context) => MainScreen(userPosition: widget.posicao, email: widget.userEmail, initialIndex: 2)),
                   );
 
                 } else if (url.toString().contains("failure")) {

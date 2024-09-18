@@ -75,7 +75,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
           _productDescription = productData['description'];
           _productPrice = productData['price'];
           _existingImageUrl = productData['imageUrl'];
-          _disponivel = productData['disponivel'] ?? true;
+          _disponivel = productData['disponivel'];
           _productQuantity = productData['quantidade_disponivel'];
           _quantityController.text = _productQuantity.toString();
 

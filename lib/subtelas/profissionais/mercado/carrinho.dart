@@ -1,14 +1,16 @@
 // ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:inject_go/mercado_pago/cadastra_produto_mp.dart';
 import 'package:inject_go/subtelas/profissionais/mercado/formulario_endereco.dart';
 
 class CarrinhoScreen extends StatefulWidget {
   final List<DocumentSnapshot> cartProducts;
   final String email;
+  final Position posicao;
 
-  const CarrinhoScreen({super.key, required this.cartProducts, required this.email});
+  const CarrinhoScreen({super.key, required this.cartProducts, required this.email, required this.posicao,});
 
   @override
   _CarrinhoScreenState createState() => _CarrinhoScreenState();
@@ -26,6 +28,17 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
     for (var product in widget.cartProducts) {
       _productQuantities[product] = 1; // Inicialmente, todos com quantidade 1
     }
+  }
+
+  // Função que calcula o valor total do carrinho
+  double _calcularTotalCarrinho() {
+    double total = 0.0;
+    for (var product in widget.cartProducts) {
+      int quantity = _productQuantities[product] ?? 1;
+      double price = product['price'];
+      total += price * quantity;
+    }
+    return total;
   }
 
   @override
@@ -131,23 +144,51 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
                     },
                   ),
                 ),
+          // Exibir o total do carrinho
+          widget.cartProducts.isNotEmpty
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Total:',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'R\$ ${_calcularTotalCarrinho().toStringAsFixed(2)}',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
+                      ),
+                    ],
+                  ),
+                )
+              : const SizedBox.shrink(),
         ],
       ),
       bottomNavigationBar: widget.cartProducts.isNotEmpty
           ? Padding(
               padding: const EdgeInsets.all(16.0),
               child: ElevatedButton(
-                onPressed: _isLoading ? null : () async { // Desativa o botão durante o carregamento
-                  setState(() {
-                    _isLoading = true;  // Inicia o loading
-                  });
-                  await _verificarDisponibilidade();
-                  setState(() {
-                    _isLoading = false;  // Para o loading
-                  });
-                },
+                onPressed: _isLoading
+                    ? null
+                    : () async {
+                        setState(() {
+                          _isLoading = true; // Inicia o loading
+                        });
+                        try{
+                          await _verificarDisponibilidade();
+                        } catch (e) {
+                          setState(() {
+                          _isLoading = false;
+                        });
+                        ScaffoldMessenger.of(context)
+                          .showSnackBar(const SnackBar(
+                            content: Text('Erro ao processar compra. Por favor, tente novamente mais tarde, ou entre em contato conosco.'
+                          )));
+                        }
+                      },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.pink, 
+                  backgroundColor: Colors.pink,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
                   shape: RoundedRectangleBorder(
@@ -155,7 +196,7 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
                   ),
                 ),
                 child: _isLoading
-                    ? const CircularProgressIndicator(  // Exibe o indicador de carregamento
+                    ? const CircularProgressIndicator( // Exibe o indicador de carregamento
                         color: Colors.white,
                       )
                     : const Text(
@@ -206,7 +247,7 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
         return AlertDialog(
           title: const Text('Quantidade Indisponível'),
           content: Text(
-            'O produto "${product['name']}" possui apenas $quantidadeDisponivel unidades disponíveis. '
+            'O produto "${product['name']}" possui apenas $quantidadeDisponivel unidade(s) disponível(is). '
             'Você requisitou $quantidadeRequisitada. Por favor, escolha uma quantidade entre 1 e $quantidadeDisponivel.',
           ),
           actions: [
@@ -288,6 +329,7 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
             initPoint: response['init_point'],  // O init_point vindo da resposta do Mercado Pago
             productIds: productIds,
             userEmail: widget.email,
+            posicao: widget.posicao,
           ),
         ),
       );

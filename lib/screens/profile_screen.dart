@@ -4,9 +4,10 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:inject_go/subtelas/profissionais/mercado/exibe_produtos.dart';
-import 'package:inject_go/subtelas/profissionais/minhas_compras.dart';
+import 'package:inject_go/subtelas/profissionais/mercado/main_screen.dart';
+// import 'package:inject_go/subtelas/profissionais/minhas_compras.dart';
 import 'package:inject_go/subtelas/profissionais/speaker.dart';
 import 'package:inject_go/subtelas/profissionais/arquivos.dart';
 import 'package:inject_go/subtelas/profissionais/editar_dados.dart';
@@ -51,6 +52,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         title: const Text("Perfil do Usuário"),
         centerTitle: true,
+        automaticallyImplyLeading: false
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121)))
@@ -229,7 +231,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: TextButton.icon(
-                          icon: const Icon(Icons.shopping_cart, color: Colors.white),
+                          icon: _isLoading
+                              ? const CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  strokeWidth: 2.0,
+                                ) // Exibe o indicador de carregamento quando está carregando
+                              : const Icon(Icons.shopping_cart, color: Colors.white), // Ícone normal
                           label: const FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Text(
@@ -237,12 +244,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               style: TextStyle(color: Colors.white, fontSize: 13),
                             ),
                           ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => MarketplaceScreen(email: widget.username)),
-                            );
-                          },
+                          onPressed: _isLoading
+                              ? null // Desativa o botão enquanto está carregando
+                              : () {
+                                  _goToMainScreen(context); // Função para ir ao mercado
+                                },
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.all(8),
                           ),
@@ -250,35 +256,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MinhasComprasScreen(userEmail: widget.username),
-                      ),
-                    );
-                  },
-                  icon: const Icon(
-                    Icons.shopping_bag,
-                    color: Colors.white,
-                  ),
-                  label: const Text(
-                    'Minhas Compras',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    textStyle: const TextStyle(fontSize: 16),
-                  ),
                 ),
               ),
             ],
@@ -780,4 +757,60 @@ Widget buildSecondPage() {
       },
     );
   }
+
+  Future<Position> _determinePosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Verifica se o serviço de localização está ativado
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('O serviço de localização está desativado.');
+    }
+
+    // Verifica o status das permissões de localização
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Permissão de localização negada.');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error('As permissões de localização foram negadas permanentemente.');
+    }
+
+    // Obtém a posição atual do dispositivo
+    return await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+  }
+
+  // Função que trata o carregamento e navegação para a página de Mercado
+  void _goToMainScreen(BuildContext context) async {
+    setState(() {
+      _isLoading = true; // Inicia o carregamento
+    });
+
+    try {
+      // Obtém a localização atual do profissional
+      Position position = await _determinePosition();
+
+      // Navega para a tela de Mercado passando a posição como parâmetro
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MainScreen(userPosition: position, email: widget.username),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao obter a localização: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false; // Finaliza o carregamento
+      });
+    }
+  }
+
 }

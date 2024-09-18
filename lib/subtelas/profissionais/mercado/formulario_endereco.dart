@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:inject_go/mercado_pago/comprar_produto_mp.dart';
@@ -10,12 +11,14 @@ class AddressFormScreen extends StatefulWidget {
   final String initPoint;
   final List<String> productIds;  // Agora você passa uma lista de IDs
   final String userEmail;
+  final Position posicao;
 
   const AddressFormScreen({
     super.key,
     required this.initPoint,
     required this.productIds,  // Recebe a lista de IDs de produtos
     required this.userEmail,
+    required this.posicao,
   });
 
   @override
@@ -207,6 +210,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
             'cidade': _cidadeController.text,
             'uf': _ufController.text,
           },
+          posicao: widget.posicao,
         ),
       ),
     );

@@ -1,10 +1,11 @@
-// ignore_for_file: library_private_types_in_public_api, curly_braces_in_flow_control_structures, use_build_context_synchronously, prefer_typing_uninitialized_variables
+// ignore_for_file: library_private_types_in_public_api, curly_braces_in_flow_control_structures, use_build_context_synchronously, prefer_typing_uninitialized_variables, unused_field
 import 'dart:async';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:inject_go/screens/welcome_screen.dart';
 import 'login_screen.dart';
@@ -50,7 +51,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final picker = ImagePicker();
   final ImagePicker _picker = ImagePicker(); 
   String dateFormatted = DateFormat('dd-MM-yyyy').format(DateTime.now());
-  String token = 'pxXxdW4xqw12EMWEEtMMNq8V8_0EJ3E46mD_TT78';
+  String? token = dotenv.env['TOKEN_INFOSIMPLES'];
   String? _selectedProfession;
   String? _selectedState;
   String? _sexo;
@@ -67,8 +68,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   FirebaseFirestore firestore = FirebaseFirestore.instance;
   var funcao;  
   String? _userType;
-  // ignore: unused_field
   bool _formSubmitted = false;
+  String? _errorMessage;
+  final String? apiKey = dotenv.env['API_KEY_GEO'];
   
   @override
   Widget build(BuildContext context) {
@@ -1109,10 +1111,37 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   }
                 } else if (_userType == 'Distribuidor') {
                   // Lógica para distribuidores
-                  await addDistribuidorWithFirebase({});
-                  await cadastrarAuth(_emailController.text, _passwordController.text);
+                  String cep = _cepController.text.trim();
 
-                  mensagemSucesso();
+                  // Valida o CEP antes de adicionar no banco
+                  if (cep.isEmpty || cep.length != 8) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Por favor, insira um CEP válido."),
+                      ),
+                    );
+                  } else {
+                    // Busca as coordenadas com base no CEP informado
+                    Map<String, double>? coordinates = await _getCoordinatesFromCep(cep);
+
+                    if (coordinates != null) {
+                      // Se as coordenadas forem encontradas, prossegue com o cadastro
+                      await addDistribuidorWithFirebase({
+                        'latitude': coordinates['latitude'],
+                        'longitude': coordinates['longitude'],
+                      });
+                      await cadastrarAuth(_emailController.text, _passwordController.text);
+
+                      mensagemSucesso();
+                    } else {
+                      // Exibe mensagem de erro caso as coordenadas não sejam encontradas
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Não foi possível encontrar o endereço do CEP informado."),
+                        ),
+                      );
+                    }
+                  }
                 }
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -1340,6 +1369,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
     // razão social + cnpj vai ser chave
     String cliente = '$razao - $cnpj';
     String randomId = firestore.collection('distribuidores').doc().id;
+    double latitude = userData['latitude'] ?? 0.0; // Define um valor padrão caso latitude não seja fornecida
+    double longitude = userData['longitude'] ?? 0.0;
 
     // Define os dados que serão inseridos
     Map<String, dynamic> fullUserData = {
@@ -1352,6 +1383,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       'senha': _passwordController.text,
       'cnae': cnae,
       'cep': cep,
+      'latitude': latitude,
+      'longitude': longitude,
       'pagamento_em_dia': false,
     };
 
@@ -1701,4 +1734,29 @@ void _removeCertidaoImage() {
       .set(conselhoUser, SetOptions(merge: true)); 
   }
 
+  Future<Map<String, double>?> _getCoordinatesFromCep(String cep) async {
+    final String url = 'https://maps.googleapis.com/maps/api/geocode/json?address=$cep&key=$apiKey';
+    
+    try {
+      final response = await http.get(Uri.parse(url));
+      final data = jsonDecode(response.body);
+
+      if (data['status'] == 'OK') {
+        var location = data['results'][0]['geometry']['location'];
+        return {
+          'latitude': location['lat'],
+          'longitude': location['lng'],
+        };
+      } else {
+        setState(() {
+          _errorMessage = "CEP inválido ou não encontrado.";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = "Erro ao buscar coordenadas.";
+      });
+    }
+    return null;
+  }
 }
