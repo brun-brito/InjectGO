@@ -117,7 +117,11 @@ flutter:
      - assets/images/print-tecnicas1.jpg
      - assets/images/print-tecnicas2.jpg
      - assets/images/default-product.png
-    #  - assets/images/rennova-vermelho.jpg
+     - assets/images/bioestimuladores.jpg
+     - assets/images/fios-pdo.jpg
+     - assets/images/preenchedores.jpg
+     - assets/images/toxinas.jpg
+     - assets/images/acido-hialuronico.jpg
      
      - assets/videos/video_merz.mp4
      - assets/videos/propaganda_renova.mp4

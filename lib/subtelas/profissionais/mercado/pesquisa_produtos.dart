@@ -3,13 +3,20 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:inject_go/formatadores/formata_string.dart';
 import 'package:inject_go/subtelas/profissionais/mercado/carrinho.dart';
 
 class PesquisaProdutosScreen extends StatefulWidget {
-  final Position posicao; // Coordenadas do usuário atual
+  final Position posicao;
   final String emailProfissional;
+  final String? categoriaFiltrada;
 
-  const PesquisaProdutosScreen({super.key, required this.posicao, required this.emailProfissional});
+  const PesquisaProdutosScreen({
+    super.key,
+    required this.posicao,
+    required this.emailProfissional,
+    this.categoriaFiltrada, // Nova categoria para filtro
+  });
 
   @override
   _PesquisaProdutosScreenState createState() => _PesquisaProdutosScreenState();
@@ -57,10 +64,25 @@ class _PesquisaProdutosScreenState extends State<PesquisaProdutosScreen> {
       return distribuidoresIds.contains(parentDistribuidorId);
     }).toList();
 
-    setState(() {
-      _allProducts = produtosValidos;
-      _isLoading = false;
-    });
+     // Se a categoria for passada, aplica o filtro de categoria
+    if (widget.categoriaFiltrada != null && widget.categoriaFiltrada!.isNotEmpty) {
+      final produtosFiltradosPorCategoria = produtosValidos.where((produto) {
+        final categoriaProduto = removeAcento(produto['categoria'].toString().toLowerCase());
+
+        // Aplica o filtro "contains" para verificar se a categoria contém a palavra-chave, sem acentos
+        return categoriaProduto.contains(removeAcento(widget.categoriaFiltrada!.toLowerCase()));
+      }).toList();
+
+      setState(() {
+        _allProducts = produtosFiltradosPorCategoria;
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _allProducts = produtosValidos;
+        _isLoading = false;
+      });
+    }
   }
 
   Future<String> _getDistributorName(String distributorId) async {
@@ -200,7 +222,7 @@ class _PesquisaProdutosScreenState extends State<PesquisaProdutosScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(2),
                     decoration: const BoxDecoration(
-                      color: Colors.red,
+                      color: Color.fromARGB(255, 236, 63, 121),
                       shape: BoxShape.circle,
                     ),
                     constraints: const BoxConstraints(
@@ -405,11 +427,11 @@ class _PesquisaProdutosScreenState extends State<PesquisaProdutosScreen> {
                               color: Colors.white,
                             ),
                             label: Text(
-                              isInCart ? 'Remover' : 'Adicionar ao\ncarrinho',
+                              isInCart ? 'Remover' : 'Adicionar ao carrinho',
                               style: const TextStyle(color: Colors.white),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isInCart ? Colors.red : Colors.green,
+                              backgroundColor: isInCart ? Colors.red : const Color.fromARGB(255, 236, 63, 121),
                             ),
                           ),
                         ],

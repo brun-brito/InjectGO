@@ -68,8 +68,9 @@ class _ProductPurchaseScreenState extends State<ProductPurchaseScreen> {
                   await _handlePaymentSuccess(paymentId);
                   await Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => MainScreen(userPosition: widget.posicao, email: widget.userEmail, initialIndex: 2)),
+                    MaterialPageRoute(builder: (context) => MainScreen(userPosition: widget.posicao, email: widget.userEmail, initialIndex: 3)),
                   );
+                  // TODO: Se for criar mais uma opção no menu do mercado ou editar a ordem, deve-se alterar o initialIndex
 
                 } else if (url.toString().contains("failure")) {
                   _showError("O pagamento falhou. Tente novamente.");

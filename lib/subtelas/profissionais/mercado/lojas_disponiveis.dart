@@ -71,6 +71,10 @@ class _MercadoScreenState extends State<MercadoScreen> {
 
   // Função que constrói o grid dos distribuidores (lojas)
   Widget _buildDistribuidoresGrid() {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    const double itemWidth = 150.0;
+    final int crossAxisCount = screenWidth ~/ itemWidth;
+
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('distribuidores')
@@ -128,8 +132,8 @@ class _MercadoScreenState extends State<MercadoScreen> {
 
         return GridView.builder(
           padding: const EdgeInsets.all(8.0),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
             crossAxisSpacing: 10.0,
             mainAxisSpacing: 10.0,
             childAspectRatio: 0.8, // Define a proporção dos cards

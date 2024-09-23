@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:inject_go/subtelas/profissionais/mercado/categorias.dart';
 import 'package:inject_go/subtelas/profissionais/mercado/lojas_disponiveis.dart';
 import 'package:inject_go/subtelas/profissionais/mercado/pesquisa_produtos.dart';
 import 'package:inject_go/subtelas/profissionais/mercado/minhas_compras.dart';
@@ -19,12 +20,20 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   late int _selectedIndex;
+  late List<Widget> _widgetOptions;
 
   @override
   void initState() {
     super.initState();
-    // Define o índice inicial: se `initialIndex` for passado, usa ele, caso contrário, o default será 0 ("Minhas Lojas")
     _selectedIndex = widget.initialIndex ?? 0;
+
+    // Inicializa os widgets das telas
+    _widgetOptions = <Widget>[
+      MercadoScreen(userPosition: widget.userPosition, email: widget.email), // "Início"
+      PesquisaProdutosScreen(emailProfissional: widget.email, posicao: widget.userPosition), // "Pesquisar Produtos"
+      CategoriasScreen(emailProfissional: widget.email, userPosition: widget.userPosition), // "Categorias"
+      MinhasComprasScreen(userEmail: widget.email), // "Meus Pedidos"
+    ];
   }
 
   // Função para alterar a aba selecionada
@@ -38,14 +47,11 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
-        index: _selectedIndex,
-        children: <Widget>[
-          MercadoScreen(userPosition: widget.userPosition, email: widget.email), // "Minhas Lojas"
-          PesquisaProdutosScreen(emailProfissional: widget.email, posicao: widget.userPosition), // "Pesquisar Produtos"
-          MinhasComprasScreen(userEmail: widget.email), // "Meus Pedidos"
-        ],
+        index: _selectedIndex, // Exibe a tela correspondente ao índice selecionado
+        children: _widgetOptions, // A lista de telas
       ),
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed, // Para forçar a exibição dos quatro botões
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.store),
@@ -53,7 +59,11 @@ class _MainScreenState extends State<MainScreen> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.search),
-            label: 'Pesquisar produtos',
+            label: 'Pesquisar',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.category),
+            label: 'Categorias',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.shopping_cart),

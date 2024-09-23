@@ -773,12 +773,12 @@ Widget buildSecondPage() {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        return Future.error('Permissão de localização negada.');
+        return Future.error('É preciso autorizar sua localização, para trazermos as lojas mais próximas de você!');
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      return Future.error('As permissões de localização foram negadas permanentemente.');
+      return Future.error('Você negou o uso de sua localização algumas vezes. Por favor, vá até as configurações de seu telefone e habilite manualmente.');
     }
 
     // Obtém a posição atual do dispositivo
@@ -796,7 +796,7 @@ Widget buildSecondPage() {
       Position position = await _determinePosition();
 
       // Navega para a tela de Mercado passando a posição como parâmetro
-      Navigator.push(
+      await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => MainScreen(userPosition: position, email: widget.username),
@@ -804,7 +804,7 @@ Widget buildSecondPage() {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao obter a localização: $e')),
+        SnackBar(content: Text('Erro ao obter a localização: $e'),duration: const Duration(seconds: 8)),
       );
     } finally {
       setState(() {

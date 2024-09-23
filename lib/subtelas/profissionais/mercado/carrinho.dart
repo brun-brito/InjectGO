@@ -186,6 +186,11 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
                             content: Text('Erro ao processar compra. Por favor, tente novamente mais tarde, ou entre em contato conosco.'
                           )));
                         }
+                        finally {
+                          setState(() {
+                            _isLoading = false;
+                          });
+                        }
                       },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.pink,
@@ -222,7 +227,17 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
           .doc(product.id)
           .get();
 
-      var quantidadeDisponivel = produtoFirebase['quantidade_disponivel'] as int;
+      int quantidadeDisponivel = produtoFirebase['quantidade_disponivel'];
+      bool disponivel = produtoFirebase['disponivel'];
+
+      // Se o produto ficou indisponível durante o processo
+      if (!disponivel || quantidadeDisponivel <= 0){
+        ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(
+            content: Text('O produto não está mais disponível.'
+          )));
+        return;
+      }
 
       // Verifica se a quantidade disponível é suficiente
       if (quantidadeRequisitada > quantidadeDisponivel) {
@@ -236,7 +251,7 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
 
     if (todosProdutosDisponiveis) {
       // Se todos os produtos têm quantidade suficiente, prosseguir para a próxima tela
-      _prosseguirParaProximaTela();
+      await _prosseguirParaProximaTela();
     }
   }
 
