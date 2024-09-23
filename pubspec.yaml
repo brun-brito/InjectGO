@@ -41,7 +41,7 @@ dependencies:
   cupertino_icons: ^1.0.6
   image_picker: ^1.1.2
   firebase_auth: ^4.19.1
-  firebase_core: ^2.29.0
+  firebase_core: ^2.32.0
   firebase_storage: ^11.7.1
   firebase_messaging: ^14.9.4
   cloud_firestore: ^4.16.1
@@ -73,6 +73,10 @@ dependencies:
   file_picker: ^8.0.5
   badges: ^2.0.3
   geolocator: ^11.1.0
+  uuid: ^4.5.0
+  timezone: ^0.8.0
+  flutter_local_notifications: ^9.4.0
+  firebase_analytics: ^10.10.2
 
 dev_dependencies:
   flutter_test:

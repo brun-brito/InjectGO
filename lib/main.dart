@@ -2,11 +2,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/material.dart';
+import 'package:inject_go/notification/app.dart';
+import 'package:inject_go/notification/services/firebase_messaging_service.dart';
+import 'package:inject_go/notification/services/notification_service.dart';
 import 'package:inject_go/screens/profile_screen.dart';
 import 'package:inject_go/screens/profile_screen_distribuidores.dart';
-import 'screens/welcome_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:provider/provider.dart';
+import 'screens/welcome_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,7 +18,20 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+
+  runApp(
+    MultiProvider(
+      providers: [
+        Provider<NotificationService>(
+          create: (context) => NotificationService(),
+        ),
+        Provider<FirebaseMessagingService>(
+          create: (context) => FirebaseMessagingService(context.read<NotificationService>()),
+        ),
+      ],
+      child: const App(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -90,7 +107,7 @@ class Home extends StatelessWidget {
               child: Container(
                 margin: const EdgeInsets.only(top: 20),
                 child: Image.asset(
-                  'assets/images/logoInject.jpeg', //logo-distribuidora.jpeg',
+                  'assets/images/logoInject.jpeg',
                   width: 200,
                   height: 110,
                   fit: BoxFit.fitWidth,
@@ -100,7 +117,7 @@ class Home extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 5.0),
               child: Image.asset(
-                'assets/images/novaInject.jpeg',//rennova-logo.jpeg
+                'assets/images/novaInject.jpeg',
                 fit: BoxFit.fitWidth,
               ),
             ),
@@ -117,7 +134,7 @@ class Home extends StatelessWidget {
                   const SizedBox(height: 32),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: /*const Color(0xFFf6cbc2),*/const Color.fromARGB(255, 236, 63, 121),
+                      backgroundColor: const Color.fromARGB(255, 236, 63, 121),
                       minimumSize: const Size(double.infinity, 50),
                       foregroundColor: Colors.white,
                     ),

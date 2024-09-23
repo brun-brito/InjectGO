@@ -3,6 +3,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:inject_go/formatadores/formata_data.dart';
+import 'package:inject_go/subtelas/distribuidores/vendas/detalhes_venda.dart';
 
 class MinhasVendasScreen extends StatefulWidget {
   final String id;
@@ -112,35 +113,49 @@ Widget _buildVendasTab(String status) {
 
       final vendas = snapshot.data!.docs;
 
-      return ListView.builder(  // Removi o Expanded aqui, pois não é necessário dentro de ListView
-        itemCount: vendas.length,
+      // Agrupar as vendas por `payment_id`
+      Map<String, List<QueryDocumentSnapshot>> groupedVendas = {};
+      for (var venda in vendas) {
+        String paymentId = venda['payment_id'];
+        if (!groupedVendas.containsKey(paymentId)) {
+          groupedVendas[paymentId] = [];
+        }
+        groupedVendas[paymentId]!.add(venda);
+      }
+
+      return ListView.builder(
+        itemCount: groupedVendas.length,
         itemBuilder: (context, index) {
-          final venda = vendas[index].data() as Map<String, dynamic>;
-          final imageUrl = venda['productInfo']['imageUrl'] ?? ''; // Pega a URL da imagem do produto
+          final paymentId = groupedVendas.keys.elementAt(index);
+          final vendasDoPedido = groupedVendas[paymentId]!; // Vendas agrupadas por `payment_id`
+          final primeiraVenda = vendasDoPedido.first.data() as Map<String, dynamic>;
+
+          // Cálculo do total da compra
+          double totalCompra = vendasDoPedido.fold(0.0, (acc, venda) {
+            return acc + (venda['productInfo']['preco'] ?? 0.0);
+          });
 
           return Card(
             child: ListTile(
-              leading: imageUrl.isNotEmpty
+              leading: primeiraVenda['productInfo']['imageUrl'] != null
                   ? Image.network(
-                      imageUrl,
+                      primeiraVenda['productInfo']['imageUrl'],
                       width: 50,
                       height: 50,
                       fit: BoxFit.cover,
                     )
-                  : const Icon(Icons.image_not_supported, size: 50), // Ícone padrão se não houver imagem
-              title: Text(venda['productInfo']['nome'] ?? 'Produto sem nome'),
+                  : const Icon(Icons.image_not_supported, size: 50),
+              title: Text('Pedido: $paymentId'),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Preço: R\$ ${venda['productInfo']['preco']?.toStringAsFixed(2) ?? 'N/A'}'),
-                  Text('Comprador: ${venda['buyerInfo']['nome'] ?? 'Desconhecido'}'),
-                  Text('Data: ${formatDate(venda['data_pedido'])}'),
-                  if (status == 'finalizado') Text('Status: ${venda['status']}'), // Mostra o motivo da finalização
+                  Text('Total: R\$ ${totalCompra.toStringAsFixed(2)}'),
+                  Text('Data: ${formatDate(primeiraVenda['data_pedido'])}'),
                 ],
               ),
-              trailing: Text(venda['status']),
               onTap: () {
-                _showVendaDetalhes(context, venda, vendas[index].id);
+                // Navega para a página de detalhes das vendas agrupadas
+                _showVendaDetalhes(context, vendasDoPedido, paymentId);
               },
             ),
           );
@@ -151,191 +166,17 @@ Widget _buildVendasTab(String status) {
 }
 
   // Exibir detalhes da venda e opções de aprovação ou rejeição
-  void _showVendaDetalhes(BuildContext context, Map<String, dynamic> venda, String vendaId) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Detalhes do Pedido: ${venda['productInfo']['nome'] ?? 'Produto sem nome'}'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Preço: R\$ ${venda['productInfo']['preco']?.toStringAsFixed(2) ?? 'N/A'}'),
-              Text('Comprador: ${venda['buyerInfo']['nome'] ?? 'Desconhecido'}'),
-              Text('Email: ${venda['buyerInfo']['email'] ?? 'Desconhecido'}'),
-              Text('Telefone: ${venda['buyerInfo']['telefone'] ?? 'N/A'}'),
-              const SizedBox(height: 20),
-              Text('Status: ${venda['status']}'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Fechar'),
-            ),
-            if (venda['status'] == 'solicitado') ...[
-              TextButton(
-                onPressed: () {
-                  final String? buyerEmail = venda['buyerInfo']['email'];
-                  final String? productId = venda['productInfo']['productId'];
-
-                  if (buyerEmail != null && productId != null) {
-                    _aprovarVenda(vendaId, buyerEmail, productId);
-                    Navigator.pop(context);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Erro: Informação do comprador ou produto está incompleta.')),
-                    );
-                  }
-                },
-                child: const Text('Aprovar', style: TextStyle(color: Colors.green)),
-              ),
-              TextButton(
-                onPressed: () {
-                  final String? buyerEmail = venda['buyerInfo']['email'];
-                  final String? productId = venda['productInfo']['productId'];
-
-                  if (buyerEmail != null && productId != null) {
-                    _rejeitarVenda(vendaId, buyerEmail, productId);
-                    Navigator.pop(context);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Erro: Informação do comprador ou produto está incompleta.')),
-                    );
-                  }
-                },
-                child: const Text('Rejeitar', style: TextStyle(color: Colors.red)),
-              ),
-            ],
-          ],
-        );
-      },
+  void _showVendaDetalhes(BuildContext context, List<QueryDocumentSnapshot> vendasDoPedido, String paymentId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DetalhesVendaScreen(
+          vendasDoPedido: vendasDoPedido,
+          paymentId: paymentId,
+          distribuidorId: widget.id,
+        ),
+      ),
     );
-  }
-
-  // Função para aprovar a venda e mudar o status para "preparando" para o distribuidor e o cliente
-  void _aprovarVenda(String vendaId, String buyerEmail, String productId) async {
-    try {
-      // Atualizar o status da venda para 'preparando'
-      await FirebaseFirestore.instance
-          .collection('distribuidores')
-          .doc(widget.id)  // ID do distribuidor
-          .collection('vendas')
-          .doc(vendaId)
-          .update({
-        'status': 'preparando',
-      });
-
-      // Obter o `compraId` a partir do documento da venda
-      DocumentSnapshot vendaSnapshot = await FirebaseFirestore.instance
-          .collection('distribuidores')
-          .doc(widget.id)
-          .collection('vendas')
-          .doc(vendaId)
-          .get();
-
-      if (!vendaSnapshot.exists) {
-        throw Exception('Venda não encontrada.');
-      }
-
-      // Converta os dados para um Map<String, dynamic>
-      final Map<String, dynamic>? vendaData = vendaSnapshot.data() as Map<String, dynamic>?;
-
-      if (vendaData == null || !vendaData.containsKey('compraId')) {
-        throw Exception('compraId não encontrado na venda.');
-      }
-
-      final String compraId = vendaData['compraId'];
-
-      // Atualizar o status da compra correspondente no Firestore (na coleção do comprador)
-      await FirebaseFirestore.instance
-          .collection('users')
-          .where('email', isEqualTo: buyerEmail)
-          .limit(1)
-          .get()
-          .then((querySnapshot) async {
-        if (querySnapshot.docs.isNotEmpty) {
-          String buyerId = querySnapshot.docs.first.id;
-
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(buyerId)
-              .collection('compras')
-              .doc(compraId)
-              .update({
-            'status': 'preparando',
-          });
-        }
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Venda aprovada com sucesso!')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao aprovar a venda: $e')),
-      );
-    }
-  }
-
-  void _rejeitarVenda(String vendaId, String buyerEmail, String productId) async {
-    try {
-      // Atualizar o status da venda para 'rejeitado'
-      await FirebaseFirestore.instance
-          .collection('distribuidores')
-          .doc(widget.id)
-          .collection('vendas')
-          .doc(vendaId)
-          .update({
-        'status': 'rejeitado',
-      });
-
-      // Obter o `compraId` a partir do documento da venda
-      DocumentSnapshot vendaSnapshot = await FirebaseFirestore.instance
-          .collection('distribuidores')
-          .doc(widget.id)
-          .collection('vendas')
-          .doc(vendaId)
-          .get();
-
-      final vendaData = vendaSnapshot.data() as Map<String, dynamic>?;
-
-      if (vendaData == null || !vendaData.containsKey('compraId')) {
-        throw Exception('compraId não encontrado na venda');
-      }
-
-      final String compraId = vendaData['compraId'];
-
-      // Atualizar o status da compra correspondente no Firestore (na coleção do comprador)
-      await FirebaseFirestore.instance
-          .collection('users')
-          .where('email', isEqualTo: buyerEmail)
-          .limit(1)
-          .get()
-          .then((querySnapshot) async {
-        if (querySnapshot.docs.isNotEmpty) {
-          String buyerId = querySnapshot.docs.first.id;
-
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(buyerId)
-              .collection('compras')
-              .doc(compraId)
-              .update({
-            'status': 'rejeitado',
-          });
-        }
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Venda rejeitada com sucesso!')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao rejeitar a venda: $e')),
-      );
-    }
   }
 
 }
