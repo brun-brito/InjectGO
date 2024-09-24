@@ -26,26 +26,38 @@ class DetalhesCompraScreen extends StatelessWidget {
           .doc(distribuidorId)
           .get();
 
-      if (!snapshot.exists || !snapshot.data().toString().contains('credenciais_mp')) {
-        throw Exception('Access token não encontrado');
-      }
+      // Verifique se o documento existe e se o campo credenciais_mp está presente
+      if (snapshot.exists && snapshot.data() != null) {
+        final data = snapshot.data() as Map<String, dynamic>;
 
-      // String accessToken = snapshot['credenciais_mp']['access_token'];
+        if (data.containsKey('credenciais_mp') && data['credenciais_mp'] is Map<String, dynamic>) {
+          final credenciaisMp = data['credenciais_mp'] as Map<String, dynamic>;
 
-      final url = 'https://api.mercadopago.com/v1/payments/$paymentId';
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Authorization': 'Bearer APP_USR-1654544103970422-092308-b9c10e3876cee80cc85d7ba771696cdb-276779058',//$accestoken
-          //APP_USR-1654544103970422-092308-b9c10e3876cee80cc85d7ba771696cdb-276779058
-          //APP_USR-3686677339330781-091612-5cfe9d75683d284b0544ba8cb449d713-1994695758
-        },
-      );
+          if (credenciaisMp.containsKey('access_token')) {
+            String accessToken = credenciaisMp['access_token'];
 
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body) as Map<String, dynamic>;
+            // Realiza a requisição ao Mercado Pago com o token
+            final url = 'https://api.mercadopago.com/v1/payments/$paymentId';
+            final response = await http.get(
+              Uri.parse(url),
+              headers: {
+                'Authorization': 'Bearer $accessToken',
+              },
+            );
+
+            if (response.statusCode == 200) {
+              return jsonDecode(response.body) as Map<String, dynamic>;
+            } else {
+              throw Exception('Erro ao buscar os detalhes de pagamento. Status: ${response.statusCode}');
+            }
+          } else {
+            throw Exception('Access token não encontrado em credenciais_mp.');
+          }
+        } else {
+          throw Exception('Campo credenciais_mp não encontrado ou mal formatado.');
+        }
       } else {
-        throw Exception('Erro ao buscar os detalhes de pagamento');
+        throw Exception('Documento do distribuidor não encontrado.');
       }
     } catch (e) {
       throw Exception('Erro ao buscar os detalhes de pagamento: $e');
@@ -55,15 +67,25 @@ class DetalhesCompraScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primeiraCompra = comprasDoPedido.first;
-    final distributorInfo = primeiraCompra['distributorInfo'] as Map<String, dynamic>;
 
+    // Faça o cast do data() para Map<String, dynamic>
+    final Map<String, dynamic> compraData = primeiraCompra.data() as Map<String, dynamic>;
+
+    // Verifique se o campo 'distributorInfo' existe
+    final distributorInfo = compraData.containsKey('distributorInfo')
+        ? compraData['distributorInfo'] as Map<String, dynamic>
+        : null; // Defina como null se o campo não existir
+
+    // Agora, ao exibir as informações, verifique se 'distributorInfo' não é nulo
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detalhes da Compra'),
         centerTitle: true,
       ),
       body: FutureBuilder<Map<String, dynamic>>(
-        future: fetchPaymentDetails(paymentId, '${distributorInfo['razao_social']} - ${distributorInfo['cnpj']}'),
+        future: fetchPaymentDetails(paymentId, distributorInfo != null
+            ? '${distributorInfo['razao_social']} - ${distributorInfo['cnpj']}'
+            : 'Distribuidor Desconhecido'),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -99,14 +121,18 @@ class DetalhesCompraScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                      if (distributorInfo != null) ...[
                         _buildRichText('Status do Pagamento: ', _translatePaymentStatus(paymentDetails['status']),
                             _getStatusColor(paymentDetails['status'])),
                         const SizedBox(height: 10),
                         _buildRichText('Método de Pagamento: ', paymentDetails['payment_type_id']),
                         _buildRichText('Total Pago: ', 'R\$${paymentDetails['transaction_amount'].toStringAsFixed(2)}'),
                         _buildRichText('E-mail do pagador: ', paymentDetails['payer']['email']),
-                        _buildRichText('Data de compra: ', formatDataHora(paymentDetails['date_created'])),
+                        _buildRichText('Data de criação: ', formatDataHora(paymentDetails['date_created'])),
                         _buildRichText('Última atualização: ', formatDataHora(paymentDetails['date_last_updated'])),
+                      ] else ...[
+                          const Text('Informações do distribuidor indisponíveis.'),
+                        ],
                       ],
                     ),
                   ),
@@ -153,7 +179,7 @@ class DetalhesCompraScreen extends StatelessWidget {
                               const SizedBox(height: 5),
                               Text('Preço: R\$ ${productInfo['preco']?.toStringAsFixed(2) ?? 'N/A'}'),
                               Text('Quantidade: ${productInfo['quantidade'] ?? 1}'),
-                              Text('Distribuidor: ${distributorInfo['razao_social'] ?? 'Desconhecido'}'),
+                              Text('Distribuidor: ${distributorInfo?['razao_social'] ?? 'Desconhecido'}'),
                             ],
                           ),
                         ),
@@ -179,8 +205,8 @@ class DetalhesCompraScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 10),
-                        _buildContactInfo(context, 'Telefone do distribuidor: ', distributorInfo['telefone']),
-                        _buildContactInfo(context, 'Email do distribuidor: ', distributorInfo['email']),
+                        _buildContactInfo(context, 'Telefone do distribuidor: ', distributorInfo?['telefone']),
+                        _buildContactInfo(context, 'Email do distribuidor: ', distributorInfo?['email']),
                         _buildContactInfo(context, 'Suporte InjectGO: ', 'suporte@injectgo.com.br'),
                       ],
                     ),

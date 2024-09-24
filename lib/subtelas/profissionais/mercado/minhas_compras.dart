@@ -1,6 +1,7 @@
+// ignore_for_file: library_private_types_in_public_api
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:inject_go/formatadores/formata_data.dart';
 import 'package:inject_go/subtelas/profissionais/mercado/pedidos/detalhes_pedidos.dart';
 import 'package:intl/intl.dart';
 import 'package:inject_go/screens/profile_screen.dart';
@@ -154,7 +155,7 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
               .doc(userId)
               .collection('compras')
               .where('status', isEqualTo: status)
-              .orderBy('data_compra', descending: true)
+              // .orderBy('data_compra', descending: true)
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -169,55 +170,80 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
 
             final compras = snapshot.data!.docs;
 
-            // Agrupar compras por payment_id
-            Map<String, List<QueryDocumentSnapshot>> comprasAgrupadas = {};
-            for (var compra in compras) {
-              final paymentId = compra['payment_id'] ?? 'desconhecido';
-              if (!comprasAgrupadas.containsKey(paymentId)) {
-                comprasAgrupadas[paymentId] = [];
-              }
-              comprasAgrupadas[paymentId]!.add(compra);
-            }
-
             return ListView.builder(
-              itemCount: comprasAgrupadas.length,
+              itemCount: compras.length,
               itemBuilder: (context, index) {
-                final paymentId = comprasAgrupadas.keys.elementAt(index);
-                final comprasDoPedido = comprasAgrupadas[paymentId]!;
-                final primeiraCompra = comprasDoPedido.first;
-                final productInfo = primeiraCompra['productInfo'] as Map<String, dynamic>;
-                final distributorInfo = primeiraCompra['distributorInfo'] as Map<String, dynamic>;
-                final dataCompra = (primeiraCompra['data_compra'] as Timestamp).toDate();
+                final compra = compras[index];
+                final produtos = compra['produtos'] as List<dynamic>;
+                final dataCompra = (compra['data_criacao'] as Timestamp).toDate();
                 final formattedDate = DateFormat('dd/MM/yyyy').format(dataCompra);
 
                 return Card(
                   child: ListTile(
-                    leading: productInfo['imageUrl'] != null
-                        ? CircleAvatar(
-                            backgroundImage: NetworkImage(productInfo['imageUrl']),
-                            radius: 35,
-                          )
-                        : const CircleAvatar(
-                            child: Icon(Icons.shopping_bag),
-                          ),
-                    title: Text('Pedido: $paymentId'),
+                    title: Text('Pedido: ${compra.id}'),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Preço: R\$ ${productInfo['preco']?.toStringAsFixed(2) ?? 'N/A'}'),
-                        Text('Distribuidor: ${distributorInfo['razao_social'] ?? 'Desconhecido'}'),
-                        Text('Data: $formattedDate'),
-                        Text('Total de Itens: ${comprasDoPedido.length}'),
+                        Text('Data de pedido: $formattedDate'),
+                        Text('Total de Itens: ${produtos.length}'),
+                        ...produtos.map((produto) {
+                          final productInfo = produto['productInfo'] as Map<String, dynamic>;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  // Imagem do produto
+                                  productInfo['imageUrl'] != null
+                                      ? CircleAvatar(
+                                          backgroundImage: NetworkImage(productInfo['imageUrl']),
+                                          radius: 30,
+                                        )
+                                      : const CircleAvatar(
+                                          child: Icon(Icons.shopping_bag),
+                                        ),
+                                  const SizedBox(width: 8),
+
+                                  // Use Expanded para o texto
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          productInfo['nome'] ?? 'Produto sem nome',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          overflow: TextOverflow.ellipsis, // Trunca o texto se for muito longo
+                                        ),
+                                        Text(
+                                          'Categoria: ${productInfo['categoria'] ?? 'Desconhecida'}',
+                                          overflow: TextOverflow.ellipsis, // Trunca o texto se for muito longo
+                                        ),
+                                        Text(
+                                          'Preço: R\$ ${productInfo['preco']?.toStringAsFixed(2) ?? 'N/A'}',
+                                          overflow: TextOverflow.ellipsis, // Trunca o texto se for muito longo
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          );
+                        }).toList(),
                       ],
                     ),
-                    trailing: Text(primeiraCompra['status']),
+                    trailing: Text(compra['status']),
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => DetalhesCompraScreen(
-                            comprasDoPedido: comprasAgrupadas[paymentId]!,
-                            paymentId: paymentId,
+                            comprasDoPedido: [compra],
+                            paymentId: compra.id,
                             userEmail: widget.userEmail,
                           ),
                         ),
@@ -259,12 +285,13 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
               .doc(userId)
               .collection('compras')
               .where('status', whereIn: ['finalizado', 'rejeitado'])
-              .orderBy('data_compra', descending: true)
+              .orderBy('data_criacao', descending: true)
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-             
-              return const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121)));
+              return const Center(
+                child: CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121)),
+              );
             }
             if (snapshot.hasError) {
               return const Center(child: Text('Erro ao carregar compras.'));
@@ -275,72 +302,80 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
 
             final compras = snapshot.data!.docs;
 
-            // Agrupar compras por payment_id
-            Map<String, List<QueryDocumentSnapshot>> comprasAgrupadas = {};
-            for (var compra in compras) {
-              final paymentId = compra['payment_id'] ?? 'desconhecido';
-              if (!comprasAgrupadas.containsKey(paymentId)) {
-                comprasAgrupadas[paymentId] = [];
-              }
-              comprasAgrupadas[paymentId]!.add(compra);
-            }
-
             return ListView.builder(
-              itemCount: comprasAgrupadas.length,
+              itemCount: compras.length,
               itemBuilder: (context, index) {
-                final paymentId = comprasAgrupadas.keys.elementAt(index);
-                final comprasDoPedido = comprasAgrupadas[paymentId]!;
-                final primeiraCompra = comprasDoPedido.first;
-                final productInfo = primeiraCompra['productInfo'] as Map<String, dynamic>;
-                final distributorInfo = primeiraCompra['distributorInfo'] as Map<String, dynamic>;
-                final dataCompra = (primeiraCompra['data_compra'] as Timestamp).toDate();
+                final compra = compras[index];
+                final produtos = compra['produtos'] as List<dynamic>;
+                final dataCompra = (compra['data_criacao'] as Timestamp).toDate();
                 final formattedDate = DateFormat('dd/MM/yyyy').format(dataCompra);
 
                 return Card(
                   child: ListTile(
-                    leading: productInfo['imageUrl'] != null
-                        ? CircleAvatar(
-                            backgroundImage: NetworkImage(productInfo['imageUrl']),
-                            radius: 35,
-                          )
-                        : const CircleAvatar(
-                            child: Icon(Icons.shopping_bag),
-                          ),
-                    title: Text('Pedido: $paymentId'),
+                    title: Text('Pedido: ${compra.id}'),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Preço: R\$ ${productInfo['preco']?.toStringAsFixed(2) ?? 'N/A'}'),
-                        Text('Distribuidor: ${distributorInfo['razao_social'] ?? 'Desconhecido'}'),
-                        Text('Data: $formattedDate'),
-                        Text('Total de Itens: ${comprasDoPedido.length}'),
-                        if (primeiraCompra['status'] == 'rejeitado') ...[
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Pedido Rejeitado',
-                            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                          ),
-                          // Convert 'primeiraCompra' to a Map<String, dynamic>
-                          if ((primeiraCompra.data() as Map<String, dynamic>).containsKey('reembolsoInfo'))
-                            Text(
-                              'Status reembolso: ${_translatePaymentStatus((primeiraCompra.data() as Map<String, dynamic>)['reembolsoInfo']['status'])}',
-                              style: const TextStyle(fontSize: 12, color: Colors.grey),
-                            ),
-                          Text(
-                            'Data do Reembolso: ${formatReembolsoDate((primeiraCompra.data() as Map<String, dynamic>)['reembolsoInfo']['date_created'] ?? 'N/A')}',
-                            style: const TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                        ],
+                        Text('Data de pedido: $formattedDate'),
+                        Text('Total de Itens: ${produtos.length}'),
+                        ...produtos.map((produto) {
+                          final productInfo = produto['productInfo'] as Map<String, dynamic>;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  // Imagem do produto
+                                  productInfo['imageUrl'] != null
+                                      ? CircleAvatar(
+                                          backgroundImage: NetworkImage(productInfo['imageUrl']),
+                                          radius: 30,
+                                        )
+                                      : const CircleAvatar(
+                                          child: Icon(Icons.shopping_bag),
+                                        ),
+                                  const SizedBox(width: 8),
+
+                                  // Use Expanded para o texto
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          productInfo['nome'] ?? 'Produto sem nome',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          overflow: TextOverflow.ellipsis, // Trunca o texto se for muito longo
+                                        ),
+                                        Text(
+                                          'Categoria: ${productInfo['categoria'] ?? 'Desconhecida'}',
+                                          overflow: TextOverflow.ellipsis, // Trunca o texto se for muito longo
+                                        ),
+                                        Text(
+                                          'Preço: R\$ ${productInfo['preco']?.toStringAsFixed(2) ?? 'N/A'}',
+                                          overflow: TextOverflow.ellipsis, // Trunca o texto se for muito longo
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          );
+                        }).toList(),
                       ],
                     ),
-                    trailing: Text(primeiraCompra['status']),
+                    trailing: Text(compra['status']),
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => DetalhesCompraScreen(
-                            comprasDoPedido: comprasAgrupadas[paymentId]!,
-                            paymentId: paymentId,
+                            comprasDoPedido: [compra],
+                            paymentId: compra.id,
                             userEmail: widget.userEmail,
                           ),
                         ),

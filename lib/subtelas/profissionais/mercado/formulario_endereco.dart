@@ -12,6 +12,7 @@ class AddressFormScreen extends StatefulWidget {
   final List<String> productIds;  // Agora você passa uma lista de IDs
   final String userEmail;
   final Position posicao;
+  final String orderId;
 
   const AddressFormScreen({
     super.key,
@@ -19,6 +20,7 @@ class AddressFormScreen extends StatefulWidget {
     required this.productIds,  // Recebe a lista de IDs de produtos
     required this.userEmail,
     required this.posicao,
+    required this.orderId,
   });
 
   @override
@@ -201,6 +203,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
           initPoint: widget.initPoint,  // O link para o pagamento
           productIds: widget.productIds,  // Passa a lista de IDs dos produtos
           userEmail: widget.userEmail,  // Passa o email do usuário
+          orderId: widget.orderId,  // Passa o ID do pedido
           endereco: {
             'cep': _cepController.text,
             'rua': _ruaController.text,

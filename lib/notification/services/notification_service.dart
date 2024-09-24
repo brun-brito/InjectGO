@@ -50,7 +50,7 @@ class NotificationService {
   Future<void> _setupTimezone() async {
     tz.initializeTimeZones();
     // Substitui a linha anterior que utilizava o FlutterNativeTimezone
-    final String timeZoneName = 'America/Sao_Paulo';  // Ajuste para o seu fuso horário
+    const String timeZoneName = 'America/Sao_Paulo';  // Ajuste para o seu fuso horário
     tz.setLocalLocation(tz.getLocation(timeZoneName));
   }
 

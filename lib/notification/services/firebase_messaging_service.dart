@@ -30,7 +30,6 @@ class FirebaseMessagingService {
       debugPrint('Token do dispositivo: $token');
 
       // Verifica se o usuário está logado
-      
       User? currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser != null && token != null) {
         final email = currentUser.email;
@@ -44,9 +43,7 @@ class FirebaseMessagingService {
 
         if (distributorSnapshot.docs.isNotEmpty) {
           // Salva o token para o distribuidor
-          await FirebaseFirestore.instance.collection('distribuidores').doc(distributorSnapshot.docs.first.id).update({
-            'fcmToken': token,
-          });
+          _updateTokens('distribuidores', distributorSnapshot.docs.first.id, token);
         } else {
           // Salva o token para o profissional
           final userSnapshot = await FirebaseFirestore.instance
@@ -56,9 +53,7 @@ class FirebaseMessagingService {
               .get();
 
           if (userSnapshot.docs.isNotEmpty) {
-            await FirebaseFirestore.instance.collection('users').doc(userSnapshot.docs.first.id).update({
-              'fcmToken': token,
-            });
+            _updateTokens('users', userSnapshot.docs.first.id, token);
           }
         }
       }
@@ -67,30 +62,51 @@ class FirebaseMessagingService {
     }
   }
 
-  // Escuta mensagens enquanto o app está no foreground
+  // Função para adicionar o token ao array de tokens FCM do usuário
+  Future<void> _updateTokens(String collection, String docId, String token) async {
+    final docRef = FirebaseFirestore.instance.collection(collection).doc(docId);
+
+    // Adicionar token ao array de tokens no Firestore, garantindo que não haja duplicatas
+    await docRef.set({
+      'fcmTokens': FieldValue.arrayUnion([token]),  // Adiciona o token ao array
+    }, SetOptions(merge: true));
+  }
+
   void _onMessage() {
     FirebaseMessaging.onMessage.listen((message) {
       RemoteNotification? notification = message.notification;
       AndroidNotification? android = message.notification?.android;
 
       if (notification != null && android != null) {
-        _notificationService.showLocalNotification(
-          CustomNotification(
-            id: android.hashCode,
-            title: notification.title!,
-            body: notification.body!,
-            payload: message.data['route'] ?? '',
-          ),
+        final String? route = message.data['route'];
+        final String? email = message.data['email'];
+
+        if (route != null && email != null) {
+          Navigator.of(Routes.navigatorKey!.currentContext!).pushNamed(
+            route,
+            arguments: email,  // Passa o email como argumento
+          );
+        }
+      }
+    });
+  }
+
+  void _onMessageOpenedApp() {
+    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      final String route = message.data['route'] ?? '/';
+      final String? distribuidorId = message.data['distribuidorId'];
+      final int initialTab = int.tryParse(message.data['initialTab'] ?? '0') ?? 0;
+
+      if (distribuidorId != null) {
+        Navigator.of(Routes.navigatorKey!.currentContext!).pushNamed(
+          route,
+          arguments: {
+            'distribuidorId': distribuidorId,  // Passa o ID do distribuidor
+            'initialTab': initialTab,  // Passa a aba inicial
+          },
         );
       }
     });
   }
 
-  // Escuta cliques em notificações
-  void _onMessageOpenedApp() {
-    FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      final String route = message.data['route'] ?? '/';
-      Navigator.of(Routes.navigatorKey!.currentContext!).pushNamed(route);
-    });
-  }
 }

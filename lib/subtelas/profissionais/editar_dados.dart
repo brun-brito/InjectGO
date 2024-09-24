@@ -365,7 +365,7 @@ Future<bool> _saveUserData() async {
               TextFormField(enabled:false, controller: _councilStateController, decoration: const InputDecoration(labelText: "UF do conselho")),
               TextFormField(enabled:false, controller: _professionController, decoration: const InputDecoration(labelText: "Profissão")),
               TextFormField(controller: _bioController, decoration: const InputDecoration(labelText: "Biografia:", hintText: 'ex: Dentista, 30 anos, reside em Belo Horizonte'),
-              inputFormatters: [LengthLimitingTextInputFormatter(60)]),
+              inputFormatters: [LengthLimitingTextInputFormatter(80)]),
               TextFormField(controller: _usernameController, decoration: const InputDecoration(labelText: "Nome de usuário"),
                 inputFormatters: [
                   FilteringTextInputFormatter.singleLineFormatter, 

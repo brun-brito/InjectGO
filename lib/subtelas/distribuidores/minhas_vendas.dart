@@ -7,8 +7,8 @@ import 'package:inject_go/subtelas/distribuidores/vendas/detalhes_venda.dart';
 
 class MinhasVendasScreen extends StatefulWidget {
   final String id;
-  
-  const MinhasVendasScreen({super.key, required this.id});
+  final int? initialTab;
+  const MinhasVendasScreen({super.key, required this.id, this.initialTab});
   
   @override
   _MinhasVendasScreenState createState() => _MinhasVendasScreenState();
@@ -20,7 +20,7 @@ class _MinhasVendasScreenState extends State<MinhasVendasScreen> with SingleTick
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 4, vsync: this, initialIndex: widget.initialTab ?? 0);
   }
 
   @override
@@ -102,7 +102,7 @@ Widget _buildVendasTab(String status) {
             .snapshots(),
     builder: (context, snapshot) {
       if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(child: CircularProgressIndicator());
+        return const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121)));
       }
       if (snapshot.hasError) {
         return const Center(child: Text('Erro ao carregar vendas.'));

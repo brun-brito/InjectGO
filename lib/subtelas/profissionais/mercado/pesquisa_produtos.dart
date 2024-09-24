@@ -341,7 +341,7 @@ class _PesquisaProdutosScreenState extends State<PesquisaProdutosScreen> {
 
             return GestureDetector(
               onTap: () {
-                // TODO: Lógica para navegar para a página de detalhes do produto
+                // detalhes do produto
               },
               child: Card(
                 elevation: 4,

@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:inject_go/mercado_pago/cadastra_produto_mp.dart';
+import 'package:inject_go/mercado_pago/cria_preferencia_mp.dart';
 import 'package:inject_go/subtelas/profissionais/mercado/formulario_endereco.dart';
 
 class CarrinhoScreen extends StatefulWidget {
@@ -35,7 +35,8 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
     double total = 0.0;
     for (var product in widget.cartProducts) {
       int quantity = _productQuantities[product] ?? 1;
-      double price = product['price'];
+      double price = (product['price'] as num).toDouble();
+
       total += price * quantity;
     }
     return total;
@@ -314,6 +315,7 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
           'category': product['categoria'],
           'quantity': _productQuantities[product] ?? 1,
           'price': product['price'],
+          'distribuidorId': distribuidorRef.id,
           'accessTokenVendedor': accessTokenVendedor,
         });
       }
@@ -330,19 +332,25 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
     try {
       List<Map<String, dynamic>> cartItems = await _obterAccessToken();
 
+      // Criar a preferência no Mercado Pago e obter o init_point e order_id
       final response = await mercadoPagoService.criarPreferenciaCarrinho(
         cartProducts: cartItems,
         accessTokenVendedor: cartItems.first['accessTokenVendedor'],
+        distribuidorId: cartItems.first['distribuidorId'],
+        profissionalId: widget.email,
       );
 
       final productIds = cartItems.map((item) => item['productId']).cast<String>().toList();
+      final orderId = response['order_id'];  // Obtém o ID do pedido
 
+      // Agora redirecionar o usuário para o formulário de endereço
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => AddressFormScreen(
             initPoint: response['init_point'],  // O init_point vindo da resposta do Mercado Pago
             productIds: productIds,
+            orderId: orderId,  // Passar o orderId para o formulário de endereço
             userEmail: widget.email,
             posicao: widget.posicao,
           ),
