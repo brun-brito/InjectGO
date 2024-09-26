@@ -398,7 +398,7 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
   Future<void> _navigateToMinhasVendas() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => MinhasVendasScreen(id: razaoSocialCnpj)),
+      MaterialPageRoute(builder: (context) => MinhasVendasScreen(id: razaoSocialCnpj, email: widget.username)),
     );
   }
   

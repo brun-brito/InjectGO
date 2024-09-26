@@ -18,7 +18,7 @@ class ProductRegistrationScreen extends StatefulWidget {
   @override
   _ProductRegistrationScreenState createState() => _ProductRegistrationScreenState();
 }
-
+// TODO: COLOCAR AS DIMENSOES DE CADA PRODUTO
 class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
   String _productName = '';

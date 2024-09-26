@@ -1,8 +1,8 @@
 // ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:inject_go/mercado_pago/cria_preferencia_mp.dart';
 import 'package:inject_go/subtelas/profissionais/mercado/formulario_endereco.dart';
 
 class CarrinhoScreen extends StatefulWidget {
@@ -18,7 +18,6 @@ class CarrinhoScreen extends StatefulWidget {
 
 class _CarrinhoScreenState extends State<CarrinhoScreen> {
   final Map<DocumentSnapshot, int> _productQuantities = {};
-  final MercadoPagoService mercadoPagoService = MercadoPagoService();
   bool _isLoading = false;
 
   @override
@@ -176,18 +175,19 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
                         setState(() {
                           _isLoading = true; // Inicia o loading
                         });
-                        try{
+                        try {
                           await _verificarDisponibilidade();
                         } catch (e) {
                           setState(() {
-                          _isLoading = false;
-                        });
-                        ScaffoldMessenger.of(context)
-                          .showSnackBar(const SnackBar(
-                            content: Text('Erro ao processar compra. Por favor, tente novamente mais tarde, ou entre em contato conosco.'
-                          )));
-                        }
-                        finally {
+                            _isLoading = false;
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'Erro ao processar compra. Por favor, tente novamente mais tarde, ou entre em contato conosco.'),
+                            ),
+                          );
+                        } finally {
                           setState(() {
                             _isLoading = false;
                           });
@@ -202,7 +202,7 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
                   ),
                 ),
                 child: _isLoading
-                    ? const CircularProgressIndicator( // Exibe o indicador de carregamento
+                    ? const CircularProgressIndicator(
                         color: Colors.white,
                       )
                     : const Text(
@@ -232,11 +232,12 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
       bool disponivel = produtoFirebase['disponivel'];
 
       // Se o produto ficou indisponível durante o processo
-      if (!disponivel || quantidadeDisponivel <= 0){
-        ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(
-            content: Text('O produto não está mais disponível.'
-          )));
+      if (!disponivel || quantidadeDisponivel <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('O produto não está mais disponível.'),
+          ),
+        );
         return;
       }
 
@@ -245,14 +246,25 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
         todosProdutosDisponiveis = false;
 
         // Exibir o diálogo informando a quantidade disponível
-        _mostrarDialogoQuantidadeInsuficiente(product, quantidadeDisponivel, quantidadeRequisitada);
+        _mostrarDialogoQuantidadeInsuficiente(
+            product, quantidadeDisponivel, quantidadeRequisitada);
         break; // Para ao encontrar o primeiro produto com problema
       }
     }
 
     if (todosProdutosDisponiveis) {
       // Se todos os produtos têm quantidade suficiente, prosseguir para a próxima tela
-      await _prosseguirParaProximaTela();
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AddressFormScreen(
+            cartProducts: widget.cartProducts,
+            email: widget.email,
+            posicao: widget.posicao,
+            productQuantities: _productQuantities, // Passar as quantidades para a próxima tela
+                    ),
+        ),
+      );
     }
   }
 
@@ -282,99 +294,4 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
       },
     );
   }
-
-  Future<List<Map<String, dynamic>>> _obterAccessToken() async {
-    List<Map<String, dynamic>> cartItems = [];
-
-    try {
-      for (var product in widget.cartProducts) {
-        var distribuidorRef = product.reference.parent.parent!;
-        
-        var distribuidorSnapshot = await FirebaseFirestore.instance
-            .collection('distribuidores')
-            .doc(distribuidorRef.id)
-            .get();
-
-        if (!distribuidorSnapshot.exists) {
-          throw Exception('Distribuidor não encontrado: ${distribuidorRef.id}');
-        }
-
-        var distribuidorData = distribuidorSnapshot.data() as Map<String, dynamic>;
-
-        if (distribuidorData['credenciais_mp'] == null || distribuidorData['credenciais_mp']['access_token'] == null) {
-          throw Exception('Access token não encontrado para o distribuidor: ${distribuidorRef.id}');
-        }
-
-        final String accessTokenVendedor = distribuidorData['credenciais_mp']['access_token'];
-
-        cartItems.add({
-          'productId': product.id,
-          'name': product['name'],
-          'description': product['description'],
-          'imageUrl': product['imageUrl'],
-          'category': product['categoria'],
-          'quantity': _productQuantities[product] ?? 1,
-          'price': product['price'],
-          'distribuidorId': distribuidorRef.id,
-          'accessTokenVendedor': accessTokenVendedor,
-        });
-      }
-
-      return cartItems;
-
-    } catch (e) {
-      debugPrint('Erro ao obter access tokens: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> _prosseguirParaProximaTela() async {
-    try {
-      List<Map<String, dynamic>> cartItems = await _obterAccessToken();
-
-      // Criar a preferência no Mercado Pago e obter o init_point e order_id
-      final response = await mercadoPagoService.criarPreferenciaCarrinho(
-        cartProducts: cartItems,
-        accessTokenVendedor: cartItems.first['accessTokenVendedor'],
-        distribuidorId: cartItems.first['distribuidorId'],
-        profissionalId: widget.email,
-      );
-
-      final productIds = cartItems.map((item) => item['productId']).cast<String>().toList();
-      final orderId = response['order_id'];  // Obtém o ID do pedido
-
-      // Agora redirecionar o usuário para o formulário de endereço
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AddressFormScreen(
-            initPoint: response['init_point'],  // O init_point vindo da resposta do Mercado Pago
-            productIds: productIds,
-            orderId: orderId,  // Passar o orderId para o formulário de endereço
-            userEmail: widget.email,
-            posicao: widget.posicao,
-          ),
-        ),
-      );
-    } catch (e) {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Erro ao processar pedido'),
-            content: const Text('Ocorreu um erro ao tentar processar o seu pedido. Tente novamente mais tarde, ou entre em contato conosco.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
-    }
-  }
-
 }

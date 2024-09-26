@@ -1,3 +1,5 @@
+// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter_web_browser/flutter_web_browser.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -11,7 +13,8 @@ class ProductPurchaseScreen extends StatefulWidget {
   final String userEmail;
   final Map<String, String> endereco;
   final Position posicao;
-  final String orderId;  // Agora temos o orderId
+  final String orderId;
+  final Map<String, dynamic> envio;
 
   const ProductPurchaseScreen({
     super.key,
@@ -20,7 +23,8 @@ class ProductPurchaseScreen extends StatefulWidget {
     required this.userEmail,
     required this.endereco,
     required this.posicao,
-    required this.orderId,  // Adicionando o orderId ao construtor
+    required this.orderId,
+    required this.envio,
   });
 
   @override
@@ -177,6 +181,7 @@ class _ProductPurchaseScreenState extends State<ProductPurchaseScreen> {
       'data_criacao': now,
       'status': 'pendente',
       'endereco_entrega': widget.endereco,
+      'info_envio': widget.envio,
       });
 
       await FirebaseFirestore.instance
@@ -190,6 +195,7 @@ class _ProductPurchaseScreenState extends State<ProductPurchaseScreen> {
       'data_criacao': now,
       'status': 'pendente',
       'endereco_entrega': widget.endereco,
+      'info_entrega': widget.envio,
       });
 
       // Continua o fluxo da aplicação após salvar no banco

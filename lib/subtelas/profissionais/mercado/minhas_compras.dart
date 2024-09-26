@@ -8,8 +8,9 @@ import 'package:inject_go/screens/profile_screen.dart';
 
 class MinhasComprasScreen extends StatefulWidget {
   final String userEmail;
+  final int? initialTab;
 
-  const MinhasComprasScreen({super.key, required this.userEmail});
+  const MinhasComprasScreen({super.key, required this.userEmail, this.initialTab});
 
   @override
   _MinhasComprasScreenState createState() => _MinhasComprasScreenState();
@@ -21,7 +22,7 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 4, vsync: this, initialIndex: widget.initialTab ?? 0);
   }
 
   @override
@@ -155,7 +156,7 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
               .doc(userId)
               .collection('compras')
               .where('status', isEqualTo: status)
-              // .orderBy('data_compra', descending: true)
+              .orderBy('data_criacao', descending: true)
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -174,13 +175,14 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
               itemCount: compras.length,
               itemBuilder: (context, index) {
                 final compra = compras[index];
+                final paymentId = compra['payment_id'];
                 final produtos = compra['produtos'] as List<dynamic>;
                 final dataCompra = (compra['data_criacao'] as Timestamp).toDate();
                 final formattedDate = DateFormat('dd/MM/yyyy').format(dataCompra);
 
                 return Card(
                   child: ListTile(
-                    title: Text('Pedido: ${compra.id}'),
+                    title: Text('Pedido: $paymentId'),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -212,7 +214,7 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
                                       children: [
                                         Text(
                                           productInfo['nome'] ?? 'Produto sem nome',
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
                                           ),
@@ -233,7 +235,7 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
                               ),
                             ],
                           );
-                        }).toList(),
+                        }),
                       ],
                     ),
                     trailing: Text(compra['status']),
@@ -243,7 +245,7 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
                         MaterialPageRoute(
                           builder: (context) => DetalhesCompraScreen(
                             comprasDoPedido: [compra],
-                            paymentId: compra.id,
+                            paymentId: paymentId,
                             userEmail: widget.userEmail,
                           ),
                         ),
@@ -306,13 +308,14 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
               itemCount: compras.length,
               itemBuilder: (context, index) {
                 final compra = compras[index];
+                final paymentId = compra['payment_id'];
                 final produtos = compra['produtos'] as List<dynamic>;
                 final dataCompra = (compra['data_criacao'] as Timestamp).toDate();
                 final formattedDate = DateFormat('dd/MM/yyyy').format(dataCompra);
 
                 return Card(
                   child: ListTile(
-                    title: Text('Pedido: ${compra.id}'),
+                    title: Text('Pedido: $paymentId'),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -344,7 +347,7 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
                                       children: [
                                         Text(
                                           productInfo['nome'] ?? 'Produto sem nome',
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
                                           ),
@@ -365,7 +368,7 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
                               ),
                             ],
                           );
-                        }).toList(),
+                        }),
                       ],
                     ),
                     trailing: Text(compra['status']),
@@ -375,7 +378,7 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
                         MaterialPageRoute(
                           builder: (context) => DetalhesCompraScreen(
                             comprasDoPedido: [compra],
-                            paymentId: compra.id,
+                            paymentId: paymentId,
                             userEmail: widget.userEmail,
                           ),
                         ),
@@ -405,4 +408,6 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
         return status;
     }
   }
+  
+// TODO: VERIFICAR O PORQUE QUANDO VAI DA TELA DE PAGAMENTO RPA ESSA, APARECE UM ERRO DE WIDGET
 }

@@ -7,7 +7,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:inject_go/formatadores/formata_moeda.dart';
 import 'package:inject_go/formatadores/formata_string.dart';
-// import 'package:inject_go/mercado_pago/edita_produto_mp.dart';
 import 'package:intl/intl.dart';
 
 class EditProductScreen extends StatefulWidget {
@@ -24,6 +23,7 @@ class EditProductScreen extends StatefulWidget {
   _EditProductScreenState createState() => _EditProductScreenState();
 }
 
+// TODO: COLOCAR AS DIMENSOES DE CADA PRODUTO
 class _EditProductScreenState extends State<EditProductScreen> {
   final _formKey = GlobalKey<FormState>();
   String _productName = '';
@@ -185,53 +185,11 @@ class _EditProductScreenState extends State<EditProductScreen> {
             await storage.refFromURL(_existingImageUrl!).delete();
           }
         }
-
-        // final distributorDoc = await firestore
-        //     .collection('distribuidores')
-        //     .doc(widget.razaoSocialCnpj)
-        //     .collection('produtos')
-        //     .doc(widget.productId)
-        //     .get();
-
-        // final distributorInfoDoc = await firestore
-        //     .collection('distribuidores')
-        //     .doc(widget.razaoSocialCnpj)
-        //     .get();
-
-        // final distributorAccessToken = distributorInfoDoc.data()!['credenciais_mp']['access_token'];
-        // final produtoMpId = distributorDoc.data()!['produto_mp']['id'];
-        // final marketplace = dotenv.env['MERCADO_PAGO_ACCESS_TOKEN'];
-        // final String? taxaStr = dotenv.env['TAXA_MERCADO_PAGO'];
-        // final double? taxa = double.tryParse(taxaStr ?? '0');
-        // final fee = _productPrice * taxa!;
-
-        // final mpEditProduct = EditProductMpScreen(
-        //   mpProductId: produtoMpId,    // id do Mercado Pago
-        //   productId: widget.productId, // id do Firestore
-        //   updatedName: _productName,
-        //   updatedDescription: _productDescription,
-        //   updatedImageUrl: _productImage != null ? updateData['imageUrl'] : _existingImageUrl!,
-        //   updatedCategory: _productCategory,
-        //   updatedPrice: _productPrice,
-        //   updatedMarketplaceFee: fee,
-        //   distributorAccessToken: distributorAccessToken,
-        //   marketplace: marketplace,
-        // );
-
-        // bool successInMp = await mpEditProduct.editProductInMp();
-        // if (successInMp) {
           if (updateData.isNotEmpty) {
             await firestore
                 .collection('distribuidores/${widget.razaoSocialCnpj}/produtos')
                 .doc(widget.productId)
                 .update(updateData);
-
-            // await firestore
-            //     .collection('distribuidores/${widget.razaoSocialCnpj}/produtos')
-            //     .doc(widget.productId)
-            //     .update({
-            //   'produto_mp.marketplace_fee': fee,
-            // });
 
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Produto atualizado com sucesso!')),
@@ -241,11 +199,6 @@ class _EditProductScreenState extends State<EditProductScreen> {
               const SnackBar(content: Text('Nenhuma alteração detectada.')),
             );
           }
-        // } else {
-        //   ScaffoldMessenger.of(context).showSnackBar(
-        //     const SnackBar(content: Text('Erro ao atualizar produto no Mercado Pago.')),
-        //   );
-        // }
 
         Navigator.pop(context);
       } catch (e) {

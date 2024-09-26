@@ -11,8 +11,9 @@ class MercadoPagoService {
     required String accessTokenVendedor,
     required String distribuidorId,
     required String profissionalId,
+    double? frete,
   }) async {
-    const String serverUrl = 'https://verifica-pagamento-mp-production.up.railway.app';
+    String? serverUrl = dotenv.env['ENDERECO_SERVIDOR'];
     const url = 'https://api.mercadopago.com/checkout/preferences';
     final headers = {
       'Authorization': 'Bearer $accessTokenVendedor',
@@ -34,7 +35,7 @@ class MercadoPagoService {
 
     // Criar a lista de itens para a preferência no formato do Mercado Pago
     final List<Map<String, dynamic>> items = cartProducts.map((product) {
-      double price = (product['price'] as num).toDouble();      
+      double price = (product['unit_price'] as num).toDouble();      
       final int quantity = product['quantity'] as int;
 
       // Calcular a comissão sobre o valor do produto
@@ -72,11 +73,13 @@ class MercadoPagoService {
       "external_reference": externalReference,
       "marketplace": marketplace,
       "marketplace_fee": totalMarketplaceFee,
-      // "shipments":{ TODO: Pra colocar o preço do envio
-      //   "cost": 1000,
-      //   "mode": "not_specified",
-      // }
+      "shipments": {
+        "cost": frete,
+        "mode": "not_specified",
+      }
     });
+
+    // Log do JSON e dos headers
 
     try {
       final response = await http.post(
@@ -85,26 +88,27 @@ class MercadoPagoService {
         body: body,
       );
 
+
       if (response.statusCode == 201) {
-        // Obter os dados relevantes da resposta
         final responseData = json.decode(response.body);
         final String initPoint = responseData['init_point'];
         final String preferenceId = responseData['id'];
         final String dateCreated = responseData['date_created'];
+        final double frete = responseData['shipments']['cost'];
 
-        // Retornar os dados em um map para serem usados na criação do produto no Firestore
         return {
           'id': preferenceId,
           'init_point': initPoint,
           'date_created': dateCreated,
           'marketplace_fee': totalMarketplaceFee,
           'order_id': orderId,
+          'frete': frete,
         };
       } else {
         throw Exception('Erro ao criar preferência: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      rethrow;  // Repassa o erro para o código que chamou este método
+      rethrow;
     }
   }
 }

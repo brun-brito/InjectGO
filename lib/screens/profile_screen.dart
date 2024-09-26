@@ -2,6 +2,7 @@
 
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -44,6 +45,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   ChewieController? _chewieController;
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  String userId = '';
 
   @override
   Widget build(BuildContext context) {
@@ -439,6 +441,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (userProfileQuery.docs.isNotEmpty) {
         var userProfile = userProfileQuery.docs.first;
         setState(() {
+          userId = userProfile.id;
           if (userProfile['sexo'] == 'Feminino')
             prefixo = 'Dra.';
           else if (userProfile['sexo'] == 'Masculino')
@@ -609,14 +612,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setLoading(false);
   }
 
-
   Future<void> logout(BuildContext context) async {
-    await FirebaseAuth.instance.signOut();
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginForm()),
-      (Route<dynamic> route) => false,
-    );
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null && userId.isNotEmpty) {
+        await FirebaseFirestore.instance.collection('users').doc(userId).update({
+          'fcmTokens': FieldValue.arrayRemove([token]),
+        });
+      } else {
+      }
+
+      await FirebaseAuth.instance.signOut();
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginForm()),
+        (Route<dynamic> route) => false,
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao fazer logout: ${e.toString()}'))
+      );
+    }
   }
 
   void _initializeVideoPlayer() async {

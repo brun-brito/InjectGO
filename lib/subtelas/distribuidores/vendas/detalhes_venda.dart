@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 
+// TODO: COLOCAR OS PRAZOS DE ENTREGA
 class DetalhesVendaScreen extends StatefulWidget {
   final List<QueryDocumentSnapshot> vendasDoPedido;
   final String paymentId;
@@ -51,7 +52,6 @@ class _DetalhesVendaScreenState extends State<DetalhesVendaScreen> {
 
           final pagamento = snapshot.data!;
           final status = pagamento['status'];
-          final descricao = pagamento['description'];
           final valorTotal = pagamento['transaction_amount'];
           final compradorEmail = pagamento['payer']['email'];
           final itens = pagamento['additional_info']['items'];
@@ -61,11 +61,21 @@ class _DetalhesVendaScreenState extends State<DetalhesVendaScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Status do Pagamento: ${_mapPaymentStatus(status)}',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text.rich(
+                  TextSpan(
+                    text: 'Status do Pagamento: ',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    children: [
+                      TextSpan(
+                        text: _mapPaymentStatus(status),
+                        style: TextStyle(
+                          color: _getStatusColor(status),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                Text('Descrição: $descricao', style: const TextStyle(fontSize: 16)),
                 Text('Valor Total Pago: R\$ $valorTotal', style: const TextStyle(fontSize: 16)),
                 Text('Comprador: $compradorEmail', style: const TextStyle(fontSize: 16)),
                 const SizedBox(height: 16),
@@ -139,6 +149,19 @@ class _DetalhesVendaScreenState extends State<DetalhesVendaScreen> {
         return 'Pendente';
       default:
         return 'Status Desconhecido';
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'approved':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      case 'refunded':
+        return Colors.blue;
+      default:
+        return Colors.black87;
     }
   }
 

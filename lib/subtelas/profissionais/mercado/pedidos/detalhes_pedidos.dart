@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:inject_go/formatadores/formata_data.dart';
 import 'package:flutter/services.dart'; // Para copiar textos
 
+// TODO: COLOCAR OS PRAZOS DE ENTREGA
 class DetalhesCompraScreen extends StatelessWidget {
   final List<QueryDocumentSnapshot> comprasDoPedido;
   final String paymentId;
@@ -70,153 +71,158 @@ class DetalhesCompraScreen extends StatelessWidget {
 
     // Faça o cast do data() para Map<String, dynamic>
     final Map<String, dynamic> compraData = primeiraCompra.data() as Map<String, dynamic>;
+    debugPrint(compraData.toString());
+    debugPrint(paymentId.toString());
+    final List<dynamic> produtos = compraData['produtos'] as List<dynamic>;
 
-    // Verifique se o campo 'distributorInfo' existe
-    final distributorInfo = compraData.containsKey('distributorInfo')
-        ? compraData['distributorInfo'] as Map<String, dynamic>
-        : null; // Defina como null se o campo não existir
+    // Verifique se há produtos e recupere o distributorInfo
+    final distributorInfo = produtos.isNotEmpty && produtos[0].containsKey('distributorInfo')
+        ? produtos[0]['distributorInfo'] as Map<String, dynamic>
+        : null;
 
-    // Agora, ao exibir as informações, verifique se 'distributorInfo' não é nulo
+    // Concatene 'razao_social' e 'cnpj' para criar o distribuidorId
+    final distribuidorId = distributorInfo != null
+        ? '${distributorInfo['razao_social']} - ${distributorInfo['cnpj']}'
+        : null;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detalhes da Compra'),
         centerTitle: true,
       ),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: fetchPaymentDetails(paymentId, distributorInfo != null
-            ? '${distributorInfo['razao_social']} - ${distributorInfo['cnpj']}'
-            : 'Distribuidor Desconhecido'),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.pinkAccent),
-            );
-          } else if (snapshot.hasError) {
-            return Center(
-              child: Text('Erro ao carregar detalhes do pagamento: ${snapshot.error}'),
-            );
-          }
+      body: distribuidorId != null
+          ? FutureBuilder<Map<String, dynamic>>(
+              future: fetchPaymentDetails(paymentId, distribuidorId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.pinkAccent),
+                  );
+                } else if (snapshot.hasError) {
+                  return Center(
+                    child: Text('Erro ao carregar detalhes do pagamento: ${snapshot.error}'),
+                  );
+                }
 
-          final paymentDetails = snapshot.data!;
+                final paymentDetails = snapshot.data!;
 
-          return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(15),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.3),
-                          blurRadius: 5,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(16),
+                return SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                      if (distributorInfo != null) ...[
-                        _buildRichText('Status do Pagamento: ', _translatePaymentStatus(paymentDetails['status']),
-                            _getStatusColor(paymentDetails['status'])),
-                        const SizedBox(height: 10),
-                        _buildRichText('Método de Pagamento: ', paymentDetails['payment_type_id']),
-                        _buildRichText('Total Pago: ', 'R\$${paymentDetails['transaction_amount'].toStringAsFixed(2)}'),
-                        _buildRichText('E-mail do pagador: ', paymentDetails['payer']['email']),
-                        _buildRichText('Data de criação: ', formatDataHora(paymentDetails['date_created'])),
-                        _buildRichText('Última atualização: ', formatDataHora(paymentDetails['date_last_updated'])),
-                      ] else ...[
-                          const Text('Informações do distribuidor indisponíveis.'),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Produtos:',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.pinkAccent),
-                  ),
-                  const SizedBox(height: 10),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: comprasDoPedido.length,
-                    itemBuilder: (context, index) {
-                      final compra = comprasDoPedido[index].data() as Map<String, dynamic>;
-                      final productInfo = compra['productInfo'] as Map<String, dynamic>;
-
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        elevation: 5,
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(16),
-                          leading: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: productInfo['imageUrl'] != null
-                                ? Image.network(
-                                    productInfo['imageUrl'],
-                                    width: 60,
-                                    height: 60,
-                                    fit: BoxFit.cover,
-                                  )
-                                : const Icon(Icons.image_not_supported, size: 60),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(15),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.3),
+                                blurRadius: 5,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
                           ),
-                          title: Text(
-                            productInfo['nome'] ?? 'Produto sem nome',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Column(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const SizedBox(height: 5),
-                              Text('Preço: R\$ ${productInfo['preco']?.toStringAsFixed(2) ?? 'N/A'}'),
-                              Text('Quantidade: ${productInfo['quantidade'] ?? 1}'),
-                              Text('Distribuidor: ${distributorInfo?['razao_social'] ?? 'Desconhecido'}'),
+                              _buildRichText('Status do Pagamento: ', _translatePaymentStatus(paymentDetails['status']),
+                                  _getStatusColor(paymentDetails['status'])),
+                              const SizedBox(height: 10),
+                              _buildRichText('Método de Pagamento: ', paymentDetails['payment_type_id']),
+                              _buildRichText('Total Pago: ', 'R\$${paymentDetails['transaction_amount'].toStringAsFixed(2)}'),
+                              _buildRichText('E-mail do pagador: ', paymentDetails['payer']['email']),
+                              _buildRichText('Data de criação: ', formatDataHora(paymentDetails['date_created'])),
+                              _buildRichText('Última atualização: ', formatDataHora(paymentDetails['date_last_updated'])),
                             ],
                           ),
                         ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.pinkAccent.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                        const SizedBox(height: 20),
                         const Text(
-                          'Entre em contato:',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: Colors.pinkAccent,
-                          ),
+                          'Produtos:',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.pinkAccent),
                         ),
                         const SizedBox(height: 10),
-                        _buildContactInfo(context, 'Telefone do distribuidor: ', distributorInfo?['telefone']),
-                        _buildContactInfo(context, 'Email do distribuidor: ', distributorInfo?['email']),
-                        _buildContactInfo(context, 'Suporte InjectGO: ', 'suporte@injectgo.com.br'),
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: produtos.length, // Agora iteramos sobre a lista de produtos
+                          itemBuilder: (context, index) {
+                            final productInfo = produtos[index]['productInfo'] as Map<String, dynamic>;
+                            final distributorInfo = produtos[index]['distributorInfo'] as Map<String, dynamic>;
+
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              elevation: 5,
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.all(16),
+                                leading: ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: productInfo['imageUrl'] != null
+                                      ? Image.network(
+                                          productInfo['imageUrl'],
+                                          width: 60,
+                                          height: 60,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : const Icon(Icons.image_not_supported, size: 60),
+                                ),
+                                title: Text(
+                                  productInfo['nome'] ?? 'Produto sem nome',
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 5),
+                                    Text('Preço: R\$ ${productInfo['preco']?.toStringAsFixed(2) ?? 'N/A'}'),
+                                    Text('Quantidade: ${productInfo['quantidade'] ?? 1}'),
+                                    Text('Distribuidor: ${distributorInfo['razao_social'] ?? 'Desconhecido'}'),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.pinkAccent.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Entre em contato:',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: Colors.pinkAccent,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              _buildContactInfo(context, 'Telefone do distribuidor: ', distributorInfo?['telefone']),
+                              _buildContactInfo(context, 'Email do distribuidor: ', distributorInfo?['email']),
+                              _buildContactInfo(context, 'Suporte InjectGO: ', 'suporte@injectgo.com.br'),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                ],
-              ),
+                );
+              },
+            )
+          : const Center(
+              child: Text('Informações do distribuidor não estão disponíveis.'),
             ),
-          );
-        },
-      ),
     );
   }
 

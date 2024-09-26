@@ -3,12 +3,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:inject_go/formatadores/formata_data.dart';
+import 'package:inject_go/screens/profile_screen_distribuidores.dart';
 import 'package:inject_go/subtelas/distribuidores/vendas/detalhes_venda.dart';
 
 class MinhasVendasScreen extends StatefulWidget {
   final String id;
+  final String email;
   final int? initialTab;
-  const MinhasVendasScreen({super.key, required this.id, this.initialTab});
+  const MinhasVendasScreen({super.key, required this.id, required this.email,this.initialTab});
   
   @override
   _MinhasVendasScreenState createState() => _MinhasVendasScreenState();
@@ -29,6 +31,17 @@ class _MinhasVendasScreenState extends State<MinhasVendasScreen> with SingleTick
       appBar: AppBar(
         title: const Text('Minhas Vendas'),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ProfileScreenDistribuidor(username: widget.email),
+              ),
+            );
+          },
+        ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(50),  // Define a preferred size for the TabBar
           child: StreamBuilder(
@@ -93,12 +106,14 @@ Widget _buildVendasTab(String status) {
             .doc(widget.id)
             .collection('vendas')
             .where('status', whereNotIn: ['solicitado', 'preparando', 'enviado'])
+            .orderBy('data_criacao', descending: true)
             .snapshots()
         : FirebaseFirestore.instance
             .collection('distribuidores')
             .doc(widget.id)
             .collection('vendas')
             .where('status', isEqualTo: status)
+            .orderBy('data_criacao', descending: true)
             .snapshots(),
     builder: (context, snapshot) {
       if (snapshot.connectionState == ConnectionState.waiting) {
@@ -127,19 +142,23 @@ Widget _buildVendasTab(String status) {
         itemCount: groupedVendas.length,
         itemBuilder: (context, index) {
           final paymentId = groupedVendas.keys.elementAt(index);
-          final vendasDoPedido = groupedVendas[paymentId]!; // Vendas agrupadas por `payment_id`
+          final vendasDoPedido = groupedVendas[paymentId]!;
           final primeiraVenda = vendasDoPedido.first.data() as Map<String, dynamic>;
 
-          // Cálculo do total da compra
-          double totalCompra = vendasDoPedido.fold(0.0, (acc, venda) {
-            return acc + (venda['productInfo']['preco'] ?? 0.0);
-          });
+          // Cálculo do total da compra (soma de todos os produtos no array 'produtos')
+          double totalCompra = 0.0;
+          for (var venda in vendasDoPedido) {
+            List<dynamic> produtos = venda['produtos'];  // Acessa o array 'produtos'
+            totalCompra += produtos.fold(0.0, (acc, produto) {
+              return acc + (produto['productInfo']['preco'] ?? 0.0);
+            });
+          }
 
           return Card(
             child: ListTile(
-              leading: primeiraVenda['productInfo']['imageUrl'] != null
+              leading: (primeiraVenda['produtos'].isNotEmpty && primeiraVenda['produtos'][0]['productInfo']['imageUrl'] != null)
                   ? Image.network(
-                      primeiraVenda['productInfo']['imageUrl'],
+                      primeiraVenda['produtos'][0]['productInfo']['imageUrl'],
                       width: 50,
                       height: 50,
                       fit: BoxFit.cover,
@@ -150,7 +169,7 @@ Widget _buildVendasTab(String status) {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Total: R\$ ${totalCompra.toStringAsFixed(2)}'),
-                  Text('Data: ${formatDate(primeiraVenda['data_pedido'])}'),
+                  Text('Data: ${formatDate(primeiraVenda['data_criacao'])}'),
                 ],
               ),
               onTap: () {

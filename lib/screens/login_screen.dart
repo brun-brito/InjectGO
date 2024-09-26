@@ -1,4 +1,5 @@
 // ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:inject_go/screens/profile_screen.dart';
 import 'package:inject_go/screens/profile_screen_distribuidores.dart';
 import 'package:inject_go/screens/welcome_screen.dart';
@@ -22,7 +23,8 @@ class _LoginFormState extends State<LoginForm> {
   bool _isLoading = false; 
   bool _isObscure = true;
   FirebaseFirestore firestore = FirebaseFirestore.instance;
-  String? userType;
+  String? userType;  
+  String? userId;
 
     @override
   void initState() {
@@ -175,57 +177,86 @@ class _LoginFormState extends State<LoginForm> {
   }
 
   Future<void> buscaProfissional(String email) async {
-    // Acessando a coleção de distribuidores e verificando se o email existe
-    var distribuidoresSnapshot = await FirebaseFirestore.instance
-        .collection('distribuidores')
-        .where('email', isEqualTo: email)
-        .get();
-
-    // Se o email for encontrado na coleção de distribuidores, definir userType como 'distribuidor'
-    if (distribuidoresSnapshot.docs.isNotEmpty) {
+  try {
+    var distribuidorId = await _buscarUsuarioPorEmail('distribuidores', email);
+    if (distribuidorId != null) {
       userType = 'distribuidor';
+      userId = distribuidorId;
       return;
     }
 
-    // Acessando a coleção de users e verificando se o email existe
-    var usersSnapshot = await FirebaseFirestore.instance
-        .collection('users')
+    var profissionalId = await _buscarUsuarioPorEmail('users', email);
+    if (profissionalId != null) {
+      userType = 'profissional';
+      userId = profissionalId;
+      return;
+    }
+
+    userType = '';
+    userId = '';
+  } catch (e) {
+    debugPrint('Erro ao buscar usuário: $e');
+    userType = '';
+    userId = '';
+  }
+}
+
+// Função auxiliar para buscar usuário em uma coleção específica por email
+Future<String?> _buscarUsuarioPorEmail(String collection, String email) async {
+  try {
+    var snapshot = await FirebaseFirestore.instance
+        .collection(collection)
         .where('email', isEqualTo: email)
+        .limit(1) // Limita para pegar apenas o primeiro resultado
         .get();
 
-    // Se o email for encontrado na coleção de users, definir userType como 'profissional'
-    if (usersSnapshot.docs.isNotEmpty) {
-      userType = 'profissional';
+    // Se encontrar o documento, retorna o ID do documento (userId ou distribuidorId)
+    if (snapshot.docs.isNotEmpty) {
+      return snapshot.docs.first.id;  // Retorna o ID do documento
     }
+
+    // Se não encontrar, retornar null
+    return null;
+  } catch (e) {
+    debugPrint('Erro ao buscar na coleção $collection: $e');
+    return null;
   }
+}
 
   Future<void> confirmaLogin() async {
     String email = _emailController.text.trim();
-    
+
     await buscaProfissional(email);
-    
-    if ((await signInAuth(email, _passwordController.text))) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Sucesso!"))
-      );
-      
-      if(userType == 'profissional'){
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => ProfileScreen(username: email)),
-          (Route<dynamic> route) => false,
+
+    if (userId!.isNotEmpty) {
+      if ((await signInAuth(email, _passwordController.text))) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Sucesso!"))
         );
-      }
-      else if(userType == 'distribuidor'){
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => ProfileScreenDistribuidor(username: email)),
-          (Route<dynamic> route) => false,
+        
+        if(userType == 'profissional') {
+          addFcmToken('users', userId!);
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => ProfileScreen(username: email)),
+            (Route<dynamic> route) => false,
+          );
+        } else if(userType == 'distribuidor') {
+          addFcmToken('distribuidores', userId!);
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => ProfileScreenDistribuidor(username: email)),
+            (Route<dynamic> route) => false,
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("E-mail e/ou senha incorreto(s)"))
         );
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("E-mail e/ou senha incorreto(s)"))
+        const SnackBar(content: Text("E-mail não encontrado"))
       );
     }
   }
@@ -244,6 +275,15 @@ class _LoginFormState extends State<LoginForm> {
     } catch (e) {
       return false;
     }
+  }
+
+  Future<void> addFcmToken(String collection, String docId) async {
+    final token = await FirebaseMessaging.instance.getToken();
+    final docRef = FirebaseFirestore.instance.collection(collection).doc(docId);
+
+    await docRef.set({
+      'fcmTokens': FieldValue.arrayUnion([token]),
+    }, SetOptions(merge: true));
   }
 
   void _showForgotPasswordDialog() async{

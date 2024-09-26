@@ -49,7 +49,6 @@ class NotificationService {
 
   Future<void> _setupTimezone() async {
     tz.initializeTimeZones();
-    // Substitui a linha anterior que utilizava o FlutterNativeTimezone
     const String timeZoneName = 'America/Sao_Paulo';  // Ajuste para o seu fuso horário
     tz.setLocalLocation(tz.getLocation(timeZoneName));
   }
@@ -82,13 +81,12 @@ class NotificationService {
     String? body,
     String? payload,
   ) async {
-    // Lidar com a notificação recebida no iOS
     debugPrint('Notificação recebida no iOS: id=$id, title=$title, body=$body');
   }
 
   _onSelectNotification(String? payload) {
     if (payload != null && payload.isNotEmpty) {
-      Navigator.of(Routes.navigatorKey!.currentContext!).pushNamed(payload);
+      Navigator.of(Routes.navigatorKey.currentContext!).pushNamed(payload);
     }
   }
 

@@ -3,26 +3,55 @@ import 'package:inject_go/main.dart';
 import 'package:inject_go/screens/profile_screen.dart';
 import 'package:inject_go/screens/profile_screen_distribuidores.dart';
 import 'package:inject_go/subtelas/distribuidores/minhas_vendas.dart';
+import 'package:inject_go/subtelas/profissionais/mercado/minhas_compras.dart';
 
 class Routes {
+  static GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+  // Definindo todas as rotas em um único lugar
   static Map<String, Widget Function(BuildContext)> list = <String, WidgetBuilder>{
     '/home': (_) => const MyApp(),
     '/profile': (context) {
-      final email = ModalRoute.of(context)?.settings.arguments as String;
-      return ProfileScreen(username: email);
+      final email = ModalRoute.of(context)?.settings.arguments as String?;
+      return email != null
+          ? ProfileScreen(username: email)
+          : const Scaffold(body: Center(child: Text('Argumento email ausente.')));
     },
     '/profile_distribuidor': (context) {
-      final email = ModalRoute.of(context)?.settings.arguments as String;
-      return ProfileScreenDistribuidor(username: email);
+      final email = ModalRoute.of(context)?.settings.arguments as String?;
+      return email != null
+          ? ProfileScreenDistribuidor(username: email)
+          : const Scaffold(body: Center(child: Text('Argumento email ausente.')));
     },
     '/minhas_vendas': (context) {
-      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;
-      final distribuidorId = args['distribuidorId'] as String;
-      final initialTab = args['initialTab'] as int;
-      return MinhasVendasScreen(id: distribuidorId, initialTab: initialTab);
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args.containsKey('distribuidorId') && args.containsKey('email') && args.containsKey('initialTab')) {
+        return MinhasVendasScreen(
+          id: args['distribuidorId'] as String,
+          email: args['email'] as String,
+          initialTab: args['initialTab'] as int,
+        );
+      } else {
+        return const Scaffold(
+          body: Center(child: Text('Argumentos inválidos ou ausentes para Minhas Vendas')),
+        );
+      }
     },
+    '/minhas_compras': (context) {
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args.containsKey('profissionalId') && args.containsKey('initialTab')) {
+        return MinhasComprasScreen(
+          userEmail: args['profissionalId'] as String,
+          initialTab: args['initialTab'] as int,
+        );
+      } else {
+        return const Scaffold(
+          body: Center(child: Text('Argumentos inválidos ou ausentes para Minhas Compras')),
+        );
+      }
+    },
+    // Adicione outras rotas aqui...
   };
 
-  static String initial = '/home';
-  static GlobalKey<NavigatorState>? navigatorKey = GlobalKey<NavigatorState>();
+  static const String initial = '/home';
 }

@@ -1469,6 +1469,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final url = 'https://open.cnpja.com/office/$cnpj';
     final headers = {
       'Authorization': '0cdf6d17-8007-4769-a2fd-7e374d40f198-d718a448-1ce5-44a1-949a-201730bee40c',
+      // TODO: salvar isso no .env
     };
 
     try {
