@@ -26,6 +26,12 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
   }
 
   @override
+  void dispose() {
+    _tabController.dispose(); // Libera o TabController ao sair da tela
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -50,9 +56,10 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
                 .snapshots(),
             builder: (context, userSnapshot) {
               if (!userSnapshot.hasData || userSnapshot.data!.docs.isEmpty) {
-                return const TabBar(
+                return TabBar(
+                  controller: _tabController, 
                   isScrollable: true,
-                  tabs: [
+                  tabs: const [
                     Tab(text: 'Aguardando (0)'),
                     Tab(text: 'Preparando (0)'),
                     Tab(text: 'Enviado (0)'),
@@ -71,9 +78,10 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
-                    return const TabBar(
+                    return TabBar(
+                      controller: _tabController,
                       isScrollable: true,
-                      tabs: [
+                      tabs: const [
                         Tab(text: 'Aguardando distribuidor (0)'),
                         Tab(text: 'Preparando (0)'),
                         Tab(text: 'Enviado (0)'),

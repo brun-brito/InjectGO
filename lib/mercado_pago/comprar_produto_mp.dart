@@ -15,6 +15,7 @@ class ProductPurchaseScreen extends StatefulWidget {
   final Position posicao;
   final String orderId;
   final Map<String, dynamic> envio;
+  final Map<DocumentSnapshot, int> quantidades;
 
   const ProductPurchaseScreen({
     super.key,
@@ -25,6 +26,7 @@ class ProductPurchaseScreen extends StatefulWidget {
     required this.posicao,
     required this.orderId,
     required this.envio,
+    required this.quantidades,
   });
 
   @override
@@ -110,6 +112,7 @@ class _ProductPurchaseScreenState extends State<ProductPurchaseScreen> {
       List<Map<String, dynamic>> produtosCompra = [];
       List<Map<String, dynamic>> produtosVenda = [];
       String? distribuidorId;
+      String? accessTokenDistribuidor;
 
       for (String productId in widget.productIds) {
         QuerySnapshot productSnapshot = await FirebaseFirestore.instance
@@ -119,6 +122,9 @@ class _ProductPurchaseScreenState extends State<ProductPurchaseScreen> {
 
         if (productSnapshot.docs.isNotEmpty) {
           DocumentSnapshot productDoc = productSnapshot.docs.first;
+          int quantidade = widget.quantidades.entries
+              .firstWhere((entry) => entry.key.id == productId, orElse: () => MapEntry(productDoc, 1))
+              .value;
           // TODO: Alterar essa quantidade so quando o pagamento tiver confirmado
           int quantidadeAtual = productDoc['quantidade_disponivel'];
           if (quantidadeAtual > 0) {
@@ -129,6 +135,9 @@ class _ProductPurchaseScreenState extends State<ProductPurchaseScreen> {
               'quantidade_disponivel': novaQuantidade,
               'disponivel': novaQuantidade > 0,
             });
+          } else {
+            _showError("Estoque insuficiente para o produto ${productDoc['name']}.");
+            continue;
           }
 
           Map<String, dynamic> productInfo = {
@@ -138,6 +147,7 @@ class _ProductPurchaseScreenState extends State<ProductPurchaseScreen> {
             'marca': productDoc['marca'],
             'categoria': productDoc['categoria'],
             'imageUrl': productDoc['imageUrl'],
+            'quantidade': quantidade,
           };
 
           // Buscar dados do distribuidor
@@ -148,23 +158,38 @@ class _ProductPurchaseScreenState extends State<ProductPurchaseScreen> {
               .get();
 
           if (!distributorSnapshot.exists) continue;
-
+          accessTokenDistribuidor = distributorSnapshot['credenciais_mp']['access_token'];
+          
           Map<String, dynamic> distributorInfo = {
             'razao_social': distributorSnapshot['razao_social'],
             'cnpj': distributorSnapshot['cnpj'],
             'email': distributorSnapshot['email'],
             'telefone': distributorSnapshot['telefone'],
+            'access_token_atual': accessTokenDistribuidor,
           };
 
           // Adiciona as informações do produto à lista de produtos de compra e venda
           produtosCompra.add({
             'productInfo': productInfo,
-            'distributorInfo': distributorInfo,
           });
 
           produtosVenda.add({
             'productInfo': productInfo,
-            'buyerInfo': buyerInfo,
+          });
+
+          await FirebaseFirestore.instance
+            .collection('users')
+            .doc(buyerId)
+            .collection('compras')
+            .doc(widget.orderId)
+            .set({
+          'produtos': produtosCompra,
+          'payment_id': '',
+          'data_criacao': now,
+          'status': 'pendente',
+          'endereco_entrega': widget.endereco,
+          'info_entrega': widget.envio,
+          'distributorInfo': distributorInfo,
           });
         }
       }
@@ -178,24 +203,13 @@ class _ProductPurchaseScreenState extends State<ProductPurchaseScreen> {
         .set({
       'produtos': produtosVenda,
       'payment_id': '',
+      'access_token_atual': accessTokenDistribuidor,
       'data_criacao': now,
       'status': 'pendente',
       'endereco_entrega': widget.endereco,
-      'info_envio': widget.envio,
-      });
+      'info_envio': widget.envio,            
+      'buyerInfo': buyerInfo,
 
-      await FirebaseFirestore.instance
-        .collection('users')
-        .doc(buyerId)
-        .collection('compras')
-        .doc(widget.orderId)  // Usa o mesmo orderId
-        .set({
-      'produtos': produtosCompra,
-      'payment_id': '',
-      'data_criacao': now,
-      'status': 'pendente',
-      'endereco_entrega': widget.endereco,
-      'info_entrega': widget.envio,
       });
 
       // Continua o fluxo da aplicação após salvar no banco
@@ -224,7 +238,7 @@ class _ProductPurchaseScreenState extends State<ProductPurchaseScreen> {
       ),
       body: Center(
         child: _isProcessing
-            ? const CircularProgressIndicator()
+            ? const CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121))
             : const Text("Processando pagamento, por favor, aguarde..."),
       ),
     );

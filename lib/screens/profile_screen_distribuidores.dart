@@ -244,7 +244,11 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  Expanded(
+                Expanded(
+                  child: GestureDetector(
+                    onTap: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized)
+                        ? () => _navigateToMinhasVendas()
+                        : null,
                     child: Container(
                       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                       decoration: BoxDecoration(
@@ -269,11 +273,9 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
                               pedidosPendentes.toString(),
                               style: const TextStyle(color: Colors.white, fontSize: 12),
                             ),
-                            
-                              badgeColor: Colors.red,  // Cor do badge
-                              elevation: 0,
-                              padding: const EdgeInsets.all(6),
-                            
+                            badgeColor: Colors.red,
+                            elevation: 0,
+                            padding: const EdgeInsets.all(6),
                             position: badges.BadgePosition.topEnd(top: -10, end: -10),
                             child: TextButton.icon(
                               icon: Icon(
@@ -302,6 +304,7 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
                       ),
                     ),
                   ),
+                ),
                 Expanded(
                   child: Opacity(
                     opacity: (_isPaymentUpToDate && _hasPaymentData && _isAuthorized) ? 1.0 : 0.6, // Opacidade mais baixa se o botão estiver desativado

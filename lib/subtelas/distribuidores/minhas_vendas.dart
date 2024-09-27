@@ -6,6 +6,7 @@ import 'package:inject_go/formatadores/formata_data.dart';
 import 'package:inject_go/screens/profile_screen_distribuidores.dart';
 import 'package:inject_go/subtelas/distribuidores/vendas/detalhes_venda.dart';
 
+// TODO: ver status finalizados
 class MinhasVendasScreen extends StatefulWidget {
   final String id;
   final String email;
@@ -64,7 +65,7 @@ class _MinhasVendasScreenState extends State<MinhasVendasScreen> with SingleTick
               int preparandoCount = snapshot.data!.docs.where((doc) => doc['status'] == 'preparando').length;
               int enviadoCount = snapshot.data!.docs.where((doc) => doc['status'] == 'enviado').length;
               int finalizadoCount = snapshot.data!.docs
-                  .where((doc) => !['solicitado', 'preparando', 'enviado'].contains(doc['status']))
+                  .where((doc) => doc['status'] == 'finalizado' || doc['status'] == 'rejeitado')
                   .length;
 
               return TabBar(

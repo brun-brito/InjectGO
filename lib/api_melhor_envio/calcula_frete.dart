@@ -32,7 +32,7 @@ class _EscolherFreteScreenState extends State<EscolherFreteScreen> {
     _getFreteOptions();
   } 
 
-  // Função para calcular as dimensões totais do pacote com base nos produtos
+  // Função para calcular as dimensões totais do pacote com base nos produtos e suas quantidades
   Map<String, dynamic> _calcularPacoteConsolidado(List<Map<String, dynamic>> produtos) {
     double alturaTotal = 0.0;
     double larguraMax = 0.0;
@@ -40,14 +40,17 @@ class _EscolherFreteScreenState extends State<EscolherFreteScreen> {
     double pesoTotal = 0.0;
 
     for (var produto in produtos) {
-      alturaTotal += (produto['height'] as num).toDouble(); // Empilhando os produtos, garante que seja double
+      int quantidade = produto['quantity'] ?? 1;  // Considera a quantidade de cada produto
+
+      // Multiplica as dimensões e o peso pela quantidade de produtos
+      alturaTotal += (produto['height'] as num).toDouble() * quantidade; // Empilhando os produtos
       larguraMax = larguraMax > (produto['width'] as num).toDouble() 
           ? larguraMax 
           : (produto['width'] as num).toDouble(); // Maior largura
       comprimentoMax = comprimentoMax > (produto['length'] as num).toDouble() 
           ? comprimentoMax 
           : (produto['length'] as num).toDouble(); // Maior comprimento
-      pesoTotal += (produto['weight'] as num).toDouble(); // Soma o peso de todos os produtos
+      pesoTotal += (produto['weight'] as num).toDouble() * quantidade; // Soma o peso de todos os produtos
     }
 
     return {
@@ -207,5 +210,4 @@ class _EscolherFreteScreenState extends State<EscolherFreteScreen> {
       ),
     );
   }
-// TODO: LEVAR EM CONSIDERAÇÃO QUANTIDADE NO CÁLCULO
 }

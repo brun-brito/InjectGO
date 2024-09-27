@@ -65,7 +65,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
       'altura': alturaCaixa,
       'largura': larguraMax,
       'comprimento': comprimentoCaixa,
-      'peso': pesoTotal,
+      'peso_aproximado': pesoTotal,
     };
   }
 
@@ -236,6 +236,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
             productIds: widget.cartProducts.map((product) => product.id).toList(),
             posicao: widget.posicao,
             userEmail: widget.email,
+            quantidades: widget.productQuantities,
             envio: {
               'frete': frete,
               'tempo_previsto': tempo_entrega,

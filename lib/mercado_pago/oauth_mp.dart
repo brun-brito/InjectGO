@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:inject_go/screens/profile_screen_distribuidores.dart';
+import 'package:intl/intl.dart';
 
 class MercadoPagoOAuthScreen extends StatefulWidget {
   final String username;
@@ -119,7 +120,9 @@ class _MercadoPagoOAuthScreenState extends State<MercadoPagoOAuthScreen> {
         final String refreshToken = data['refresh_token'].toString();
         final String userId = data['user_id'].toString();
         final String publicKey = data['public_key'].toString();
-
+        final int expiresIn = data['expires_in'];
+        final DateTime expiresAt = DateTime.now().add(Duration(seconds: expiresIn));
+        final String formattedExpiresAt = DateFormat('dd-MM-yyyy').format(expiresAt);
 
         // Salva as credenciais no Firestore
         await FirebaseFirestore.instance.collection('distribuidores').doc(widget.username).update({
@@ -128,6 +131,7 @@ class _MercadoPagoOAuthScreenState extends State<MercadoPagoOAuthScreen> {
             'refresh_token': refreshToken,
             'user_id': userId,
             'public_key': publicKey,
+            'data_expiracao': formattedExpiresAt,
           }
         });
 

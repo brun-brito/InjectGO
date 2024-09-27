@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:inject_go/screens/profile_screen.dart';
 import 'package:inject_go/subtelas/profissionais/mercado/pesquisa_produtos.dart';
 
 class CategoriasScreen extends StatelessWidget {
@@ -24,6 +25,15 @@ class CategoriasScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Categorias'),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => ProfileScreen(username: emailProfissional)),
+            );
+          },
+        ),
       ),
       body: GridView(
         padding: const EdgeInsets.all(10),

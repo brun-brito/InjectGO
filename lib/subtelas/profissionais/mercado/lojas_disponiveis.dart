@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geolocator/geolocator.dart' as geo;
+import 'package:inject_go/screens/profile_screen.dart';
 import 'package:inject_go/subtelas/profissionais/mercado/exibe_produtos.dart';
 
 class MercadoScreen extends StatefulWidget {
@@ -27,6 +28,15 @@ class _MercadoScreenState extends State<MercadoScreen> {
       appBar: AppBar(
         title: const Text('Lojas Disponíveis'),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => ProfileScreen(username: widget.email)),
+            );
+          },
+        ),
       ),
       body: Column(
         children: [

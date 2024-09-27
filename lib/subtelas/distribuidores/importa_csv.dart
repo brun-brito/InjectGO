@@ -21,7 +21,6 @@ class ImportCSVScreen extends StatefulWidget {
   @override
   _ImportCSVScreenState createState() => _ImportCSVScreenState();
 }
-
 class _ImportCSVScreenState extends State<ImportCSVScreen> {
   String? _selectedFilePath;
   List<List<dynamic>> _csvData = [];
@@ -161,7 +160,7 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
         final row = _csvData[i];
 
         // Verificar se todos os campos necessários estão preenchidos
-        if (row.length < 7 || row.any((campo) => campo == null || campo.toString().trim().isEmpty)) {
+        if (row.length < 11 || row.any((campo) => campo == null || campo.toString().trim().isEmpty)) {
           temErro = true;
           produtosComErro.add("Linha com dados insuficientes na posição $i: $row");
           continue; // Pular para a próxima linha sem tentar cadastrar este produto
@@ -174,6 +173,10 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
         final productPrice = double.tryParse(row[4].toString().replaceAll(',', '.'));
         final String imageUrl = row[5].toString();
         final int quantidadeDisponivel = int.tryParse(row[6].toString()) ?? 1;  // Captura a quantidade disponível
+        final int productLength = int.tryParse(row[7].toString()) ?? 0;  // Comprimento
+        final int productWidth = int.tryParse(row[8].toString()) ?? 0;   // Largura
+        final int productHeight = int.tryParse(row[9].toString()) ?? 0;  // Altura
+        final double productWeight = double.tryParse(row[10].toString()) ?? 0.0; // Peso
 
         // Verifica se o preço é válido
         if (productPrice == null || productPrice <= 0) {
@@ -200,22 +203,6 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
 
           // Realizar cadastro do produto
           try {
-            // final String accessTokenVendedor = distribuidorData['credenciais_mp']['access_token'];
-            // final String marketplace = dotenv.env['MERCADO_PAGO_ACCESS_TOKEN'] ?? '';
-            // final mercadoPagoService = MercadoPagoService(marketplace: marketplace);
-
-            // final Map<String, dynamic> mercadoPagoData = await mercadoPagoService.criarPreferenciaProduto(
-            //   productId: productId,
-            //   name: productName,
-            //   description: productDescription,
-            //   imageUrl: imageUrl,
-            //   category: primeiraMaiuscula(productCategory.trim()),
-            //   price: productPrice,
-            //   username: razaoSocialCnpj,
-            //   accessTokenVendedor: accessTokenVendedor,
-            // );
-
-            // Salvar produto no Firebase
             await FirebaseFirestore.instance.collection('distribuidores/$razaoSocialCnpj/produtos').doc(productId).set({
               'id': productId,
               'name': primeiraMaiuscula(productName.trim()),  // Formata o nome para começar com letra maiúscula
@@ -227,8 +214,11 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
               'username': widget.username,
               'createdAt': Timestamp.now(),
               'quantidade_disponivel': quantidadeDisponivel,
+              'comprimento': productLength,  // Novo campo comprimento
+              'largura': productWidth,       // Novo campo largura
+              'altura': productHeight,       // Novo campo altura
+              'peso': productWeight,         // Novo campo peso
               'disponivel': quantidadeDisponivel > 0,  // Define se o produto está disponível baseado na quantidade
-              // 'produto_mp': mercadoPagoData,
             });
 
             // Adiciona o ID do produto para possível exclusão posterior
@@ -275,7 +265,6 @@ class _ImportCSVScreenState extends State<ImportCSVScreen> {
         await _mostrarDialogCancelado();   
       }
     }
-
   }
 
   Future<void> _mostrarDialogParcial(List<String> produtosComErro) async {

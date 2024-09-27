@@ -43,11 +43,11 @@ class MercadoPagoService {
       totalMarketplaceFee += marketplaceFee * quantity;
 
       return {
-        "id": product['productId'],
-        "title": product['name'],
+        "id": product['id'],
+        "title": product['title'],
         "description": product['description'],
-        "picture_url": product['imageUrl'],
-        "category_id": product['category'],
+        "picture_url": product['picture_url'],
+        "category_id": product['category_id'],
         "quantity": quantity,
         "currency_id": "BRL",
         "unit_price": price,
@@ -61,6 +61,7 @@ class MercadoPagoService {
         "success": '$serverUrl/success',
         "failure": '$serverUrl/failure',
       },
+      "notification_url": '$serverUrl/webhook',
       "payment_methods": {
         "excluded_payment_types": [
           {"id": "ticket"},
@@ -94,7 +95,7 @@ class MercadoPagoService {
         final String initPoint = responseData['init_point'];
         final String preferenceId = responseData['id'];
         final String dateCreated = responseData['date_created'];
-        final double frete = responseData['shipments']['cost'];
+        final double frete = (responseData['shipments']['cost'] as num).toDouble();
 
         return {
           'id': preferenceId,

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:inject_go/formatadores/formata_moeda.dart';
 import 'package:inject_go/formatadores/formata_string.dart';
@@ -18,7 +19,6 @@ class ProductRegistrationScreen extends StatefulWidget {
   @override
   _ProductRegistrationScreenState createState() => _ProductRegistrationScreenState();
 }
-// TODO: COLOCAR AS DIMENSOES DE CADA PRODUTO
 class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
   String _productName = '';
@@ -31,6 +31,10 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
   var _priceController;
   final ImagePicker _picker = ImagePicker();
   int _availableQuantity = 0;
+  int _productLength = 0;
+  int _productWidth = 0;
+  int _productHeight = 0;
+  double _productWeight = 0.0;
 
   @override
   Widget build(BuildContext context) {
@@ -157,6 +161,124 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
                       return null;
                     },
                   ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const Text(
+                        'Dimensões do Produto',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.info_outline),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text('Atenção!'),
+                                content: const Text(
+                                  'Comprimento, largura e altura devem ser números inteiros (ex: 10, 20, 30) representado em cm, e o peso pode ser um valor decimal (ex: 0.5, 1.8, 2.2) representado em kg.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
+                                    child: const Text('Ok'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          decoration: const InputDecoration(labelText: 'Comprimento (cm)'),
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          onSaved: (value) {
+                            _productLength = int.tryParse(value ?? '0') ?? 0;
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty || int.tryParse(value) == null) {
+                              return 'Número deve ser inteiro';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextFormField(
+                          decoration: const InputDecoration(labelText: 'Largura (cm)'),
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          onSaved: (value) {
+                            _productWidth = int.tryParse(value ?? '0') ?? 0;
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty || int.tryParse(value) == null) {
+                              return 'Número deve ser inteiro';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          decoration: const InputDecoration(labelText: 'Altura (cm)'),
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          onSaved: (value) {
+                            _productHeight = int.tryParse(value ?? '0') ?? 0;
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty || int.tryParse(value) == null) {
+                              return 'Número deve ser inteiro';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextFormField(
+                          decoration: const InputDecoration(labelText: 'Peso (kg)'),
+                          keyboardType: TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')), // Permite float com até duas casas decimais
+                          ],
+                          onSaved: (value) {
+                            _productWeight = double.tryParse(value ?? '0.0') ?? 0.0;
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty || double.tryParse(value) == null) {
+                              return 'Valor inválido';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 20),
                   GestureDetector(
                     onTap: _isLoading ? null : () => _pickProductImage(),
@@ -267,25 +389,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
             await storageRef.putFile(_productImage!);
             imageUrl = await storageRef.getDownloadURL();
           }
-          // final String accessTokenVendedor = distribuidorData['credenciais_mp']['access_token'];
-          // final String marketplace = dotenv.env['MERCADO_PAGO_ACCESS_TOKEN'] ?? '';
-          // final mercadoPagoService = MercadoPagoService(
-          //   marketplace: marketplace,
-          // );
 
-          // Primeiro tenta criar a preferência no Mercado Pago
-          // final Map<String, dynamic> mercadoPagoData = await mercadoPagoService.criarPreferenciaProduto(
-          //   productId: productId,
-          //   name: _productName,
-          //   description: _productDescription,
-          //   imageUrl: imageUrl,
-          //   category: primeiraMaiuscula(_productCategory.trim()),
-          //   price: _productPrice,
-          //   username: razaoSocialCnpj,
-          //   accessTokenVendedor: accessTokenVendedor,
-          // );
-
-          // 3. Se a criação no Mercado Pago for bem-sucedida, salvar o produto no Firebase
           await FirebaseFirestore.instance.collection('distribuidores/$razaoSocialCnpj/produtos').doc(productId).set({
             'id': productId,
             'name': primeiraMaiuscula(_productName.trim()),
@@ -298,7 +402,10 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
             'createdAt': Timestamp.now(),
             'disponivel': _availableQuantity > 0,  // Verifica se a quantidade disponível é maior que zero
             'quantidade_disponivel': _availableQuantity,
-            // 'produto_mp': mercadoPagoData, // Salvar os dados retornados do Mercado Pago
+            'altura': _productHeight,
+            'largura': _productWidth,
+            'comprimento': _productLength,
+            'peso': _productWeight,
           });
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -310,7 +417,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
           throw 'Distribuidor não encontrado';
         }
       } catch (e) {
-        // 4. Se ocorrer algum erro no processo, nada será salvo no Firebase e o erro será exibido
+        // Se ocorrer algum erro no processo, nada será salvo no Firebase e o erro será exibido
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro ao cadastrar produto: $e')),
         );

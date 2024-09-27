@@ -7,7 +7,7 @@ String formatDate(Timestamp? timestamp) {
   return '${date.day}/${date.month}/${date.year}';
 }
 
-String formatReembolsoDate(String dateStr) {
+String formataDdMmYyyy(String dateStr) {
   try {
     DateTime parsedDate = DateTime.parse(dateStr);
     return DateFormat('dd/MM/yyyy').format(parsedDate);

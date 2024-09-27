@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:inject_go/formatadores/formata_string.dart';
+import 'package:inject_go/screens/profile_screen.dart';
 import 'package:inject_go/subtelas/profissionais/mercado/carrinho.dart';
 
 class PesquisaProdutosScreen extends StatefulWidget {
@@ -192,6 +193,15 @@ class _PesquisaProdutosScreenState extends State<PesquisaProdutosScreen> {
       appBar: AppBar(
         title: const Text('Pesquisa de Produtos'),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => ProfileScreen(username: widget.emailProfissional)),
+            );
+          },
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
