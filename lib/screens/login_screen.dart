@@ -278,12 +278,70 @@ Future<String?> _buscarUsuarioPorEmail(String collection, String email) async {
   }
 
   Future<void> addFcmToken(String collection, String docId) async {
-    final token = await FirebaseMessaging.instance.getToken();
-    final docRef = FirebaseFirestore.instance.collection(collection).doc(docId);
+    try {
+      final fcmToken = await FirebaseMessaging.instance.getToken();
 
-    await docRef.set({
-      'fcmTokens': FieldValue.arrayUnion([token]),
-    }, SetOptions(merge: true));
+      final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+
+      final docRef = FirebaseFirestore.instance.collection(collection).doc(docId);
+
+      final docSnapshot = await docRef.get();
+
+      if (docSnapshot.exists) {
+        final data = docSnapshot.data();
+
+        if (data != null && data.containsKey('tokens')) {
+          List<dynamic> existingTokens = data['tokens'];
+
+          // Procurar por tokens já cadastrados (FCM ou APNS)
+          bool tokenExists = false;
+          for (var token in existingTokens) {
+            if (token['fcmToken'] == fcmToken || (apnsToken != null && token['apnsToken'] == apnsToken)) {
+              // Token já existe, atualizar `createdAt` para o atual
+              token['createdAt'] = Timestamp.now();
+              tokenExists = true;
+            }
+          }
+
+          // Se o token existir, apenas atualize o documento com os novos dados
+          if (tokenExists) {
+            await docRef.update({
+              'tokens': existingTokens,
+              'timestamp': FieldValue.serverTimestamp(),
+            });
+            debugPrint('Token atualizado com sucesso.');
+          } else {
+            // Caso contrário, adicione o novo token
+            Map<String, dynamic> tokenData = {
+              'fcmToken': fcmToken,
+              'apnsToken': apnsToken, // Será null em Android, mas incluído para iOS
+              'createdAt': Timestamp.now(),
+            };
+
+            await docRef.update({
+              'tokens': FieldValue.arrayUnion([tokenData]),
+              'timestamp': FieldValue.serverTimestamp(),
+            });
+            debugPrint('Novo token adicionado com sucesso.');
+          }
+        } else {
+          // Se não houver campo 'tokens', crie-o com o token atual
+          Map<String, dynamic> tokenData = {
+            'fcmToken': fcmToken,
+            'apnsToken': apnsToken, // Será null em Android, mas incluído para iOS
+            'createdAt': Timestamp.now(),
+          };
+
+          await docRef.update({
+            'tokens': [tokenData],
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+          debugPrint('Tokens criados com sucesso.');
+        }
+      }
+    } catch (e) {
+      debugPrint('Erro ao armazenar ou atualizar os tokens: $e');
+    }
   }
 
   void _showForgotPasswordDialog() async{

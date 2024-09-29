@@ -318,26 +318,32 @@ class _DetalhesVendaScreenState extends State<DetalhesVendaScreen> {
           .get();
 
       if (buyerSnapshot.docs.isEmpty) {
-        print('Comprador não encontrado com o email: $buyerEmail');
+        debugPrint('Comprador não encontrado com o email: $buyerEmail');
         return;
       }
 
       final buyerData = buyerSnapshot.docs.first.data();
-      final fcmTokens = buyerData['fcmTokens'] ?? [];
 
-      if (fcmTokens.isEmpty) {
-        print('Nenhum token FCM encontrado para o comprador $buyerEmail.');
+      // Obter a lista de tokens (contendo tanto FCM quanto APNS)
+      final List<dynamic> tokens = buyerData['tokens'] ?? [];
+
+      if (tokens.isEmpty) {
+        debugPrint('Nenhum token FCM/APNS encontrado para o comprador $buyerEmail.');
         return;
       }
 
-      // Para cada token FCM, enviar a notificação usando a API de notificação
-      // ignore: unused_local_variable
-      for (final token in fcmTokens) {
+      // Enviar notificação para cada token, independentemente de ser FCM ou APNS
+      for (final tokenData in tokens) {
+        final fcmToken = tokenData['fcmToken'];
+        final apnsToken = tokenData['apnsToken'];
+
+        // Prepara os dados para o payload da notificação
         final payload = {
           "email": buyerEmail,
           "titulo": titulo,
           "mensagem": mensagem,
-          "statusVenda": mensagem.contains('rejeitada') ? 'rejeitada' : 'aceita'
+          "statusVenda": mensagem.contains('rejeitada') ? 'rejeitada' : 'aceita',
+          "token": fcmToken ?? apnsToken
         };
 
         final url = '${dotenv.env['ENDERECO_SERVIDOR']}/enviar-notificacao-profissional';
@@ -351,13 +357,13 @@ class _DetalhesVendaScreenState extends State<DetalhesVendaScreen> {
         );
 
         if (response.statusCode == 200) {
-          print('Notificação enviada com sucesso para $buyerEmail');
+          debugPrint('Notificação enviada com sucesso para $buyerEmail');
         } else {
-          print('Erro ao enviar notificação para $buyerEmail: ${response.body}');
+          debugPrint('Erro ao enviar notificação para $buyerEmail: ${response.body}');
         }
       }
     } catch (error) {
-      print('Erro ao enviar notificação para o comprador: $error');
+      debugPrint('Erro ao enviar notificação para o comprador: $error');
     }
   }
 

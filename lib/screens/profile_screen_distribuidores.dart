@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -406,12 +407,70 @@ class _ProfileScreenDistribuidorState extends State<ProfileScreenDistribuidor> {
   }
   
   Future<void> logout(BuildContext context) async {
-    await FirebaseAuth.instance.signOut();
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginForm()),
-      (Route<dynamic> route) => false,
-    );
+    try {
+      // Obtenha os tokens FCM (para Android) e APNS (para iOS)
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+
+      if (razaoSocialCnpj.isNotEmpty) {
+        final docRef = FirebaseFirestore.instance.collection('distribuidores').doc(razaoSocialCnpj);
+        final docSnapshot = await docRef.get();
+
+        if (docSnapshot.exists && docSnapshot.data() != null) {
+          final data = docSnapshot.data();
+
+          // Verifique se há campo 'tokens' no documento do distribuidor
+          if (data != null && data.containsKey('tokens')) {
+            List<dynamic> existingTokens = data['tokens'];
+
+            // Atualize a lista de tokens para remover
+            List<dynamic> updatedTokens = existingTokens.where((token) {
+              bool shouldRemove = false;
+
+              // Remover o FCM Token, se existir
+              if (fcmToken != null && token['fcmToken'] == fcmToken) {
+                shouldRemove = true;
+                debugPrint("Token FCM encontrado e removido.");
+              }
+
+              // Remover o APNS Token, se existir
+              if (apnsToken != null && token['apnsToken'] == apnsToken) {
+                shouldRemove = true;
+                debugPrint("Token APNS encontrado e removido.");
+              }
+
+              return !shouldRemove; // Retorna apenas os tokens que não devem ser removidos
+            }).toList();
+
+            // Atualiza o documento Firestore com a nova lista de tokens
+            await docRef.update({
+              'tokens': updatedTokens,
+            });
+
+            debugPrint("Tokens removidos com sucesso para o distribuidor.");
+          } else {
+            debugPrint("Campo 'tokens' não encontrado no documento do distribuidor.");
+          }
+        } else {
+          debugPrint("Documento do distribuidor não encontrado.");
+        }
+      }
+
+      // Fazer o logout do FirebaseAuth
+      await FirebaseAuth.instance.signOut();
+
+      // Navegar para a tela de login
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginForm()),
+        (Route<dynamic> route) => false,
+      );
+    } catch (e) {
+      // Exibir um erro se houver falha no logout
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao fazer logout: ${e.toString()}')),
+      );
+    }
   }
 
   Future<void> _navigateToProductRegistration() async {
