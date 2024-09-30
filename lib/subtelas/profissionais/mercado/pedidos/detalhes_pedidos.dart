@@ -71,13 +71,11 @@ class DetalhesCompraScreen extends StatelessWidget {
 
     // Faça o cast do data() para Map<String, dynamic>
     final Map<String, dynamic> compraData = primeiraCompra.data() as Map<String, dynamic>;
-    debugPrint(compraData.toString());
-    debugPrint(paymentId.toString());
     final List<dynamic> produtos = compraData['produtos'] as List<dynamic>;
 
     // Verifique se há produtos e recupere o distributorInfo
-    final distributorInfo = produtos.isNotEmpty && produtos[0].containsKey('distributorInfo')
-        ? produtos[0]['distributorInfo'] as Map<String, dynamic>
+    final distributorInfo = compraData.isNotEmpty && compraData.containsKey('distributorInfo')
+        ? compraData['distributorInfo'] as Map<String, dynamic>
         : null;
 
     // Concatene 'razao_social' e 'cnpj' para criar o distribuidorId
@@ -131,7 +129,7 @@ class DetalhesCompraScreen extends StatelessWidget {
                               _buildRichText('Status do Pagamento: ', _translatePaymentStatus(paymentDetails['status']),
                                   _getStatusColor(paymentDetails['status'])),
                               const SizedBox(height: 10),
-                              _buildRichText('Método de Pagamento: ', paymentDetails['payment_type_id']),
+                              _buildRichText('Método de Pagamento: ', _translatePaymentMethod(paymentDetails['payment_type_id'])),
                               _buildRichText('Total Pago: ', 'R\$${paymentDetails['transaction_amount'].toStringAsFixed(2)}'),
                               _buildRichText('E-mail do pagador: ', paymentDetails['payer']['email']),
                               _buildRichText('Data de criação: ', formatDataHora(paymentDetails['date_created'])),
@@ -148,10 +146,10 @@ class DetalhesCompraScreen extends StatelessWidget {
                         ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: produtos.length, // Agora iteramos sobre a lista de produtos
+                          itemCount: produtos.length,
                           itemBuilder: (context, index) {
                             final productInfo = produtos[index]['productInfo'] as Map<String, dynamic>;
-                            final distributorInfo = produtos[index]['distributorInfo'] as Map<String, dynamic>;
+                            final distributorInfo = compraData['distributorInfo'] as Map<String, dynamic>;
 
                             return Card(
                               margin: const EdgeInsets.symmetric(vertical: 8),
@@ -280,6 +278,25 @@ class DetalhesCompraScreen extends StatelessWidget {
         return 'Rejeitado';
       case 'refunded':
         return 'Reembolsado';
+      default:
+        return status;
+    }
+  }
+
+  String _translatePaymentMethod(String status) {
+    switch (status) {
+      case 'account_money':
+        return 'Dinheiro na Conta';
+      case 'credit_card':
+        return 'Cartão de Crédito';
+      case 'debit_card':
+        return 'Cartão de Débito';
+      case 'bank_transfer':
+        return 'Transferência Bancária';
+      case 'pix':
+        return 'Pix';
+      case 'ticket':
+        return 'Boleto Bancário';
       default:
         return status;
     }

@@ -1,4 +1,4 @@
-// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously
+// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter_web_browser/flutter_web_browser.dart';
@@ -47,6 +47,7 @@ class _ProductPurchaseScreenState extends State<ProductPurchaseScreen> {
     FlutterWebBrowser.openWebPage(
       url: widget.initPoint,
       customTabsOptions: const CustomTabsOptions(
+        toolbarColor: Colors.pink,
         showTitle: true,
       ),
       safariVCOptions: const SafariViewControllerOptions(
@@ -57,7 +58,7 @@ class _ProductPurchaseScreenState extends State<ProductPurchaseScreen> {
     );
 
     // Simula a checagem do status do pagamento após alguns segundos
-    Future.delayed(const Duration(seconds: 10), () {
+    Future.delayed(const Duration(seconds: 3), () {
       _checkPaymentStatus();
     });
   }

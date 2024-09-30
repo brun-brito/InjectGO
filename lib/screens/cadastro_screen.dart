@@ -59,7 +59,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String? _userType;
   bool _formSubmitted = false;
   String? _errorMessage;
-  final String? apiKey = dotenv.env['API_KEY_GEO'];
+  String? apiKey;
   
   @override
   Widget build(BuildContext context) {
@@ -1724,6 +1724,9 @@ void _removeCertidaoImage() {
   }
 
   Future<Map<String, double>?> _getCoordinatesFromCep(String cep) async {
+    if (Platform.isAndroid) apiKey  = dotenv.env['API_KEY_GEO_ANDROID'];
+    else if (Platform.isIOS) apiKey  = dotenv.env['API_KEY_GEO_IOS'];
+    else apiKey = '';
     final String url = 'https://maps.googleapis.com/maps/api/geocode/json?address=$cep&key=$apiKey';
     
     try {

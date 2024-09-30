@@ -264,13 +264,15 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
                           decoration: const InputDecoration(labelText: 'Peso (kg)'),
                           keyboardType: TextInputType.numberWithOptions(decimal: true),
                           inputFormatters: [
-                            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')), // Permite float com até duas casas decimais
+                            FilteringTextInputFormatter.allow(RegExp(r'^\d+[.,]?\d{0,2}')),
                           ],
                           onSaved: (value) {
-                            _productWeight = double.tryParse(value ?? '0.0') ?? 0.0;
+                            String formattedValue = value?.replaceAll(',', '.') ?? '0.0';
+                            _productWeight = double.tryParse(formattedValue) ?? 0.0;
                           },
                           validator: (value) {
-                            if (value == null || value.isEmpty || double.tryParse(value) == null) {
+                            String formattedValue = value?.replaceAll(',', '.') ?? '';
+                            if (formattedValue.isEmpty || double.tryParse(formattedValue) == null) {
                               return 'Valor inválido';
                             }
                             return null;

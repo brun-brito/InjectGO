@@ -367,6 +367,26 @@ class _DetalhesVendaScreenState extends State<DetalhesVendaScreen> {
     }
   }
 
+  Future<void> enviarEmailProfissional(String externalReference, String profissionalId, String status) async {
+    final url = Uri.parse('${dotenv.env['ENDERECO_SERVIDOR']}/enviar-email-status');
+
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "externalReference": externalReference,
+        "profissionalId": profissionalId,
+        "status": status,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      print('E-mail enviado com sucesso');
+    } else {
+      print('Falha ao enviar o e-mail: ${response.body}');
+    }
+  }
+
   // Função para aprovar a venda
   void _aprovarVenda(BuildContext context) async {
     setState(() {
@@ -374,9 +394,13 @@ class _DetalhesVendaScreenState extends State<DetalhesVendaScreen> {
     });
 
     try {
+      String vendaId;
+      String buyerEmail;
+      String buyerId;
+      String compraId;
       for (var venda in widget.vendasDoPedido) {
-        String vendaId = venda.id;
-        String buyerEmail = venda['buyerInfo']['email'];
+        vendaId = venda.id;
+        buyerEmail = venda['buyerInfo']['email'];
 
         // Atualiza o status para o distribuidor
         await FirebaseFirestore.instance
@@ -387,29 +411,30 @@ class _DetalhesVendaScreenState extends State<DetalhesVendaScreen> {
             .update({'status': 'preparando'});
 
         // Atualiza o status para o comprador
-        await FirebaseFirestore.instance
+        final querySnapshot = await FirebaseFirestore.instance
             .collection('users')
             .where('email', isEqualTo: buyerEmail)
             .limit(1)
-            .get()
-            .then((querySnapshot) async {
-          if (querySnapshot.docs.isNotEmpty) {
-            String buyerId = querySnapshot.docs.first.id;
-            String compraId = venda.id;
+            .get();
 
-            await FirebaseFirestore.instance
-                .collection('users')
-                .doc(buyerId)
-                .collection('compras')
-                .doc(compraId)
-                .update({
-              'status': 'preparando',
-            });
-          }
-        });
+        if (querySnapshot.docs.isNotEmpty) {
+          buyerId = querySnapshot.docs.first.id;
+          compraId = venda.id;
 
-        // Envia a notificação para o comprador (profissional)
-        await _enviarNotificacaoComprador(buyerEmail, 'Compra aprovada!', 'Sua compra foi aprovada e está em processo de preparo.');
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(buyerId)
+              .collection('compras')
+              .doc(compraId)
+              .update({
+            'status': 'preparando',
+          });
+
+          // Envia a notificação para o comprador (profissional)
+          await _enviarNotificacaoComprador(buyerEmail, 'Compra aprovada!', 'Sua compra foi aprovada e está em processo de preparo.');
+          
+          await enviarEmailProfissional(compraId, buyerId, 'aprovado');
+        }
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -456,34 +481,33 @@ class _DetalhesVendaScreenState extends State<DetalhesVendaScreen> {
         });
 
         // Atualiza o status para o comprador
-        await FirebaseFirestore.instance
+        final querySnapshot = await FirebaseFirestore.instance
             .collection('users')
             .where('email', isEqualTo: buyerEmail)
             .limit(1)
-            .get()
-            .then((querySnapshot) async {
-          if (querySnapshot.docs.isNotEmpty) {
-            String buyerId = querySnapshot.docs.first.id;
-            String compraId = venda.id;
+            .get();
 
-            await FirebaseFirestore.instance
-                .collection('users')
-                .doc(buyerId)
-                .collection('compras')
-                .doc(compraId)
-                .update({
-              'status': 'rejeitado',
-              'reembolsoInfo': {
-                'refund_id': reembolsoData['id'],
-                'date_created': reembolsoData['date_created'],
-                'status': reembolsoData['status'],
-              },
-            });
-          }
-        });
+        if (querySnapshot.docs.isNotEmpty) {
+          String buyerId = querySnapshot.docs.first.id;
+          String compraId = venda.id;
 
-        // Envia a notificação para o comprador (profissional)
-        await _enviarNotificacaoComprador(buyerEmail, 'Compra rejeitada', 'Sua compra foi rejeitada e reembolsada.');
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(buyerId)
+              .collection('compras')
+              .doc(compraId)
+              .update({
+            'status': 'rejeitado',
+            'reembolsoInfo': {
+              'refund_id': reembolsoData['id'],
+              'date_created': reembolsoData['date_created'],
+              'status': reembolsoData['status'],
+            },
+          });
+
+          await _enviarNotificacaoComprador(buyerEmail, 'Compra rejeitada', 'Sua compra foi rejeitada e reembolsada.');
+          await enviarEmailProfissional(compraId, buyerId, 'rejeitado');
+        }
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
