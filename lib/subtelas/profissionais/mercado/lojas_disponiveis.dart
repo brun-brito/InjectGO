@@ -1,10 +1,12 @@
-// ignore_for_file: library_private_types_in_public_api
+// ignore_for_file: library_private_types_in_public_api, curly_braces_in_flow_control_structures
 
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geolocator/geolocator.dart' as geo;
 import 'package:inject_go/screens/profile_screen.dart';
 import 'package:inject_go/subtelas/profissionais/mercado/exibe_produtos.dart';
 
@@ -80,7 +82,7 @@ class _MercadoScreenState extends State<MercadoScreen> {
   }
 
   // Função que constrói o grid dos distribuidores (lojas)
-  Widget _buildDistribuidoresGrid() {
+   Widget _buildDistribuidoresGrid() {
     final double screenWidth = MediaQuery.of(context).size.width;
     const double itemWidth = 150.0;
     final int crossAxisCount = screenWidth ~/ itemWidth;
@@ -96,146 +98,34 @@ class _MercadoScreenState extends State<MercadoScreen> {
         }
 
         var distribuidores = snapshot.data!.docs;
+        return FutureBuilder<List<Map<String, dynamic>>>(
+          future: _calculateDistanceForDistribuidores(distribuidores),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121)));
+            }
+            var distribuidoresFiltrados = snapshot.data!.where((distribuidor) {
+              return distribuidor['razaoSocial'].toLowerCase().contains(searchQuery);
+            }).toList();
 
-        // Lista que armazenará distribuidores e suas distâncias
-        List<Map<String, dynamic>> distribuidoresComDistancia = [];
+            distribuidoresFiltrados.sort((a, b) => a['distanceText'].compareTo(b['distanceText']));
 
-        // Calcula a distância entre o profissional e cada distribuidor
-        for (var distribuidor in distribuidores) {
-          String distribuidorId = distribuidor.id;
-          String razaoSocial = distribuidor['razao_social'];
-          double distribuidorLatitude = distribuidor['latitude'];
-          double distribuidorLongitude = distribuidor['longitude'];
+            if (distribuidoresFiltrados.isEmpty) {
+              return const Center(child: Text('Nenhuma loja encontrada.'));
+            }
 
-          // Calcula a distância entre o profissional e o distribuidor
-          double distanceInMeters = geo.Geolocator.distanceBetween(
-            widget.userPosition.latitude,
-            widget.userPosition.longitude,
-            distribuidorLatitude,
-            distribuidorLongitude,
-          );
-
-          double distanceInKm = distanceInMeters / 1000;
-
-          // Adiciona o distribuidor e a distância calculada à lista
-          distribuidoresComDistancia.add({
-            'distribuidorId': distribuidorId,
-            'razaoSocial': razaoSocial,
-            'distanceInKm': distanceInKm,
-            'latitude': distribuidorLatitude,
-            'longitude': distribuidorLongitude,
-          });
-        }
-
-        // Filtra a lista de distribuidores com base no campo de busca
-        var distribuidoresFiltrados = distribuidoresComDistancia.where((distribuidor) {
-          String razaoSocial = distribuidor['razaoSocial'].toLowerCase();
-          return razaoSocial.contains(searchQuery);
-        }).toList();
-
-        // Ordena a lista de distribuidores pela distância (mais perto primeiro)
-        distribuidoresFiltrados.sort((a, b) => a['distanceInKm'].compareTo(b['distanceInKm']));
-
-        if (distribuidoresFiltrados.isEmpty) {
-          return const Center(child: Text('Nenhuma loja encontrada.'));
-        }
-
-        return GridView.builder(
-          padding: const EdgeInsets.all(8.0),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 10.0,
-            mainAxisSpacing: 10.0,
-            childAspectRatio: 0.8, // Define a proporção dos cards
-          ),
-          itemCount: distribuidoresFiltrados.length,
-          itemBuilder: (context, index) {
-            var distribuidor = distribuidoresFiltrados[index];
-            String distribuidorId = distribuidor['distribuidorId'];
-            String razaoSocial = distribuidor['razaoSocial'];
-            double distanceInKm = distribuidor['distanceInKm'];
-
-            return FutureBuilder<String>(
-              future: _getDistributorPhotoUrl(distribuidorId),
-              builder: (context, photoSnapshot) {
-                if (!photoSnapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121)));
-                }
-
-                return GestureDetector(
-                  onTap: () {
-                    // Ao clicar em uma loja, navega para a página de produtos do distribuidor
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ProdutosDistribuidores(
-                          distribuidorId: distribuidorId,
-                          distribuidorNome: razaoSocial,
-                          emailProfissional: widget.email,
-                          posicao: widget.userPosition
-                        ),
-                      ),
-                    );
-                  },
-                  child: Card(
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(10),
-                              topRight: Radius.circular(10),
-                            ),
-                            child: Image.network(
-                              photoSnapshot.data!,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                razaoSocial,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              const Row(
-                                children: [
-                                  Icon(Icons.star, color: Colors.yellow, size: 16),
-                                  Icon(Icons.star, color: Colors.yellow, size: 16),
-                                  Icon(Icons.star, color: Colors.yellow, size: 16),
-                                  Icon(Icons.star, color: Colors.yellow, size: 16),
-                                  Icon(Icons.star, color: Colors.yellow, size: 16),
-                                  Text(' (5)'),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text('Distância: ${distanceInKm.toStringAsFixed(2)} km'),
-                              const Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16), // Seta de indicação
-                                ],
-                              ),
-                            ],
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-                );
+            return GridView.builder(
+              padding: const EdgeInsets.all(8.0),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 10.0,
+                mainAxisSpacing: 10.0,
+                childAspectRatio: 0.8,
+              ),
+              itemCount: distribuidoresFiltrados.length,
+              itemBuilder: (context, index) {
+                var distribuidor = distribuidoresFiltrados[index];
+                return _buildDistributorCard(distribuidor);
               },
             );
           },
@@ -243,6 +133,133 @@ class _MercadoScreenState extends State<MercadoScreen> {
       },
     );
   }
+
+  Future<List<Map<String, dynamic>>> _calculateDistanceForDistribuidores(List<QueryDocumentSnapshot> distribuidores) async {
+    String apiKey = '';
+    if (Theme.of(context).platform == TargetPlatform.android)
+      apiKey = dotenv.env['API_KEY_GEO_ANDROID']!;
+    else if (Theme.of(context).platform == TargetPlatform.iOS)
+      apiKey = dotenv.env['API_KEY_GEO_IOS']!;
+    List<Map<String, dynamic>> result = [];
+
+    for (var distribuidor in distribuidores) {
+      final url = 'https://maps.googleapis.com/maps/api/directions/json?origin=${widget.userPosition.latitude},${widget.userPosition.longitude}&destination=${distribuidor['latitude']},${distribuidor['longitude']}&key=$apiKey&mode=driving';
+      final response = await http.get(Uri.parse(url));
+      final data = jsonDecode(response.body);
+
+      if (data['status'] == 'OK') {
+        var legs = data['routes'][0]['legs'][0];
+        result.add({
+          'distribuidorId': distribuidor.id,
+          'razaoSocial': distribuidor['razao_social'],
+          'distanceText': legs['distance']['text'].replaceAll(',', ''),
+          'latitude': distribuidor['latitude'],
+          'longitude': distribuidor['longitude'],
+        });
+      }
+    }
+    return result;
+  }
+
+  Widget _buildDistributorCard(Map<String, dynamic> distribuidor) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProdutosDistribuidores(
+              distribuidorId: distribuidor['distribuidorId'],
+              distribuidorNome: distribuidor['razaoSocial'],
+              emailProfissional: widget.email,
+              posicao: widget.userPosition,
+            ),
+          ),
+        );
+      },
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(10),
+                  topRight: Radius.circular(10),
+                ),
+                child: FutureBuilder<String>(
+                  future: _getDistributorPhotoUrl(distribuidor['distribuidorId']),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121)),
+                      );
+                    } else if (snapshot.hasError || !snapshot.hasData) {
+                      return Image.network('https://via.placeholder.com/150', fit: BoxFit.cover);
+                    } else {
+                      return Image.network(
+                        snapshot.data!,
+                        fit: BoxFit.cover,
+                    );
+                  }
+                },
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  distribuidor['razaoSocial'],
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                const Row(
+                  children: [
+                    Icon(Icons.star, color: Colors.yellow, size: 16),
+                    Icon(Icons.star, color: Colors.yellow, size: 16),
+                    Icon(Icons.star, color: Colors.yellow, size: 16),
+                    Icon(Icons.star, color: Colors.yellow, size: 16),
+                    Icon(Icons.star, color: Colors.yellow, size: 16),
+                    Text(' (5)'),
+                  ],
+                ),
+                Text('Distância: ${distribuidor['distanceText']}'),
+                const SizedBox(height: 4),
+
+                // Verificação se a distância é menor ou igual a 30 km
+                if (_isFreteGratis(distribuidor['distanceText']))
+                  const Text(
+                    'Frete Grátis',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+              ],
+            ),
+          )
+        ],
+      ),
+    ),
+  );
+}
+
+bool _isFreteGratis(String distanceText) {
+  String standardizedDistance = distanceText.replaceAll(',', '').replaceAll(' ', '');
+  double distanceInKm = double.tryParse(standardizedDistance.split('km')[0]) ?? 0.0;
+
+  return distanceInKm <= 30.0;
+}
 
   // Função para buscar a URL da foto do distribuidor no Firebase Storage
   Future<String> _getDistributorPhotoUrl(String distribuidorId) async {

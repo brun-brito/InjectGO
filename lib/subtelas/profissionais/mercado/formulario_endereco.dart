@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:inject_go/api_melhor_envio/calcula_frete.dart';
+import 'package:inject_go/formatadores/formata_string.dart';
 import 'package:inject_go/mercado_pago/comprar_produto_mp.dart';
 import 'dart:convert';
 import 'package:inject_go/mercado_pago/cria_preferencia_mp.dart';
@@ -242,6 +243,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
               'tempo_previsto': tempo_entrega,
               'responsavel': responsavel,
               'dimensoes_caixa': dimensoesCaixa,
+              'id_responsavel': selectedFreteId
             },
           ),
         ),
@@ -261,6 +263,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isFreteGratis = selectedFreteId == 'frete_gratis';
     return Scaffold(
       appBar: AppBar(
         title: const Text('Endereço de Entrega'),
@@ -435,25 +438,49 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
                                 SizedBox(
                                   height: 150,
                                   width: 150,
-                                  child: Image.network(
-                                    selectedFrete['company']['picture'],
-                                    fit: BoxFit.contain,
-                                  ),
+                                  child: isFreteGratis ?
+                                    const Icon(
+                                      Icons.delivery_dining,
+                                      size: 90,
+                                      color: Colors.green,
+                                    )
+                                  : Image.network(
+                                      selectedFrete['company']['picture'] ?? 'https://via.placeholder.com/50',
+                                      fit: BoxFit.contain,
+                                    ),
                                 ),
                                 Text(
-                                  'Serviço: ${selectedFrete['name']}',
+                                  isFreteGratis
+                                      ? 'Serviço: Entrega Rápida'
+                                      : 'Serviço: ${decodeUtf8String(selectedFrete['name'])}',
                                   style: const TextStyle(fontSize: 14, color: Colors.black),
                                 ),
+                                const SizedBox(height: 4),
                                 Text(
-                                  'Empresa: ${selectedFrete['company']['name']}',
+                                  isFreteGratis
+                                      ? 'Empresa: Entrega Rápida'
+                                      : 'Empresa: ${decodeUtf8String(selectedFrete['company']['name'])}',
                                   style: const TextStyle(fontSize: 14, color: Colors.black),
                                 ),
+                                const SizedBox(height: 4),
+                                isFreteGratis
+                                    ? const Text(
+                                        'Preço: Frete grátis!',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.green,
+                                        ),
+                                      )
+                                    : Text(
+                                        'Preço: R\$ ${selectedFrete['price']}',
+                                        style: const TextStyle(fontSize: 14, color: Colors.black),
+                                      ),
+                                const SizedBox(height: 4),
                                 Text(
-                                  'Preço: R\$ ${selectedFrete['price']}',
-                                  style: const TextStyle(fontSize: 14, color: Colors.black),
-                                ),
-                                Text(
-                                  'Prazo de Entrega: até ${selectedFrete['delivery_time']} dias úteis',
+                                  isFreteGratis
+                                      ? 'Prazo de Entrega: até 5 horas úteis'
+                                      : 'Prazo de Entrega: até ${selectedFrete['delivery_time']} dias úteis',
                                   style: const TextStyle(fontSize: 14, color: Colors.black),
                                 ),
                               ],

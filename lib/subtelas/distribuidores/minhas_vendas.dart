@@ -6,7 +6,6 @@ import 'package:inject_go/formatadores/formata_data.dart';
 import 'package:inject_go/screens/profile_screen_distribuidores.dart';
 import 'package:inject_go/subtelas/distribuidores/vendas/detalhes_venda.dart';
 
-// TODO: ver status finalizados
 class MinhasVendasScreen extends StatefulWidget {
   final String id;
   final String email;

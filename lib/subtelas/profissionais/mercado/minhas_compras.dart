@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:inject_go/formatadores/formata_data.dart';
 import 'package:inject_go/subtelas/profissionais/mercado/pedidos/detalhes_pedidos.dart';
 import 'package:intl/intl.dart';
 import 'package:inject_go/screens/profile_screen.dart';
@@ -187,6 +188,7 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
                 final produtos = compra['produtos'] as List<dynamic>;
                 final dataCompra = (compra['data_criacao'] as Timestamp).toDate();
                 final formattedDate = DateFormat('dd/MM/yyyy').format(dataCompra);
+                final tempoMaximoAprova = (compra['tempo_maximo_aprova'] as Timestamp?)?.toDate();
 
                 return Card(
                   child: ListTile(
@@ -194,8 +196,12 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Data de pedido: $formattedDate'),
-                        Text('Total de Itens: ${produtos.length}'),
+                        _buildRichText('Data de pedido: ', formattedDate),
+                        _buildRichText('Total de Itens: ', '${produtos.length}'),
+                        if (compra['status'] == 'solicitado')
+                          _buildRichText('Pedido será confirmado até: ', formatDataHora(tempoMaximoAprova.toString())),
+                        // TODO: Colocar tempo de envio maximo 'tempo_maximo_envio'
+
                         ...produtos.map((produto) {
                           final productInfo = produto['productInfo'] as Map<String, dynamic>;
                           return Column(
@@ -204,7 +210,6 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
                               const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  // Imagem do produto
                                   productInfo['imageUrl'] != null
                                       ? CircleAvatar(
                                           backgroundImage: NetworkImage(productInfo['imageUrl']),
@@ -214,8 +219,6 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
                                           child: Icon(Icons.shopping_bag),
                                         ),
                                   const SizedBox(width: 8),
-
-                                  // Use Expanded para o texto
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,15 +229,15 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
                                           ),
-                                          overflow: TextOverflow.ellipsis, // Trunca o texto se for muito longo
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                         Text(
                                           'Categoria: ${productInfo['categoria'] ?? 'Desconhecida'}',
-                                          overflow: TextOverflow.ellipsis, // Trunca o texto se for muito longo
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                         Text(
                                           'Preço: R\$ ${productInfo['preco']?.toStringAsFixed(2) ?? 'N/A'}',
-                                          overflow: TextOverflow.ellipsis, // Trunca o texto se for muito longo
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ],
                                     ),
@@ -327,8 +330,8 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Data de pedido: $formattedDate'),
-                        Text('Total de Itens: ${produtos.length}'),
+                        _buildRichText('Data de pedido: ', formattedDate),
+                        _buildRichText('Total de Itens: ', '${produtos.length}'),
                         ...produtos.map((produto) {
                           final productInfo = produto['productInfo'] as Map<String, dynamic>;
                           return Column(
@@ -402,20 +405,20 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
     );
   }
 
-  String _translatePaymentStatus(String status) {
-    switch (status) {
-      case 'approved':
-        return 'Aprovado';
-      case 'pending':
-        return 'Pendente';
-      case 'rejected':
-        return 'Rejeitado';
-      case 'refunded':
-        return 'Reembolsado';
-      default:
-        return status;
-    }
+  Widget _buildRichText(String titulo, String valor) {
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: titulo,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          TextSpan(
+            text: valor,
+          ),
+        ],
+      ),
+    );
   }
   
-// TODO: VERIFICAR O PORQUE QUANDO VAI DA TELA DE PAGAMENTO RPA ESSA, APARECE UM ERRO DE WIDGET
 }

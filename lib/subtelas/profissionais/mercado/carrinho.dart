@@ -152,7 +152,7 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        'Total:',
+                        'Subtotal:',
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       Text(

@@ -10,6 +10,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 
 // TODO: COLOCAR OS PRAZOS DE ENTREGA
+// TODO: Colocar o botão de envuar com formulário de código de rastreio etc *ver como funciona
 class DetalhesVendaScreen extends StatefulWidget {
   final List<QueryDocumentSnapshot> vendasDoPedido;
   final String paymentId;
@@ -291,7 +292,6 @@ class _DetalhesVendaScreenState extends State<DetalhesVendaScreen> {
     }
 
     String accessToken = snapshot['credenciais_mp']['access_token'];
-    // TODO: Usar o token relacionado ao produto, nao ao distribuidor, porque dá erro na hora de renovar
 
     final url = 'https://api.mercadopago.com/v1/payments/$paymentId';
     final response = await http.get(
@@ -331,19 +331,11 @@ class _DetalhesVendaScreenState extends State<DetalhesVendaScreen> {
         debugPrint('Nenhum token FCM/APNS encontrado para o comprador $buyerEmail.');
         return;
       }
-
-      // Enviar notificação para cada token, independentemente de ser FCM ou APNS
-      for (final tokenData in tokens) {
-        final fcmToken = tokenData['fcmToken'];
-        final apnsToken = tokenData['apnsToken'];
-
         // Prepara os dados para o payload da notificação
         final payload = {
           "email": buyerEmail,
           "titulo": titulo,
-          "mensagem": mensagem,
-          "statusVenda": mensagem.contains('rejeitada') ? 'rejeitada' : 'aceita',
-          "token": fcmToken ?? apnsToken
+          "mensagem": mensagem
         };
 
         final url = '${dotenv.env['ENDERECO_SERVIDOR']}/enviar-notificacao-profissional';
@@ -361,14 +353,13 @@ class _DetalhesVendaScreenState extends State<DetalhesVendaScreen> {
         } else {
           debugPrint('Erro ao enviar notificação para $buyerEmail: ${response.body}');
         }
-      }
     } catch (error) {
       debugPrint('Erro ao enviar notificação para o comprador: $error');
     }
   }
 
   Future<void> enviarEmailProfissional(String externalReference, String profissionalId, String status) async {
-    final url = Uri.parse('${dotenv.env['ENDERECO_SERVIDOR']}/enviar-email-status');
+    final url = Uri.parse('${dotenv.env['ENDERECO_SERVIDOR']}/enviar-email-profissional');
 
     final response = await http.post(
       url,
@@ -381,9 +372,9 @@ class _DetalhesVendaScreenState extends State<DetalhesVendaScreen> {
     );
 
     if (response.statusCode == 200) {
-      print('E-mail enviado com sucesso');
+      debugPrint('E-mail enviado com sucesso');
     } else {
-      print('Falha ao enviar o e-mail: ${response.body}');
+      debugPrint('Falha ao enviar o e-mail: ${response.body}');
     }
   }
 

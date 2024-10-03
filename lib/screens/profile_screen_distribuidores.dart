@@ -14,6 +14,7 @@ import 'package:inject_go/subtelas/distribuidores/meus_produtos.dart';
 import 'package:inject_go/subtelas/distribuidores/minhas_vendas.dart';
 import 'package:badges/badges.dart' as badges;
 
+// TODO: Criar botão ON/OFF 
 class ProfileScreenDistribuidor extends StatefulWidget {
   final String username;
 

@@ -1,4 +1,4 @@
-// ignore_for_file: library_private_types_in_public_api
+// ignore_for_file: library_private_types_in_public_api, curly_braces_in_flow_control_structures, use_build_context_synchronously
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -86,6 +86,34 @@ class _EscolherFreteScreenState extends State<EscolherFreteScreen> {
       if (response.statusCode == 200) {
         setState(() {
           freteOptions = jsonDecode(response.body); // Parseando a resposta
+        });
+        // Verifica a distância entre origem e destino
+        String apiKey = '';
+        if (Theme.of(context).platform == TargetPlatform.android)
+          apiKey = dotenv.env['API_KEY_GEO_ANDROID']!;
+        else if (Theme.of(context).platform == TargetPlatform.iOS)
+          apiKey = dotenv.env['API_KEY_GEO_IOS']!;
+        final String directionsUrl = 'https://maps.googleapis.com/maps/api/directions/json?origin=${widget.cepOrigem}&destination=${widget.cepDestino}&key=$apiKey&mode=driving';
+        final distanceResponse = await http.get(Uri.parse(directionsUrl));
+        final distanceData = jsonDecode(distanceResponse.body);
+
+        if (distanceData['status'] == 'OK') {
+          var legs = distanceData['routes'][0]['legs'][0];
+          double distanceInKm = double.parse(legs['distance']['text'].replaceAll(',', '.').split(' ')[0]);
+
+          // Se a distância for menor ou igual a 30 km, adiciona a opção de frete grátis
+          if (distanceInKm <= 30) {
+            freteOptions.add({
+              'id': 'frete_gratis',
+              'price': 0.0,
+              'delivery_time': 0,
+              'name': 'Frete Grátis - Entrega no mesmo dia',
+              'company': {'name': 'Entrega Rápida'},
+            });
+          }
+        }
+
+        setState(() {
           isLoading = false;
         });
       } else {
@@ -106,11 +134,18 @@ class _EscolherFreteScreenState extends State<EscolherFreteScreen> {
       return const Center(child: Text("Nenhum serviço de frete disponível."));
     }
 
+    freteOptions.sort((a, b) {
+      if (a['id'] == 'frete_gratis') return -1; // Coloca o frete grátis no topo
+      if (b['id'] == 'frete_gratis') return 1;
+      return 0;
+    });
+
     return ListView.builder(
       itemCount: freteOptions.length,
       itemBuilder: (context, index) {
         final frete = freteOptions[index];
         final company = frete['company'];
+        final isFreteGratis = frete['id'] == 'frete_gratis';
 
         // Verifica se existe um erro no serviço de frete
         if (frete.containsKey('error')) {
@@ -128,36 +163,54 @@ class _EscolherFreteScreenState extends State<EscolherFreteScreen> {
                 SizedBox(
                   height: 50,
                   width: 50,
-                  child: Image.network(
-                    company['picture'],
-                    fit: BoxFit.contain, // Mantém a proporção da imagem
-                  ),
+                  child: isFreteGratis
+                      ? const Icon(
+                          Icons.delivery_dining,
+                          size: 40,
+                          color: Colors.green,
+                        )
+                      : Image.network(
+                          company['picture'] ?? 'https://via.placeholder.com/50',
+                          fit: BoxFit.contain,
+                        ),
                 ),
-                const SizedBox(width: 16), // Espaço entre a imagem e os textos
-                // Coluna de informações (Nome do serviço, preço, prazo)
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '${utf8.decode(company['name'].toString().runes.toList())} - ${utf8.decode(frete['name'].toString().runes.toList())}', // Decodifica os textos
-                        style: const TextStyle(
-                          fontSize: 16.0,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    Text(
+                      isFreteGratis
+                          ? 'Entrega Rápida' // Nome para o frete grátis
+                          : '${utf8.decode(company['name'].toString().runes.toList())} - ${utf8.decode(frete['name'].toString().runes.toList())}',
+                      style: const TextStyle(
+                        fontSize: 16.0,
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(height: 4), // Espaço entre o nome e o preço
-                      Text(
-                        'Preço: ${frete['currency']} ${frete['price']}',
-                        style: const TextStyle(
-                          fontSize: 14.0,
+                    ),
+                    const SizedBox(height: 4),
+                    isFreteGratis
+                      ? const Text(
+                          'Frete grátis!',
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        )
+                      : Text(
+                          'Preço: ${frete['currency']} ${frete['price']}',
+                          style: const TextStyle(
+                            fontSize: 14.0,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4), // Espaço entre o preço e o prazo de entrega
-                      Text(
-                        'Prazo de Entrega: ${frete['delivery_time']} dias úteis',
-                        style: const TextStyle(
-                          fontSize: 14.0,
+                    const SizedBox(height: 4),
+                    Text(
+                      isFreteGratis
+                          ? 'Prazo de entrega: até 5 horas úteis' // Prazo de entrega para o frete grátis
+                          : 'Prazo de Entrega: ${frete['delivery_time']} dias úteis',
+                      style: const TextStyle(
+                        fontSize: 14.0,
                         ),
                       ),
                     ],

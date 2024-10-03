@@ -57,10 +57,7 @@ class _ProductPurchaseScreenState extends State<ProductPurchaseScreen> {
       ),
     );
 
-    // Simula a checagem do status do pagamento após alguns segundos
-    Future.delayed(const Duration(seconds: 3), () {
       _checkPaymentStatus();
-    });
   }
 
   // Função para capturar o retorno da URL e verificar o `payment_id`
