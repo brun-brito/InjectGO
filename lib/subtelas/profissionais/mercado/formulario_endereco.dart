@@ -391,6 +391,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
                           ),
                           onPressed: _isFieldsEnabled
                               ? () async {
+                                  FocusScope.of(context).unfocus();
                                   if (selectedFreteId == null) {
                                     if (_confirmarEndereco()) {
                                       try {

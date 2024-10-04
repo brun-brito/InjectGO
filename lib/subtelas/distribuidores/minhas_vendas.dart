@@ -3,6 +3,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:inject_go/formatadores/formata_data.dart';
+import 'package:inject_go/formatadores/formata_texto_negrito.dart';
 import 'package:inject_go/screens/profile_screen_distribuidores.dart';
 import 'package:inject_go/subtelas/distribuidores/vendas/detalhes_venda.dart';
 
@@ -113,7 +114,16 @@ Widget _buildVendasTab(String status) {
             .doc(widget.id)
             .collection('vendas')
             .where('status', isEqualTo: status)
-            .orderBy('data_criacao', descending: true)
+            .orderBy(
+              (status == 'solicitado')
+                  ? 'tempo_maximo_aprova'
+                  : (status == 'preparando')
+                      ? 'tempo_maximo_envio'
+                      : (status == 'enviado')
+                          ? 'data_postagem'
+                          : 'data_criacao', // Para outros status ou finalizados
+              descending: false,
+            )
             .snapshots(),
     builder: (context, snapshot) {
       if (snapshot.connectionState == ConnectionState.waiting) {
@@ -144,13 +154,16 @@ Widget _buildVendasTab(String status) {
           final paymentId = groupedVendas.keys.elementAt(index);
           final vendasDoPedido = groupedVendas[paymentId]!;
           final primeiraVenda = vendasDoPedido.first.data() as Map<String, dynamic>;
+          final pedidoId = vendasDoPedido[0].id;
 
           // Cálculo do total da compra (soma de todos os produtos no array 'produtos')
           double totalCompra = 0.0;
           for (var venda in vendasDoPedido) {
             List<dynamic> produtos = venda['produtos'];  // Acessa o array 'produtos'
             totalCompra += produtos.fold(0.0, (acc, produto) {
-              return acc + (produto['productInfo']['preco'] ?? 0.0);
+              double precoProduto = (produto['productInfo']['preco'] ?? 0.0);
+              int quantidadeProduto = (produto['productInfo']['quantidade'] ?? 1);
+              return acc + (precoProduto * quantidadeProduto);
             });
           }
 
@@ -168,13 +181,41 @@ Widget _buildVendasTab(String status) {
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Total: R\$ ${totalCompra.toStringAsFixed(2)}'),
-                  Text('Data: ${formatDate(primeiraVenda['data_criacao'])}'),
+                  buildRichText('Total: ' ,'R\$${totalCompra.toStringAsFixed(2)}'),
+                  buildRichText('Data: ' ,formatDate(primeiraVenda['data_criacao'])),
+                  if (primeiraVenda['status'] == 'solicitado')
+                    StreamBuilder<String>(
+                      stream: timeStream(primeiraVenda['tempo_maximo_aprova']),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121));
+                        }
+                        if (snapshot.hasError) {
+                          return Text("Erro: ${snapshot.error}");
+                        }
+                        return buildRichTextColor('Confirmar até: ', snapshot.data ?? '', Colors.red);
+                      },
+                    ),
+                  
+                  // Atualizando "Enviar pedido até" em tempo real
+                  if (primeiraVenda['status'] == 'preparando')
+                    StreamBuilder<String>(
+                      stream: timeStream(primeiraVenda['tempo_maximo_envio']),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121));
+                        }
+                        if (snapshot.hasError) {
+                          return Text("Erro: ${snapshot.error}");
+                        }
+                        return buildRichTextColor('Enviar pedido até: ', snapshot.data ?? '', Colors.red);
+                      },
+                    ),
                 ],
               ),
               onTap: () {
                 // Navega para a página de detalhes das vendas agrupadas
-                _showVendaDetalhes(context, vendasDoPedido, paymentId);
+                _showVendaDetalhes(context, vendasDoPedido, paymentId, pedidoId);
               },
             ),
           );
@@ -185,7 +226,7 @@ Widget _buildVendasTab(String status) {
 }
 
   // Exibir detalhes da venda e opções de aprovação ou rejeição
-  void _showVendaDetalhes(BuildContext context, List<QueryDocumentSnapshot> vendasDoPedido, String paymentId) {
+  void _showVendaDetalhes(BuildContext context, List<QueryDocumentSnapshot> vendasDoPedido, String paymentId, String pedidoId) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -193,6 +234,7 @@ Widget _buildVendasTab(String status) {
           vendasDoPedido: vendasDoPedido,
           paymentId: paymentId,
           distribuidorId: widget.id,
+          pedidoId: pedidoId,//colocar o id do pedido que ele clicou nos detahes
         ),
       ),
     );

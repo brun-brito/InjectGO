@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:inject_go/formatadores/formata_data.dart';
+import 'package:inject_go/formatadores/formata_texto_negrito.dart';
 import 'package:inject_go/subtelas/profissionais/mercado/pedidos/detalhes_pedidos.dart';
 import 'package:intl/intl.dart';
 import 'package:inject_go/screens/profile_screen.dart';
@@ -188,7 +189,6 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
                 final produtos = compra['produtos'] as List<dynamic>;
                 final dataCompra = (compra['data_criacao'] as Timestamp).toDate();
                 final formattedDate = DateFormat('dd/MM/yyyy').format(dataCompra);
-                final tempoMaximoAprova = (compra['tempo_maximo_aprova'] as Timestamp?)?.toDate();
 
                 return Card(
                   child: ListTile(
@@ -196,11 +196,34 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildRichText('Data de pedido: ', formattedDate),
-                        _buildRichText('Total de Itens: ', '${produtos.length}'),
+                        buildRichText('Data de pedido: ', formattedDate),
+                        buildRichText('Total de Itens: ', '${produtos.length}'),
                         if (compra['status'] == 'solicitado')
-                          _buildRichText('Pedido será confirmado até: ', formatDataHora(tempoMaximoAprova.toString())),
-                        // TODO: Colocar tempo de envio maximo 'tempo_maximo_envio'
+                          StreamBuilder<String>(
+                            stream: timeStream(compra['tempo_maximo_aprova']),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return const CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121));
+                              }
+                              if (snapshot.hasError) {
+                                return Text("Erro: ${snapshot.error}");
+                              }
+                              return buildRichTextColor('Pedido será confirmado até: ', snapshot.data ?? '', Colors.red);
+                            },
+                          ),
+                        if (compra['status'] == 'preparando')
+                          StreamBuilder<String>(
+                            stream: timeStream(compra['tempo_maximo_envio']),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return const CircularProgressIndicator(color: Color.fromARGB(255, 236, 63, 121));
+                              }
+                              if (snapshot.hasError) {
+                                return Text("Erro: ${snapshot.error}");
+                              }
+                              return buildRichTextColor('Pedido será enviado até: ', snapshot.data ?? '', Colors.red);
+                            },
+                          ),
 
                         ...produtos.map((produto) {
                           final productInfo = produto['productInfo'] as Map<String, dynamic>;
@@ -330,8 +353,8 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildRichText('Data de pedido: ', formattedDate),
-                        _buildRichText('Total de Itens: ', '${produtos.length}'),
+                        buildRichText('Data de pedido: ', formattedDate),
+                        buildRichText('Total de Itens: ', '${produtos.length}'),
                         ...produtos.map((produto) {
                           final productInfo = produto['productInfo'] as Map<String, dynamic>;
                           return Column(
@@ -402,22 +425,6 @@ class _MinhasComprasScreenState extends State<MinhasComprasScreen> with SingleTi
           },
         );
       },
-    );
-  }
-
-  Widget _buildRichText(String titulo, String valor) {
-    return Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(
-            text: titulo,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          TextSpan(
-            text: valor,
-          ),
-        ],
-      ),
     );
   }
   

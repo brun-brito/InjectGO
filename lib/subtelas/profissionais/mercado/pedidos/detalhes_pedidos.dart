@@ -1,3 +1,5 @@
+// ignore_for_file: library_private_types_in_public_api
+
 import 'dart:convert';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +9,7 @@ import 'package:inject_go/formatadores/formata_data.dart';
 import 'package:flutter/services.dart'; // Para copiar textos
 
 // TODO: COLOCAR OS PRAZOS DE ENTREGA
-class DetalhesCompraScreen extends StatelessWidget {
+class DetalhesCompraScreen extends StatefulWidget {
   final List<QueryDocumentSnapshot> comprasDoPedido;
   final String paymentId;
   final String userEmail;
@@ -19,6 +21,11 @@ class DetalhesCompraScreen extends StatelessWidget {
     required this.userEmail,
   });
 
+    @override
+  _DetalhesCompraScreenState createState() => _DetalhesCompraScreenState();
+}
+
+class _DetalhesCompraScreenState extends State<DetalhesCompraScreen> {
   Future<Map<String, dynamic>> fetchPaymentDetails(String paymentId, String distribuidorId) async {
     try {
       // Busca o access token na coleção distribuidores
@@ -67,7 +74,7 @@ class DetalhesCompraScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primeiraCompra = comprasDoPedido.first;
+    final primeiraCompra = widget.comprasDoPedido.first;
 
     // Faça o cast do data() para Map<String, dynamic>
     final Map<String, dynamic> compraData = primeiraCompra.data() as Map<String, dynamic>;
@@ -77,6 +84,9 @@ class DetalhesCompraScreen extends StatelessWidget {
     final distributorInfo = compraData.isNotEmpty && compraData.containsKey('distributorInfo')
         ? compraData['distributorInfo'] as Map<String, dynamic>
         : null;
+
+    final enderecoEntrega = compraData['endereco_entrega'] as Map<String, dynamic>? ?? {};
+    final infoEntrega = compraData['info_entrega'] as Map<String, dynamic>? ?? {};
 
     // Concatene 'razao_social' e 'cnpj' para criar o distribuidorId
     final distribuidorId = distributorInfo != null
@@ -90,7 +100,7 @@ class DetalhesCompraScreen extends StatelessWidget {
       ),
       body: distribuidorId != null
           ? FutureBuilder<Map<String, dynamic>>(
-              future: fetchPaymentDetails(paymentId, distribuidorId),
+              future: fetchPaymentDetails(widget.paymentId, distribuidorId),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
@@ -188,6 +198,74 @@ class DetalhesCompraScreen extends StatelessWidget {
                           },
                         ),
                         const SizedBox(height: 20),
+
+                      const Text(
+                        'Endereço de Entrega:',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.pinkAccent),
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(15),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.3),
+                              blurRadius: 5,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildRichText('Rua: ', enderecoEntrega['rua'] ?? 'Não especificado'),
+                            _buildRichText('Número: ', enderecoEntrega['numero'] ?? 'Não especificado'),
+                            _buildRichText('Bairro: ', enderecoEntrega['bairro'] ?? 'Não especificado'),
+                            _buildRichText('Cidade: ', enderecoEntrega['cidade'] ?? 'Não especificado'),
+                            _buildRichText('CEP: ', enderecoEntrega['cep'] ?? 'Não especificado'),
+                            _buildRichText('UF: ', enderecoEntrega['uf'] ?? 'Não especificado'),
+                            _buildRichText('Complemento: ', enderecoEntrega['complemento'] ?? 'Não especificado'),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Informações de envio
+                      if (primeiraCompra['status'] == 'enviado') ...[
+                      const Text(
+                        'Informações de Envio:',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.pinkAccent),
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(15),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.3),
+                              blurRadius: 5,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildRichText('Responsável pelo envio: ', infoEntrega['responsavel'] ?? 'Não especificado'),
+                            _buildRichText('Frete: ', infoEntrega['frete'].toString()),
+                            _buildRichText('Tempo Previsto de Entrega: ',
+                                infoEntrega['id_responsavel'] == 'frete_gratis' ? 'Até 5 horas úteis' :
+                                infoEntrega['tempo_previsto'] > 0 ? '${infoEntrega['tempo_previsto']} dias' : 'Não especificado'),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      ],
+
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.pinkAccent.withOpacity(0.1),

@@ -7,19 +7,22 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:inject_go/formatadores/formata_texto_negrito.dart';
 import 'package:uuid/uuid.dart';
-
+// TODO: URL PRA TESTAR LOCAL: http://192.168.15.60:3000
 // TODO: COLOCAR OS PRAZOS DE ENTREGA
 // TODO: Colocar o botão de envuar com formulário de código de rastreio etc *ver como funciona
 class DetalhesVendaScreen extends StatefulWidget {
   final List<QueryDocumentSnapshot> vendasDoPedido;
   final String paymentId;
+  final String pedidoId;
   final String distribuidorId;
 
   const DetalhesVendaScreen({
     super.key,
     required this.vendasDoPedido,
     required this.paymentId,
+    required this.pedidoId,
     required this.distribuidorId,
   });
 
@@ -71,11 +74,11 @@ class _DetalhesVendaScreenState extends State<DetalhesVendaScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Exibe informações sobre o pagamento
-                    _buildRichText('Status do Pagamento: ', _mapPaymentStatus(status), _getStatusColor(status)),
-                    _buildRichText('Produtos: ', 'R\$ $valorProdutos'),
-                    _buildRichText('Frete: ', 'R\$ $valorFrete'),
-                    _buildRichText('Valor Total Pago: ', 'R\$ $valorTotal'),
-                    _buildRichText('Comprador: ', compradorEmail),
+                    buildRichTextColor('Status do Pagamento: ', _mapPaymentStatus(status), _getStatusColor(status)),
+                    buildRichTextColor('Total produtos: ', 'R\$ $valorProdutos'),
+                    buildRichTextColor('Frete: ', 'R\$ $valorFrete'),
+                    buildRichTextColor('Valor Total Pago: ', 'R\$ $valorTotal'),
+                    buildRichTextColor('Comprador: ', compradorEmail),
 
                     // Exibe os itens comprados
                     const SizedBox(height: 16),
@@ -109,6 +112,36 @@ class _DetalhesVendaScreenState extends State<DetalhesVendaScreen> {
                       ),
                     ),
 
+                    // Botões de Aprovar e Rejeitar
+                    if (widget.vendasDoPedido.first['status'] == 'solicitado') ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton(
+                            onPressed: _isLoading ? null : () => _aprovarVenda(context),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                            child: const Text('Aprovar', style: TextStyle(color: Colors.white)),
+                          ),
+                          ElevatedButton(
+                            onPressed: _isLoading ? null : () async => _rejeitarVenda(context),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                            child: const Text('Rejeitar', style: TextStyle(color: Colors.white)),
+                          ),
+                        ],
+                      ),
+                    ]
+                    else if (widget.vendasDoPedido.first['status'] == 'preparando') ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton(
+                            onPressed: _isLoading ? null : () => _enviarPedido(context),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                            child: const Text('Postar pedido', style: TextStyle(color: Colors.white)),
+                          ),
+                        ],
+                      ),
+                    ],
                     // Exibe informações de contato
                     const SizedBox(height: 16),
                     FutureBuilder<Map<String, dynamic>>(
@@ -152,25 +185,6 @@ class _DetalhesVendaScreenState extends State<DetalhesVendaScreen> {
                         );
                       },
                     ),
-
-                    // Botões de Aprovar e Rejeitar
-                    if (widget.vendasDoPedido.first['status'] == 'solicitado') ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          ElevatedButton(
-                            onPressed: _isLoading ? null : () => _aprovarVenda(context),
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                            child: const Text('Aprovar', style: TextStyle(color: Colors.white)),
-                          ),
-                          ElevatedButton(
-                            onPressed: _isLoading ? null : () => _rejeitarVenda(context),
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                            child: const Text('Rejeitar', style: TextStyle(color: Colors.white)),
-                          ),
-                        ],
-                      ),
-                    ]
                   ],
                 ),
               );
@@ -230,23 +244,6 @@ class _DetalhesVendaScreenState extends State<DetalhesVendaScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-    Widget _buildRichText(String title, String value, [Color? color]) {
-    return Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(
-            text: title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          TextSpan(
-            text: value,
-            style: TextStyle(fontSize: 16, color: color ?? Colors.black87),
-          ),
-        ],
       ),
     );
   }
@@ -378,63 +375,39 @@ class _DetalhesVendaScreenState extends State<DetalhesVendaScreen> {
     }
   }
 
-  // Função para aprovar a venda
+  // Função para aprovar o pedido
   void _aprovarVenda(BuildContext context) async {
     setState(() {
-      _isLoading = true; // Iniciar carregamento
+      _isLoading = true;
     });
 
     try {
-      String vendaId;
-      String buyerEmail;
-      String buyerId;
-      String compraId;
-      for (var venda in widget.vendasDoPedido) {
-        vendaId = venda.id;
-        buyerEmail = venda['buyerInfo']['email'];
-
-        // Atualiza o status para o distribuidor
-        await FirebaseFirestore.instance
-            .collection('distribuidores')
-            .doc(widget.distribuidorId)
-            .collection('vendas')
-            .doc(vendaId)
-            .update({'status': 'preparando'});
-
-        // Atualiza o status para o comprador
-        final querySnapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .where('email', isEqualTo: buyerEmail)
-            .limit(1)
-            .get();
-
-        if (querySnapshot.docs.isNotEmpty) {
-          buyerId = querySnapshot.docs.first.id;
-          compraId = venda.id;
-
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(buyerId)
-              .collection('compras')
-              .doc(compraId)
-              .update({
-            'status': 'preparando',
-          });
-
-          // Envia a notificação para o comprador (profissional)
-          await _enviarNotificacaoComprador(buyerEmail, 'Compra aprovada!', 'Sua compra foi aprovada e está em processo de preparo.');
-          
-          await enviarEmailProfissional(compraId, buyerId, 'aprovado');
-        }
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Venda aprovada com sucesso!')),
+      final response = await http.post(
+        Uri.parse('${dotenv.env['ENDERECO_SERVIDOR']}/aprovar-pedido'),
+        // Uri.parse('http://192.168.15.60:3000/aprovar-pedido'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'distribuidorId': widget.distribuidorId,
+          'pedidoId': widget.pedidoId,
+        }),
       );
-      Navigator.pop(context); // Volta para a tela de listagem após aprovação
+
+      // Verifica se a resposta foi bem-sucedida
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pedido aprovado com sucesso!')),
+        );
+        Navigator.pop(context); // Volta para a tela de listagem após aprovação
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao aprovar o pedido: ${response.body}')),
+        );
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao aprovar a venda: $e')),
+        SnackBar(content: Text('Erro ao aprovar o pedido: $e')),
       );
     } finally {
       setState(() {
@@ -443,7 +416,7 @@ class _DetalhesVendaScreenState extends State<DetalhesVendaScreen> {
     }
   }
 
-  // Função para rejeitar a venda (incluindo loading)
+  // Função para rejeitar o pedido
   void _rejeitarVenda(BuildContext context) async {
     setState(() {
       _isLoading = true;
@@ -502,12 +475,53 @@ class _DetalhesVendaScreenState extends State<DetalhesVendaScreen> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Venda rejeitada e reembolso realizado com sucesso!')),
+        const SnackBar(content: Text('Pedido rejeitado e reembolso realizado com sucesso!')),
       );
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao rejeitar a venda: $e')),
+        SnackBar(content: Text('Erro ao rejeitar pedido: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  //TODO: Implementar enviar pedido com endpoint real
+  void _enviarPedido(BuildContext context) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('${dotenv.env['ENDERECO_SERVIDOR']}/enviar-pedido'),
+        // Uri.parse('http://192.168.15.60:3000/enviar-pedido'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'distribuidorId': widget.distribuidorId,
+          'pedidoId': widget.pedidoId,
+        }),
+      );
+
+      // Verifica se a resposta foi bem-sucedida
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pedido enviado com sucesso!')),
+        );
+        Navigator.pop(context); // Volta para a tela de listagem após aprovação
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao enviar pedido: ${response.body}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao enviar pedido: $e')),
       );
     } finally {
       setState(() {
